@@ -110,9 +110,8 @@ class Symbol:
             return Literal(self.datalog_engine, self.name, args)
 
     def __eq__(self, other):
-        if isinstance(other, Symbol):
-            return Literal(self.datalog_engine, "=", (self, other))
-        
+        return Literal(self.datalog_engine, "=", (self, other))
+    
     def __str__(self):
         return self.name
 
@@ -216,6 +215,7 @@ class Datalog_engine:
                 self._insert(tbl, a.lua)
             self.clauses.append((head, body.body))
         else: # body is a literal
+            print body
             self._insert(tbl, body.lua)
             self.clauses.append((head,[body]))
         clause = self._make_clause(head.lua, tbl)
@@ -229,7 +229,7 @@ class Datalog_engine:
         def __call__(self):
             raise TypeError, "Datalog programs are not callable"
     
-    def program(self, func):
+    def add_program(self, func):
         """
         A helper for decorator implementation
         """
@@ -277,7 +277,7 @@ class Datalog_engine:
             else:
                 print h, ":-", str(b), "."
 
-def datalog_program(datalog_engine):
+def program(datalog_engine):
     """
     A decorator for datalog program
     """
