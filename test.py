@@ -69,17 +69,23 @@ if __name__ == "__main__":
         - q(a,c)
         assert ask(q(a, Y)) == set([('a', 'b')])
         
-        # integer variable
-        for _i in _range(10):
-            + next(_i+1, _i)
-        assert ask(next(2, 1)) == set([('2', '1')])
-        
         # clauses
         r(X, Y) <= p(X) & p(Y)
         assert ask(r(a, a)) == set([('a', 'a')])
         # TODO more
+
+        # integer variable
+        for _i in range(10):
+            + successor(_i+1, _i)
+        assert ask(successor(2, 1)) == set([('2', '1')])
         
-        # equality:
+        # equality (must be between parenthesis):
+        s(X) <= (X == a)
+        assert ask(s(X)) == set([('a',)])
+        s(X) <= (X == 1)
+        print ask(s(X))
+        assert ask(s(X)) == set([('1',), ('a',)])
+        
         s(X, Y) <= p(X) & (X == Y)
         assert ask(s(a, a)) == set([('a', 'a')])
         assert ask(s(a, b)) == None
@@ -90,6 +96,14 @@ if __name__ == "__main__":
         # s <= (X == Y)   
         # assert ask(s(X,Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
 
+        # recursion
+        even(N) <= (N == 0)
+        even(N) <= successor(N, N1) & odd(N1)
+        odd(N) <= successor(N, N1) & even(N1)
+        assert ask(even(0)) == set([('0',)])
+        print ask(even(X))
+        assert ask(odd(1)) == set([('1',)])
+        
         # unary plus defines a fact
         + farmer(moshe)
         + donkey(eeyore)
