@@ -28,8 +28,6 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 """
 TODO:
-* improve API
-* make it python 3 compatible
 * expression in == operator see __iadd__ and __radd__
 * test factorial
 * write documentation
@@ -107,7 +105,7 @@ class Symbol:
             # TODO check that there is only one argument
             return self.datalog_engine._ask_literal(args[0])
         elif self.type == 'variable':
-            raise TypeError, "predicate name must start with a lower case : %s" % self.name
+            raise TypeError("predicate name must start with a lower case : %s" % self.name)
         else:
             return Literal(self.datalog_engine, self.name, args)
 
@@ -133,7 +131,7 @@ class Literal:
         for a in terms:
             if isinstance(a, Symbol):
                 datalog_engine._insert(tbl, a.lua)
-            elif isinstance(a, basestring):
+            elif isinstance(a, str):
                 datalog_engine._insert(tbl, datalog_engine._make_const(a))
             else:
                 datalog_engine._insert(tbl, datalog_engine._make_const(str(a)))
@@ -159,7 +157,7 @@ class Literal:
         return Body(self, literal)
 
     def __str__(self):
-        terms = map (str, self.terms)
+        terms = list(map (str, self.terms))
         return str(self.predicate_name) + "(" + string.join(terms,',') + ")"
 
 class Body:
@@ -217,7 +215,7 @@ class Datalog_engine:
                 self._insert(tbl, a.lua)
             self.clauses.append((head, body.body))
         else: # body is a literal
-            print body
+            print(body)
             self._insert(tbl, body.lua)
             self.clauses.append((head,[body]))
         clause = self._make_clause(head.lua, tbl)
@@ -229,21 +227,21 @@ class Datalog_engine:
         This class prevents a call to a datalog program
         """
         def __call__(self):
-            raise TypeError, "Datalog programs are not callable"
+            raise TypeError("Datalog programs are not callable")
     
     def add_program(self, func):
         """
         A helper for decorator implementation
         """
         try:
-            code = func.func_code
+            code = func.__code__
         except:
-            raise TypeError, "function or method argument expected"
+            raise TypeError("function or method argument expected")
         names = set(code.co_names)
-        defined = set(code.co_varnames).union(set(func.func_globals.keys())) # local variables and global variables
+        defined = set(code.co_varnames).union(set(func.__globals__.keys())) # local variables and global variables
         defined = defined.union(__builtins__)
         defined.add('None')
-        newglobals = func.func_globals.copy()
+        newglobals = func.__globals__.copy()
         i = None
         for name in names.difference(defined): # for names that are not defined
             if not name.startswith('_'):
@@ -251,17 +249,17 @@ class Datalog_engine:
                 # newglobals[name] = Symbol(name, self)
             else:
                 newglobals[name] = i
-        exec code in newglobals
+        exec(code, newglobals)
         return self._NoCallFunction()
     
     def _ask_literal(self, literal): # called by Literal
-        print "asking : %s" % str(literal)
+        print("asking : %s" % str(literal))
         lua_result = self._ask(literal.lua)
         if not lua_result: return None
         # print pr(lua_result)
         result_set = set([lua_result[i+1] for i in range(len(lua_result))])
         result = set(tuple(dict(lua_result[i+1]).values()) for i in range(len(lua_result)))
-        print result
+        print(result)
         return result
     
     def ask(self, code):
@@ -277,9 +275,9 @@ class Datalog_engine:
         """
         for (h,b) in self.clauses:
             if isinstance(b, list):
-                print h, ":-", string.join(map(str, b), " , "), "."
+                print(h, ":-", string.join(list(map(str, b)), " , "), ".")
             else:
-                print h, ":-", str(b), "."
+                print(h, ":-", str(b), ".")
 
 def program(datalog_engine):
     """
@@ -291,9 +289,9 @@ def pr(a, level=0):
     try:
         #if isinstance(a, 'Lua_table'):
         if level<3:
-            return [ (x[0], pr(x[1], level+1)) for x in a.items() ]
+            return [ (x[0], pr(x[1], level+1)) for x in list(a.items()) ]
         else:
-            return [ (x[0], x[1]) for x in a.items() ]
+            return [ (x[0], x[1]) for x in list(a.items()) ]
 
     except:
         return a
