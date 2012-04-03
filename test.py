@@ -27,7 +27,7 @@ if __name__ == "__main__":
     # instantiate a pyDatalog engine
     datalog_engine = pyDatalog.Datalog_engine()
     
-    print "Defining a datalog program...",
+    print("Defining a datalog program...")
     
     # a decorator is used to create a program on the pyDatalog engine
     @pyDatalog.program(datalog_engine)
@@ -84,14 +84,14 @@ if __name__ == "__main__":
         s(X) <= (X == a)
         assert ask(s(X)) == set([('a',)])
         s(X) <= (X == 1)
-        print ask(s(X))
+        print(ask(s(X)))
         assert ask(s(X)) == set([('1',), ('a',)])
         
         s(X, Y) <= p(X) & (X == Y)
         assert ask(s(a, a)) == set([('a', 'a')])
         assert ask(s(a, b)) == None
         assert ask(s(X,a)) == set([('a', 'a')])
-        print ask(s(X, Y))
+        print(ask(s(X, Y)))
         assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
         # TODO  make this work
         # s <= (X == Y)   
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         even(N) <= successor(N, N1) & odd(N1)
         odd(N) <= successor(N, N1) & even(N1)
         assert ask(even(0)) == set([('0',)])
-        assert ask(even(X)) == set([(u'4',), (u'10',), (u'6',), (u'0',), (u'2',), (u'8',)])
+        assert ask(even(X)) == set([('4',), ('10',), ('6',), ('0',), ('2',), ('8',)])
         assert ask(odd(1)) == set([('1',)])
         assert ask(odd(5)) == set([('5',)])
         assert ask(even(5)) == None
@@ -133,13 +133,13 @@ if __name__ == "__main__":
         ask(beats(moshe, Y2))
         ask(beats(X3, Y3))
 
-    assert datalog_engine.ask('farmer(moshe)') == set([(u'moshe',)])
+    assert datalog_engine.ask('farmer(moshe)') == set([('moshe',)])
 
-    print "Done."
-    print "Definition has already updated the database as follows:"
-    print
+    print("Done.")
+    print("Definition has already updated the database as follows:")
+    print()
     datalog_engine.prt()
-    print
-    print "Trying to call the logical function raises an error:"
-    print
+    print()
+    print("Trying to call the logical function raises an error:")
+    print()
     _()
