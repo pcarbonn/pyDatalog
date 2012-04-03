@@ -29,11 +29,12 @@ http://www.python.org/download/releases/2.0.1/license/ )
 """
 TODO:
 * next + odd/even --> performance ?
-* improve API
+* improve API. use __builtins__
 * expression in == operator see __iadd__ and __radd__
 * test factorial
+* write documentation
 * package for release on pyPi
-* build website
+
 
 Roadmap:
 * save / load database in file
@@ -228,7 +229,7 @@ class Datalog_engine:
         def __call__(self):
             raise TypeError, "Datalog programs are not callable"
     
-    def add_program(self, func):
+    def program(self, func):
         """
         A helper for decorator implementation
         """
@@ -238,17 +239,21 @@ class Datalog_engine:
             raise TypeError, "function or method argument expected"
         names = set(code.co_names)
         defined = set(code.co_varnames).union(set(func.func_globals.keys())) # local variables and global variables
-        print defined
+        defined = defined.union(__builtins__)
+        defined.add('None')
         # Generate the new global environment for the function;
         # to the old environment, add definitions for all undefined
         # symbols, which relate to this database (self). When the
         # symbols are operated on in the function, they will add
         # facts and clauses to the database.
         newglobals = func.func_globals.copy()
+        i = None
         for name in names.difference(defined): # for names that are not defined
             if not name.startswith('_'):
                 self.add_symbols((name,), newglobals)
                 # newglobals[name] = Symbol(name, self)
+            else:
+                newglobals[name] = i
         exec code in newglobals
         return self._NoCallFunction()
     

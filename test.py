@@ -24,71 +24,71 @@ import pyDatalog
 
 if __name__ == "__main__":
 
+    # instantiate a pyDatalog engine
     datalog_engine = pyDatalog.Datalog_engine()
     
     print "Defining a datalog program...",
-
-    _set = set
-    _None = None
-    _range = range
     
-    @pyDatalog.datalog_program(datalog_engine)
+    # a decorator is used to create a program on the pyDatalog engine
+    @pyDatalog.program(datalog_engine)
     def _(): # the function name is ignored
-        global _set, _None, _i
-        + p(a) # assert and query unary fact
-        assert ask(p(a)) == _set([('a',)])
-        assert ask(p(X)) == _set([('a',)])
-        assert ask(p(Y)) == _set([('a',)])
-        assert ask(p(b)) == _None
+        + p(a) # assert a unary fact
+        # check that unary queries work
+        assert ask(p(a)) == set([('a',)])
+        assert ask(p(X)) == set([('a',)])
+        assert ask(p(Y)) == set([('a',)])
+        assert ask(p(b)) == None
         
         + p(b)
-        assert ask(p(X)) == _set([('a',), ('b',)])
+        assert ask(p(X)) == set([('a',), ('b',)])
         
         + p(b) # facts are unique
-        assert ask(p(X)) == _set([('a',), ('b',)])
+        assert ask(p(X)) == set([('a',), ('b',)])
         
-        - p(b) # retract and query unary fact
-        assert ask(p(X)) == _set([('a',)])
+        - p(b) # retract a unary fact
+        assert ask(p(X)) == set([('a',)])
         
         # strings and integers
         + p('c')
-        assert ask(p(c)) == _set([('c',)])
+        assert ask(p(c)) == set([('c',)])
         
         + p(1)
-        assert ask(p(1)) == _set([('1',)])
+        assert ask(p(1)) == set([('1',)])
 
         # idem for secondary facts
         + q(a, b)
-        assert ask(q(a, b)) == _set([('a', 'b')])
-        assert ask(q(X, b)) == _set([('a', 'b')])
-        assert ask(q(a, Y)) == _set([('a', 'b')])
-        assert ask(q(a, c)) == _None
-        assert ask(q(X, Y)) == _set([('a', 'b')])
+        assert ask(q(a, b)) == set([('a', 'b')])
+        assert ask(q(X, b)) == set([('a', 'b')])
+        assert ask(q(a, Y)) == set([('a', 'b')])
+        assert ask(q(a, c)) == None
+        assert ask(q(X, Y)) == set([('a', 'b')])
         
         + q(a,c)
-        assert ask(q(a, Y)) == _set([('a', 'b'), ('a', 'c')])
+        assert ask(q(a, Y)) == set([('a', 'b'), ('a', 'c')])
         
         - q(a,c)
-        assert ask(q(a, Y)) == _set([('a', 'b')])
+        assert ask(q(a, Y)) == set([('a', 'b')])
         
-        # integers
+        # integer variable
         for _i in _range(10):
             + next(_i+1, _i)
-        assert ask(next(2, 1)) == _set([('2', '1')])
+        assert ask(next(2, 1)) == set([('2', '1')])
         
         # clauses
         r(X, Y) <= p(X) & p(Y)
-        assert ask(r(a, a)) == _set([('a', 'a')])
+        assert ask(r(a, a)) == set([('a', 'a')])
         # TODO more
         
         # equality:
         s(X, Y) <= p(X) & (X == Y)
-        assert ask(s(a, a)) == _set([('a', 'a')])
-        assert ask(s(a, b)) == _None
-        assert ask(s(X,a)) == _set([('a', 'a')])
+        assert ask(s(a, a)) == set([('a', 'a')])
+        assert ask(s(a, b)) == None
+        assert ask(s(X,a)) == set([('a', 'a')])
         print ask(s(X, Y))
-        assert ask(s(X, Y)) == _set([('a', 'a'),('c', 'c'),('1', '1')])
-        # TODO s(X,Y) fails if s <= (X == Y) !
+        assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
+        # TODO  make this work
+        # s <= (X == Y)   
+        # assert ask(s(X,Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
 
         # unary plus defines a fact
         + farmer(moshe)
