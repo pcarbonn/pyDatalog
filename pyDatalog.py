@@ -28,18 +28,20 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 """
 TODO:
-* next + odd/even --> performance ?
-* improve API. use __builtins__
+* improve API
+* make it python 3 compatible
 * expression in == operator see __iadd__ and __radd__
 * test factorial
 * write documentation
 * package for release on pyPi
 
-
 Roadmap:
+* Windows binaries
+* avoid stack overflow with deep recursion
 * save / load database in file
 * parse(prolog_syntax) using pyparsing
 * negation
+* comparison (<, >, ...)
 * multicore using lua lanes
 
 Limitations:
@@ -103,7 +105,7 @@ class Symbol:
         "time to create a literal !"
         if self.name == 'ask':
             # TODO check that there is only one argument
-            return self.datalog_engine.ask(args[0])
+            return self.datalog_engine._ask_literal(args[0])
         elif self.type == 'variable':
             raise TypeError, "predicate name must start with a lower case : %s" % self.name
         else:
@@ -241,11 +243,6 @@ class Datalog_engine:
         defined = set(code.co_varnames).union(set(func.func_globals.keys())) # local variables and global variables
         defined = defined.union(__builtins__)
         defined.add('None')
-        # Generate the new global environment for the function;
-        # to the old environment, add definitions for all undefined
-        # symbols, which relate to this database (self). When the
-        # symbols are operated on in the function, they will add
-        # facts and clauses to the database.
         newglobals = func.func_globals.copy()
         i = None
         for name in names.difference(defined): # for names that are not defined
@@ -257,7 +254,7 @@ class Datalog_engine:
         exec code in newglobals
         return self._NoCallFunction()
     
-    def ask(self, literal):
+    def _ask_literal(self, literal): # called by Literal
         print "asking : %s" % str(literal)
         lua_result = self._ask(literal.lua)
         if not lua_result: return None
@@ -266,10 +263,17 @@ class Datalog_engine:
         result = set(tuple(dict(lua_result[i+1]).values()) for i in range(len(lua_result)))
         print result
         return result
+    
+    def ask(self, code):
+        ast = compile(code, '<string>', 'eval')
+        newglobals = {}
+        self.add_symbols(ast.co_names, newglobals)
+        lua_code = eval(code, newglobals)
+        return self._ask_literal(lua_code)
 
     def prt(self):
         """
-        TODO Print the lua database in somewhat readable (prolog) form
+        TODO Print the clauses
         """
         for (h,b) in self.clauses:
             if isinstance(b, list):
@@ -293,4 +297,3 @@ def pr(a, level=0):
 
     except:
         return a
-

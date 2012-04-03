@@ -18,9 +18,9 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc.  51 Franklin St, Fifth Floor, Boston, MA 02110-1301
 USA
 
-
 """
 import pyDatalog
+import time
 
 if __name__ == "__main__":
 
@@ -32,7 +32,8 @@ if __name__ == "__main__":
     # a decorator is used to create a program on the pyDatalog engine
     @pyDatalog.program(datalog_engine)
     def _(): # the function name is ignored
-        + p(a) # assert a unary fact
+        # assert a unary fact
+        + p(a) 
         # check that unary queries work
         assert ask(p(a)) == set([('a',)])
         assert ask(p(X)) == set([('a',)])
@@ -101,8 +102,23 @@ if __name__ == "__main__":
         even(N) <= successor(N, N1) & odd(N1)
         odd(N) <= successor(N, N1) & even(N1)
         assert ask(even(0)) == set([('0',)])
-        print ask(even(X))
+        assert ask(even(X)) == set([(u'4',), (u'10',), (u'6',), (u'0',), (u'2',), (u'8',)])
         assert ask(odd(1)) == set([('1',)])
+        assert ask(odd(5)) == set([('5',)])
+        assert ask(even(5)) == None
+        
+        # performance
+        for _i in range(2000):
+            + successor(_i+1, _i)
+        assert ask(successor(1801,1800)) == set([('1801', '1800')])
+        #assert ask(successor(99001,99000)) == set([('99001', '99000')])
+        assert ask(odd(299)) == set([('299',)]) 
+        assert ask(odd(999)) == set([('999',)]) 
+        # assert ask(odd(1999)) == set([('1999',)]) # TODO stack overflow around 1800 !
+        
+        # TODO why is this much much slower ??
+        # odd(N) <= even(N1) & successor(N, N1)
+
         
         # unary plus defines a fact
         + farmer(moshe)
@@ -117,7 +133,7 @@ if __name__ == "__main__":
         ask(beats(moshe, Y2))
         ask(beats(X3, Y3))
 
-    #ask(farmer(moshe))
+    assert datalog_engine.ask('farmer(moshe)') == set([(u'moshe',)])
 
     print "Done."
     print "Definition has already updated the database as follows:"
