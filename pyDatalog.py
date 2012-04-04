@@ -217,7 +217,7 @@ class Datalog_engine:
                 self._insert(tbl, a.lua)
             self.clauses.append((head, body.body))
         else: # body is a literal
-            print(body)
+            #print(body)
             self._insert(tbl, body.lua)
             self.clauses.append((head,[body]))
         clause = self._make_clause(head.lua, tbl)
@@ -255,13 +255,13 @@ class Datalog_engine:
         return self._NoCallFunction()
     
     def _ask_literal(self, literal): # called by Literal
-        print("asking : %s" % str(literal))
+        # print("asking : %s" % str(literal))
         lua_result = self._ask(literal.lua)
         if not lua_result: return None
         # print pr(lua_result)
         result_set = set([lua_result[i+1] for i in range(len(lua_result))])
         result = set(tuple(dict(lua_result[i+1]).values()) for i in range(len(lua_result)))
-        print(result)
+        #print(result)
         return result
     
     def ask(self, code):

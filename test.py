@@ -126,17 +126,17 @@ if __name__ == "__main__":
         # odd(N) <= even(N1) & successor(N, N1)
 
     # populate facts from python variables
-    _farmers = ('moshe dayan', 'omar')
+    _farmers = ('Moshe dayan', 'omar')
     @pyDatalog.program(datalog_engine)
     def _(): # the function name is ignored
         # unary plus defines a fact
         for _farmer in _farmers:
             + farmer(_farmer)
-        assert ask(farmer(X)) == set([('moshe dayan',), ('omar',)])
+        assert ask(farmer(X)) == set([('Moshe dayan',), ('omar',)])
 
     # execute queries in a python program
-    moshe_is_a_farmer = datalog_engine.ask("farmer('moshe dayan')")
-    assert moshe_is_a_farmer == set([('moshe dayan',)])
+    moshe_is_a_farmer = datalog_engine.ask("farmer('Moshe dayan')")
+    assert moshe_is_a_farmer == set([('Moshe dayan',)])
 
     # can't call a pyDatalog program
     error = False
