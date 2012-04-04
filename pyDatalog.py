@@ -30,16 +30,16 @@ http://www.python.org/download/releases/2.0.1/license/ )
 TODO:
 * expression in == operator see __iadd__ and __radd__
 * test factorial
-* write documentation
 * package for release on pyPi
 
-Roadmap:
+Roadmap / nice to have:
 * Windows binaries
 * avoid stack overflow with deep recursion
+* debugging tools
 * save / load database in file
-* parse(prolog_syntax) using pyparsing
 * negation
 * comparison (<, >, ...)
+* parse(prolog_syntax) using pyparsing
 * multicore using lua lanes
 
 Limitations:
@@ -133,6 +133,8 @@ class Literal:
                 datalog_engine._insert(tbl, a.lua)
             elif isinstance(a, str):
                 datalog_engine._insert(tbl, datalog_engine._make_const(a))
+            elif isinstance(a, Literal):
+                raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
             else:
                 datalog_engine._insert(tbl, datalog_engine._make_const(str(a)))
         self.lua = datalog_engine._make_literal(predicate_name, tbl)
@@ -268,6 +270,12 @@ class Datalog_engine:
         self.add_symbols(ast.co_names, newglobals)
         lua_code = eval(code, newglobals)
         return self._ask_literal(lua_code)
+
+    def execute(self, code):
+        ast = compile(code, '<string>', 'exec')
+        newglobals = {}
+        self.add_symbols(ast.co_names, newglobals)
+        exec ast in newglobals
 
     def prt(self):
         """

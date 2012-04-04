@@ -29,6 +29,9 @@ if __name__ == "__main__":
     
     print("Defining a datalog program...")
     
+    datalog_engine.execute('+ p(a)')
+    assert datalog_engine.ask('p(a)') == set([('a',)])
+    
     # a decorator is used to create a program on the pyDatalog engine
     @pyDatalog.program(datalog_engine)
     def _(): # the function name is ignored
@@ -107,39 +110,66 @@ if __name__ == "__main__":
         assert ask(odd(5)) == set([('5',)])
         assert ask(even(5)) == None
         
+    # a program can be entered piecemeal
+    @pyDatalog.program(datalog_engine)
+    def _(): # the function name is ignored
         # performance
         for _i in range(2000):
             + successor(_i+1, _i)
         assert ask(successor(1801,1800)) == set([('1801', '1800')])
         #assert ask(successor(99001,99000)) == set([('99001', '99000')])
         assert ask(odd(299)) == set([('299',)]) 
-        assert ask(odd(999)) == set([('999',)]) 
+        #assert ask(odd(999)) == set([('999',)]) 
         # assert ask(odd(1999)) == set([('1999',)]) # TODO stack overflow around 1800 !
         
         # TODO why is this much much slower ??
         # odd(N) <= even(N1) & successor(N, N1)
 
-        
+    # populate facts from python variables
+    _farmers = ('moshe dayan', 'omar')
+    @pyDatalog.program(datalog_engine)
+    def _(): # the function name is ignored
         # unary plus defines a fact
-        + farmer(moshe)
-        + donkey(eeyore)
-        ask(farmer(X))
-        ask(donkey(Y))
-        # <= + + defines a clause 
-        beats(X1,Y1) <= farmer(X1) & donkey(Y1) 
-        #beats(X,Y) <= farmer(X) & donkey(Y)
-        ask(beats(moshe, eeyore))
-        ask(beats(X2, eeyore))
-        ask(beats(moshe, Y2))
-        ask(beats(X3, Y3))
+        for _farmer in _farmers:
+            + farmer(_farmer)
+        assert ask(farmer(X)) == set([('moshe dayan',), ('omar',)])
 
-    assert datalog_engine.ask('farmer(moshe)') == set([('moshe',)])
+    # execute queries in a python program
+    moshe_is_a_farmer = datalog_engine.ask("farmer('moshe dayan')")
+    assert moshe_is_a_farmer == set([('moshe dayan',)])
 
+    # can't call a pyDatalog program
+    error = False
+    try:
+        _()
+    except: error = True
+    assert error
+
+    @pyDatalog.program(datalog_engine)
+    def _():
+        # literal cannot have a literal as argument
+        _error = False
+        try:
+            + farmer(farmer(moshe))
+        except: _error = True
+        assert _error
+
+    @pyDatalog.program(datalog_engine)
+    def _(): # the function name is ignored
+        + parent(bill,mary)
+        + parent(mary,john) 
+    print datalog_engine.ask('parent(X,john)')
+    @pyDatalog.program(datalog_engine)
+    def _(): # the function name is ignored
+        ancestor(X,Y) <=  parent(X,Y)
+        ancestor(X,Y) <= parent(X,Z) & ancestor(Z,Y)
+    print datalog_engine.ask('ancestor(bill,X)')
+    
+    _parents = (('edward', 'albert'), ('edward', 'victoria'))
+    
+    @pyDatalog.program(datalog_engine)
+    def _(): # the function name is ignored
+        for _parent in _parents:
+            + parent(_parent[0], _parent[1])       
+    
     print("Done.")
-    print("Definition has already updated the database as follows:")
-    print()
-    datalog_engine.prt()
-    print()
-    print("Trying to call the logical function raises an error:")
-    print()
-    _()
