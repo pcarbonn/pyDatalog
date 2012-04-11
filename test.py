@@ -29,6 +29,7 @@ if __name__ == "__main__":
     
     print("Defining a datalog program...")
     
+    # test of expressions
     datalog_engine.execute('+ p(a)')
     assert datalog_engine.ask('p(a)') == set([('a',)])
     
@@ -76,13 +77,30 @@ if __name__ == "__main__":
         # clauses
         r(X, Y) <= p(X) & p(Y)
         assert ask(r(a, a)) == set([('a', 'a')])
+        assert ask(r(a, c)) == set([('a', 'c')])
         # TODO more
 
+        # integer
+        + integer(1)
+        print ask(integer(1))
+        assert ask(integer(1)) == set([('1',)])
+        
         # integer variable
         for _i in range(10):
             + successor(_i+1, _i)
         assert ask(successor(2, 1)) == set([('2', '1')])
         
+        # recursion
+        # even(N) <= (N==0)
+        + even(0)
+        even(N) <= successor(N, N1) & odd(N1)
+        odd(N) <= successor(N, N1) & even(N1)
+        assert ask(even(0)) == set([('0',)])
+        assert ask(even(X)) == set([('4',), ('10',), ('6',), ('0',), ('2',), ('8',)])
+        assert ask(odd(1)) == set([('1',)])
+        assert ask(odd(5)) == set([('5',)])
+        assert ask(even(5)) == None
+
         # equality (must be between parenthesis):
         s(X) <= (X == a)
         assert ask(s(X)) == set([('a',)])
@@ -100,12 +118,23 @@ if __name__ == "__main__":
         # s <= (X == Y)   
         # assert ask(s(X,Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
 
+    # reset the engine
+    datalog_engine = pyDatalog.Datalog_engine()
+    @pyDatalog.program(datalog_engine)
+    def _(): # the function name is ignored
+        # expressions
+        predecessor(X,Y) <= (X==Y-1)
+        assert ask(predecessor(X,11)) == set([('10', '11')])
+        
+        p(X,Z) <= (Y==Z-1) & (X==Y-1)
+        assert ask(p(X,11)) == set([('9', '11')])
+        
         # recursion
-        even(N) <= (N == 0)
-        even(N) <= successor(N, N1) & odd(N1)
-        odd(N) <= successor(N, N1) & even(N1)
+        + even('0')
+        even(N) <= (N > 0) & (N1==N-1) & odd(N1)
         assert ask(even(0)) == set([('0',)])
-        assert ask(even(X)) == set([('4',), ('10',), ('6',), ('0',), ('2',), ('8',)])
+        odd(N) <= (N > 0) & (N2==N-1) & even(N2)
+        assert ask(even(0)) == set([('0',)])
         assert ask(odd(1)) == set([('1',)])
         assert ask(odd(5)) == set([('5',)])
         assert ask(even(5)) == None
@@ -120,7 +149,7 @@ if __name__ == "__main__":
         #assert ask(successor(99001,99000)) == set([('99001', '99000')])
         assert ask(odd(299)) == set([('299',)]) 
         #assert ask(odd(999)) == set([('999',)]) 
-        # assert ask(odd(1999)) == set([('1999',)]) # TODO stack overflow around 1800 !
+        assert ask(odd(1099)) == set([('1099',)]) # TODO stack overflow around 1100 !
         
         # TODO why is this much much slower ??
         # odd(N) <= even(N1) & successor(N, N1)

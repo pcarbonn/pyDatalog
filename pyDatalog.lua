@@ -902,6 +902,132 @@ function dl_ask(literal)
    return answers
 end
 
+-- Support for expression
+
+-- Expressions (such as X = Y-1) are represented by a predicate (P(X,Y)) with :
+--   an attached expression Y-1 (stored in pred.expression)
+--   an operator (=, <=, >=, !=) (stored in pred.operator)
+--   and an iterative function (stored in pred.prim)
+
+-- An Operand is either a constant or an index in the list of arguments of a literal
+-- e.g. in P(X,Y) for X = Y-1, Y has an index of 1
+
+local Operand = {}
+Operand.__index = Operand
+function make_operand(type, value)
+	local operand = {}
+	if type == 'constant' then
+		operand.value = value
+	else
+		operand.index = value
+	end
+	setmetatable(operand, Operand)
+	return operand
+end
+function Operand:eval(environment)
+	if self.index then
+		return environment[self.index]
+	else
+		return self.value
+	end
+end
+
+-- an expression is specified by an operator and 2 operands
+
+local Expression = {}
+Expression.__index = Expression
+function make_expression(operator, operand1, operand2)
+	local expression = {operator=operator, operand1=operand1, operand2=operand2}
+	setmetatable(expression, Expression)
+	return expression
+end
+function Expression:eval(env)
+	if self.operator == '+' then
+		return self.operand1:eval(env) + self.operand2:eval(env)
+	elseif self.operator == '-' then
+		return self.operand1:eval(env) - self.operand2:eval(env)
+	elseif self.operator == '*' then
+		return self.operand1:eval(env) * self.operand2:eval(env)
+	elseif self.operator == '/' then
+		return self.operand1:eval(env) / self.operand2:eval(env)
+	end
+end
+
+-- this function adds a primitive to an existing predicate
+
+local function add_iter_prim_to_predicate(pred, iter) -- adapted from add_iter_prim
+   local function prim(literal, subgoal)
+      for terms in iter(literal) do
+		 local n = #terms
+		 if n == #literal then
+		    local new = {pred = pred}
+		    for i=1,n do
+		       new[i] = datalog.make_const(tostring(terms[i]))
+		    end
+		    if match(literal, new) then
+		       fact(subgoal, new)
+		    end
+		 end
+     end
+   end
+   pred.prim = prim
+end
+
+-- this functions adds an expression to an existing predicate
+
+function add_expr_to_predicate(pred, operator, expression)
+	local function expression_literal(literal) -- modified from add() in e-mail from John
+	  	return function(s, v)
+			if v then
+			   return nil
+			else
+			   local x = literal[1]
+			   local args = {}
+			   for i, y in ipairs(literal) do
+			   		if 1 < i then --ignore x
+			   			if not y.is_const() then return nil	end
+			   			table.insert(args, tonumber(y.id))
+			   		end
+			   end
+
+			   X = literal.pred.expression:eval(args)
+			   if literal.pred.operator == "=" and not x:is_const() then
+			      table.insert(args, 1, X)
+				  return args
+			   elseif literal.pred.operator == "<" and x:is_const() and x.id < X
+			  	or  literal.pred.operator == ">" and x:is_const() and x.id > X
+			  	or  literal.pred.operator == "<=" and x:is_const() and x.id <= X
+			  	or  literal.pred.operator == ">=" and x:is_const() and x.id >= X
+			  	or  literal.pred.operator == "~=" and x:is_const() and tonumber(x.id) ~= X
+			   then
+			      table.insert(args, 1, x.id)
+				  return args
+			   end
+			   return nil
+			end
+		 end
+	end
+
+    local function prim(literal, subgoal)
+      for terms in expression_literal(literal) do
+		 local n = #terms
+		 if n == #literal then
+		    local new = {pred = pred}
+		    for i=1,n do
+		       new[i] = datalog.make_const(tostring(terms[i]))
+		    end
+		    if match(literal, new) then
+		       fact(subgoal, new)
+		    end
+		 end
+     end
+    end
+    pred.prim = prim
+	pred.operator = operator
+	pred.expression = expression
+	datalog.insert(pred)
+end
+
 -- The Lua API
 
 datalog = {
@@ -922,6 +1048,10 @@ datalog = {
    revert = revert,
    ask = ask,
    add_iter_prim = add_iter_prim,
+
+   make_operand = make_operand,
+   make_expression = make_expression,
+   add_expr_to_predicate = add_expr_to_predicate
 }
 
 return datalog
