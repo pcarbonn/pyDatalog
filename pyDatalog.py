@@ -28,7 +28,8 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 """
 TODO:
-* expression in == operator see __iadd__ and __radd__
+* clean up
+* <= comparison operator
 * test factorial
 * package for release on pyPi
 
@@ -93,7 +94,12 @@ class Symbol:
     def __init__ (self, name, datalog_engine):
         self.name = name
         self.datalog_engine = datalog_engine # needed to create Literal
-        self.type = 'variable' if (name[0] in string.uppercase) else 'constant'
+        if isinstance(name, int):
+            self.type = 'constant'
+        elif (name[0] in string.uppercase):
+            self.type = 'variable'
+        else:
+            self.type = 'constant'
         if self.type == 'variable':
             self.lua = datalog_engine._make_var(name)
         else:
@@ -109,11 +115,87 @@ class Symbol:
         else:
             return Literal(self.datalog_engine, self.name, args)
 
+    def _make_expression_literal(self, operator, other):
+        name = '=' + str(self) + '==' + str(other)
+        if isinstance(other, int):
+            literal = Literal(self.datalog_engine, name, [self])
+            expr = self.datalog_engine._make_operand('constant', str(other))
+        else: # other is a symbol or an expression
+            literal = Literal(self.datalog_engine, name, [self] + other._variables().values())
+            expr = other.lua_expr(self._variables().keys()+other._variables().keys())
+        self.datalog_engine._add_expr_to_predicate(literal.lua.pred, operator, expr)
+        return literal
+
     def __eq__(self, other):
-        return Literal(self.datalog_engine, "=", (self, other))
+        if self.type == 'variable' and isinstance(other, Expression):
+            return self._make_expression_literal('=', other)
+        else:
+            return Literal(self.datalog_engine, "=", (self, other))
+    def __ne__(self, other):
+        return self._make_expression_literal('~=', other)
+    def __le__(self, other):
+        return self._make_expression_literal('<=', other)
+    def __lt__(self, other):
+        return self._make_expression_literal('<', other)
+    def __ge__(self, other):
+        return self._make_expression_literal('>=', other)
+    def __gt__(self, other):
+        return self._make_expression_literal('>', other)
+    
+    def __add__(self, other):
+        return Expression('+', self, other, self.datalog_engine)
+    def __sub__(self, other):
+        return Expression('-', self, other, self.datalog_engine)
+    def __mul__(self, other):
+        return Expression('*', self, other, self.datalog_engine)
+    def __div__(self, other):
+        return Expression('/', self, other, self.datalog_engine)
+    
+    def __radd__(self, other):
+        return Expression('+', other, self, self.datalog_engine)
+    def __rsub__(self, other):
+        return Expression('-', other, self, self.datalog_engine)
+    def __rmul__(self, other):
+        return Expression('*', other, self, self.datalog_engine)
+    def __rdiv__(self, other):
+        return Expression('/', other, self, self.datalog_engine)
+        
+    def lua_expr(self, variables):
+        if self.type == 'variable':
+            return self.datalog_engine._make_operand(type, variables.index(self.name))
+        else:
+            return self.datalog_engine._make_operand('constant', self.name)
+    
+    def _variables(self):
+        if self.type == 'variable':
+            return {self.name : self}
+        else:
+            return {}
+
+    def __str__(self):
+        return str(self.name)
+
+class Expression:
+    def __init__(self, operator, lhs, rhs, datalog_engine):
+        self.operator = operator
+        self.lhs = lhs
+        if isinstance(lhs, str) or isinstance(lhs, int):
+            self.lhs = Symbol(lhs, datalog_engine)
+        self.rhs = rhs
+        if isinstance(rhs, str) or isinstance(rhs, int):
+            self.rhs = Symbol(rhs, datalog_engine)
+        self.datalog_engine = datalog_engine
+        
+    def _variables(self):
+        temp = self.lhs._variables()
+        temp.update(self.rhs._variables())
+        return temp
+    
+    def lua_expr(self, variables):
+        return self.datalog_engine._make_expression(self.operator, self.lhs.lua_expr(variables), self.rhs.lua_expr(variables))
     
     def __str__(self):
-        return self.name
+        return '(' + str(self.lhs) + self.operator + str(self.rhs) + ')'
 
 class Literal:
     """
@@ -152,7 +234,9 @@ class Literal:
 
     def __le__(self, body):
         " head <= body"
-        self.datalog_engine.add_clause(self, body)
+        result = self.datalog_engine.add_clause(self, body)
+        if not result: 
+            raise TypeError("Can't create clause %s <= %s" % (str(self), str(body)))
 
     def __and__(self, literal):
         " literal & literal" 
@@ -181,9 +265,15 @@ class Datalog_engine:
     def __init__(self):
         self.clauses = []
         self.lua = LuaRuntime()
+        
         lua_program_path = os.path.join(os.path.dirname(__file__), 'pyDatalog.lua')
         lua_program = open(lua_program_path).read()
         self.lua.execute(lua_program)
+
+        lua_program_path = os.path.join(os.path.dirname(__file__), 'expression.lua')
+        lua_program = open(lua_program_path).read()
+        self.lua.execute(lua_program)
+        
         self._insert = self.lua.eval('table.insert')
         self._make_const = self.lua.eval('datalog.make_const')
         self._make_var = self.lua.eval('datalog.make_var')
@@ -193,6 +283,10 @@ class Datalog_engine:
         self._retract = self.lua.eval('datalog.retract')
         self._ask = self.lua.eval('datalog.ask')
         self._db = self.lua.eval('datalog.db')
+        self._add_iter_prim = self.lua.eval('datalog.add_iter_prim')
+        self._make_operand = self.lua.eval('datalog.make_operand')
+        self._make_expression = self.lua.eval('datalog.make_expression')
+        self._add_expr_to_predicate = self.lua.eval('datalog.add_expr_to_predicate')
 
     def add_symbols(self, names, vars):
         for name in names:
@@ -221,8 +315,7 @@ class Datalog_engine:
             self._insert(tbl, body.lua)
             self.clauses.append((head,[body]))
         clause = self._make_clause(head.lua, tbl)
-        self._assert(clause)
-        #print pr(clause)
+        return self._assert(clause)
         
     class _NoCallFunction:
         """
