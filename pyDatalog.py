@@ -28,9 +28,6 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 """
 TODO:
-* clean up
-* <= comparison operator
-* test factorial
 * package for release on pyPi
 
 Roadmap / nice to have:
@@ -38,38 +35,12 @@ Roadmap / nice to have:
 * avoid stack overflow with deep recursion
 * debugging tools
 * save / load database in file
-* negation
-* comparison (<, >, ...)
+* predicates in python
 * parse(prolog_syntax) using pyparsing
+
+much harder:
+* negation
 * multicore using lua lanes
-
-Limitations:
-    No negations
-    No expressions in =
-    head is only one predicate
-
-Interface of datalog engine in lua :
-    make_var(id) --> { id: ) unique, inherits from Var
-    make_const(id) --> { id: } unique, inherits from Const
-    make_pred(name, arity) -->  { id: , db: { <clause ID>: }} unique, where id = name/arity.  (Called by make_pred)
-    get_name(pred) = 
-    get_arity(pred) = 
-    make_literal(pred_name, terms) --> { pred: , id: , <i>: , tag: } 
-            where id represents name, terms; 
-            where tag is used as a key to literal by the subgoal table
-    make_clause(head, body) = { head: , <i>: }
-    insert(pred) = (called by insert)
-    remove(pred) = 
-    assert(clause) --> clause or nil
-    retract(clause) --> clause
-    save() = 
-    restore() = 
-    copy(src=None) = 
-    revert(clone) = 
-    ask(literal) = {name: , arity: , <i>: {i: }} or nil
-    add_iter_prim(name, arity, iter) = 
-
-    environment : mapping from variables to terms
 
 Vocabulary:
     q(X):- q(a)
@@ -113,15 +84,15 @@ class Symbol:
         elif self.type == 'variable':
             raise TypeError("predicate name must start with a lower case : %s" % self.name)
         else:
-            return Literal(self.datalog_engine, self.name, args)
+            return Literal(self.name, args, self.datalog_engine)
 
     def _make_expression_literal(self, operator, other):
         name = '=' + str(self) + '==' + str(other)
         if isinstance(other, int):
-            literal = Literal(self.datalog_engine, name, [self])
+            literal = Literal(name, [self], self.datalog_engine)
             expr = self.datalog_engine._make_operand('constant', str(other))
         else: # other is a symbol or an expression
-            literal = Literal(self.datalog_engine, name, [self] + other._variables().values())
+            literal = Literal(name, [self] + other._variables().values(), self.datalog_engine)
             expr = other.lua_expr(self._variables().keys()+other._variables().keys())
         self.datalog_engine._add_expr_to_predicate(literal.lua.pred, operator, expr)
         return literal
@@ -130,7 +101,7 @@ class Symbol:
         if self.type == 'variable' and isinstance(other, Expression):
             return self._make_expression_literal('=', other)
         else:
-            return Literal(self.datalog_engine, "=", (self, other))
+            return Literal("=", (self, other), self.datalog_engine)
     def __ne__(self, other):
         return self._make_expression_literal('~=', other)
     def __le__(self, other):
@@ -143,22 +114,22 @@ class Symbol:
         return self._make_expression_literal('>', other)
     
     def __add__(self, other):
-        return Expression('+', self, other, self.datalog_engine)
+        return Expression(self, '+', other, self.datalog_engine)
     def __sub__(self, other):
-        return Expression('-', self, other, self.datalog_engine)
+        return Expression(self, '-', other, self.datalog_engine)
     def __mul__(self, other):
-        return Expression('*', self, other, self.datalog_engine)
+        return Expression(self, '*', other, self.datalog_engine)
     def __div__(self, other):
-        return Expression('/', self, other, self.datalog_engine)
+        return Expression(self, '/', other, self.datalog_engine)
     
     def __radd__(self, other):
-        return Expression('+', other, self, self.datalog_engine)
+        return Expression(other, '+', self, self.datalog_engine)
     def __rsub__(self, other):
-        return Expression('-', other, self, self.datalog_engine)
+        return Expression(other, '-', self, self.datalog_engine)
     def __rmul__(self, other):
-        return Expression('*', other, self, self.datalog_engine)
+        return Expression(other, '*', self, self.datalog_engine)
     def __rdiv__(self, other):
-        return Expression('/', other, self, self.datalog_engine)
+        return Expression(other, '/', self, self.datalog_engine)
         
     def lua_expr(self, variables):
         if self.type == 'variable':
@@ -176,7 +147,7 @@ class Symbol:
         return str(self.name)
 
 class Expression:
-    def __init__(self, operator, lhs, rhs, datalog_engine):
+    def __init__(self, lhs, operator, rhs, datalog_engine):
         self.operator = operator
         self.lhs = lhs
         if isinstance(lhs, str) or isinstance(lhs, int):
@@ -204,7 +175,7 @@ class Literal:
     binary operator '+' means 'and', and returns a Body
     operator '<=' means 'is true if', and creates a Clause
     """
-    def __init__(self, datalog_engine, predicate_name, terms):
+    def __init__(self, predicate_name, terms, datalog_engine):
         # TODO verify that terms are not Literals
         self.datalog_engine = datalog_engine # needed to insert facts, clauses
         self.predicate_name = predicate_name
@@ -269,24 +240,33 @@ class Datalog_engine:
         lua_program_path = os.path.join(os.path.dirname(__file__), 'pyDatalog.lua')
         lua_program = open(lua_program_path).read()
         self.lua.execute(lua_program)
-
-        lua_program_path = os.path.join(os.path.dirname(__file__), 'expression.lua')
-        lua_program = open(lua_program_path).read()
-        self.lua.execute(lua_program)
         
         self._insert = self.lua.eval('table.insert')
-        self._make_const = self.lua.eval('datalog.make_const')
-        self._make_var = self.lua.eval('datalog.make_var')
-        self._make_literal = self.lua.eval('datalog.make_literal')
-        self._make_clause = self.lua.eval('datalog.make_clause')
-        self._assert = self.lua.eval('datalog.assert')
-        self._retract = self.lua.eval('datalog.retract')
-        self._ask = self.lua.eval('datalog.ask')
+        self._make_const = self.lua.eval('datalog.make_const')      # make_const(id) --> { id: } unique, inherits from Const
+        self._make_var = self.lua.eval('datalog.make_var')          # make_var(id) --> { id: ) unique, inherits from Var
+        self._make_literal = self.lua.eval('datalog.make_literal')  # make_literal(pred_name, terms) --> { pred: , id: , <i>: , tag: } 
+                                                                    #    where id represents name, terms; 
+                                                                    #    where tag is used as a key to literal by the subgoal table
+        self._make_clause = self.lua.eval('datalog.make_clause')    # make_clause(head, body) = { head: , <i>: }
+        self._assert = self.lua.eval('datalog.assert')              # assert(clause) --> clause or nil
+        self._retract = self.lua.eval('datalog.retract')            # retract(clause) --> clause
+        self._ask = self.lua.eval('datalog.ask')                    # ask(literal) = nil or {name: , arity: , <i>: {i: }}
         self._db = self.lua.eval('datalog.db')
-        self._add_iter_prim = self.lua.eval('datalog.add_iter_prim')
+        self._add_iter_prim = self.lua.eval('datalog.add_iter_prim')# add_iter_prim(name, arity, iter) = 
         self._make_operand = self.lua.eval('datalog.make_operand')
         self._make_expression = self.lua.eval('datalog.make_expression')
         self._add_expr_to_predicate = self.lua.eval('datalog.add_expr_to_predicate')
+        """ other functions available in datalog.lua
+            # make_pred(name, arity) -->  { id: , db: { <clause ID>: }} unique, where id = name/arity.  (Called by make_pred)
+            # get_name(pred) = 
+            # get_arity(pred) = 
+            # insert(pred) =
+            # remove(pred) = 
+            # save() = 
+            # restore() = 
+            # copy(src=None) = 
+            # revert(clone) = 
+        """
 
     def add_symbols(self, names, vars):
         for name in names:
