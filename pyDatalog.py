@@ -92,8 +92,8 @@ class Symbol:
             literal = Literal(name, [self], self.datalog_engine)
             expr = self.datalog_engine._make_operand('constant', str(other))
         else: # other is a symbol or an expression
-            literal = Literal(name, [self] + other._variables().values(), self.datalog_engine)
-            expr = other.lua_expr(self._variables().keys()+other._variables().keys())
+            literal = Literal(name, [self] + list(other._variables().values()), self.datalog_engine)
+            expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
         self.datalog_engine._add_expr_to_predicate(literal.lua.pred, operator, expr)
         return literal
 
@@ -348,7 +348,7 @@ class Datalog_engine:
         ast = compile(code, '<string>', 'exec')
         newglobals = {}
         self.add_symbols(ast.co_names, newglobals)
-        exec ast in newglobals
+        exec(ast, newglobals)
 
     def prt(self):
         """
@@ -356,9 +356,9 @@ class Datalog_engine:
         """
         for (h,b) in self.clauses:
             if isinstance(b, list):
-                print(h, ":-", string.join(list(map(str, b)), " , "), ".")
+                print((h, ":-", string.join(list(map(str, b)), " , "), "."))
             else:
-                print(h, ":-", str(b), ".")
+                print((h, ":-", str(b), "."))
 
 def program(datalog_engine):
     """
