@@ -7,6 +7,7 @@ simple C API.
 
 John D. Ramsdell
 Copyright (C) 2004 The MITRE Corporation
+Copyright (C) 2012 Pierre Carbonnelle
 
 This library is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
