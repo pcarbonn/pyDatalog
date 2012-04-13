@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
         # integer
         + integer(1)
-        print ask(integer(1))
+        print(ask(integer(1)))
         assert ask(integer(1)) == set([('1',)])
         
         # integer variable
@@ -105,14 +105,14 @@ if __name__ == "__main__":
         s(X) <= (X == a)
         assert ask(s(X)) == set([('a',)])
         s(X) <= (X == 1)
-        print(ask(s(X)))
+        print((ask(s(X))))
         assert ask(s(X)) == set([('1',), ('a',)])
         
         s(X, Y) <= p(X) & (X == Y)
         assert ask(s(a, a)) == set([('a', 'a')])
         assert ask(s(a, b)) == None
         assert ask(s(X,a)) == set([('a', 'a')])
-        print(ask(s(X, Y)))
+        print((ask(s(X, Y))))
         assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
         # TODO  make this work
         # s <= (X == Y)   
@@ -187,12 +187,12 @@ if __name__ == "__main__":
     def _(): # the function name is ignored
         + parent(bill,mary)
         + parent(mary,john) 
-    print datalog_engine.ask('parent(X,john)')
+    print(datalog_engine.ask('parent(X,john)'))
     @pyDatalog.program(datalog_engine)
     def _(): # the function name is ignored
         ancestor(X,Y) <=  parent(X,Y)
         ancestor(X,Y) <= parent(X,Z) & ancestor(Z,Y)
-    print datalog_engine.ask('ancestor(bill,X)')
+    print(datalog_engine.ask('ancestor(bill,X)'))
     
     _parents = (('edward', 'albert'), ('edward', 'victoria'))
     
