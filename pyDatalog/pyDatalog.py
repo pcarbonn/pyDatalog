@@ -28,14 +28,14 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 """
 TODO:
-* package for release on pyPi
+* simplify / document installation
 
 Roadmap / nice to have:
 * Windows binaries
 * avoid stack overflow with deep recursion
 * debugging tools
 * save / load database in file
-* predicates in python
+* custom predicates written in python
 * parse(prolog_syntax) using pyparsing
 
 much harder:
@@ -44,11 +44,11 @@ much harder:
 
 Vocabulary:
     q(X):- q(a)
-        a is a variable
-        X is a constant
+        X is a variable
+        a is a constant
         q is a predicate
         q(a) is a literal
-        q(a):-c is a clause
+        q(a):- q(a) is a clause
 
 """
 import lupa

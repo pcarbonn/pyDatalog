@@ -1,14 +1,13 @@
-# chardet's setup.py
 from distutils.core import setup
 setup(
     name = "pyDatalog",
-    packages = ["pyDatalog"], # TODO add files
-    version = "0.1",
-    description = "Datalog embedded in Python",
+    packages = ["pyDatalog"],
+    version = "0.1.1",
+    description = "pyDatalog brings logic programming to Python",
     author = "Pierre Carbonnelle",
     author_email = "pierre.carbonnelle@gmail.com",
     url = "https://bitbucket.org/pcarbonn/pydatalog/wiki/Home",
-    download_url = "", # TODO
+    download_url = "http://pypi.python.org/pypi?name=pyDatalog&:action=display",
     classifiers = [
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
@@ -23,13 +22,10 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         ],
     long_description = """\
-pyDatalog brings logic programming to python.  
-It is a wrapper around the Datalog engine developed in lua by John D. Ramsdell.  
-It uses the SLG resolution algorithm with 'memoization' for high performance.
+pyDatalog brings logic programming to python.  Assert facts and insert logic clauses directly in your python code, 
+and use the inference engine to resolve complex, recursive queries fast.  
 
-Assert facts and insert logic clauses directly in your python code, and use the inference engine to resolve complex, recursive queries fast.  
-
-Datalog is a subset of prolog that is best at simulating intelligent behavior (for games), 
+Datalog is a subset of prolog that is best at simulating intelligent behavior (e.g. in games), 
 at performing recursive algorithms (e.g. in graph analysis) 
 or at managing large sets of related information (e.g. in the semantic web).  
 
