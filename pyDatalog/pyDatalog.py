@@ -27,22 +27,8 @@ http://www.python.org/download/releases/2.0.1/license/ )
 """
 
 """
-TODO:
-* simplify / document installation
 
-Roadmap / nice to have:
-* Windows binaries
-* avoid stack overflow with deep recursion
-* debugging tools
-* save / load database in file
-* custom predicates written in python
-* parse(prolog_syntax) using pyparsing
-
-much harder:
-* negation
-* multicore using lua lanes
-
-Vocabulary:
+Datalog vocabulary:
     q(X):- q(a)
         X is a variable
         a is a constant
@@ -50,11 +36,26 @@ Vocabulary:
         q(a) is a literal
         q(a):- q(a) is a clause
 
+Design principle:
+Instead of writing our own parser, we use python's parser.  The datalog code is first compiled, 
+then "undefined" variables are initialized as instance of Symbol, then the code is finally executed.
+This is done in the Datalog_engine class.
+
+Classes contained in this file:
+* Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
+* Expression : made of an operator and 2 operands. Instantiated when an operand is applied to a symbol while executing the datalog program
+* Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
+* Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
+* Datalog_engine : implements the interface to the lua datalog engine.  Instantiated by the calling module
+* program : decorator function to create datalog programs
+
 """
 import lupa
 import os
 import string
 from lupa import LuaRuntime
+
+default_datalog_engine = None # will contain the default datalog engine
 
 class Symbol:
     """
@@ -62,7 +63,7 @@ class Symbol:
     ask() creates a query
     created when analysing the datalog program
     """
-    def __init__ (self, name, datalog_engine):
+    def __init__ (self, name, datalog_engine=default_datalog_engine):
         self.name = name
         self.datalog_engine = datalog_engine # needed to create Literal
         if isinstance(name, int):
@@ -147,7 +148,7 @@ class Symbol:
         return str(self.name)
 
 class Expression:
-    def __init__(self, lhs, operator, rhs, datalog_engine):
+    def __init__(self, lhs, operator, rhs, datalog_engine=default_datalog_engine):
         self.operator = operator
         self.lhs = lhs
         if isinstance(lhs, str) or isinstance(lhs, int):
@@ -175,7 +176,7 @@ class Literal:
     binary operator '+' means 'and', and returns a Body
     operator '<=' means 'is true if', and creates a Clause
     """
-    def __init__(self, predicate_name, terms, datalog_engine):
+    def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine):
         # TODO verify that terms are not Literals
         self.datalog_engine = datalog_engine # needed to insert facts, clauses
         self.predicate_name = predicate_name
@@ -360,10 +361,11 @@ class Datalog_engine:
             else:
                 print((h, ":-", str(b), "."))
 
-def program(datalog_engine):
+def program(datalog_engine=None):
     """
     A decorator for datalog program
     """
+    datalog_engine = datalog_engine or default_datalog_engine
     return datalog_engine.add_program
 
 def pr(a, level=0):
@@ -376,3 +378,13 @@ def pr(a, level=0):
 
     except:
         return a
+
+default_datalog_engine = Datalog_engine()
+
+def ask(code):
+    return default_datalog_engine.ask(code)
+def execute(code):
+    return default_datalog_engine.execute(code)
+def clear():
+    """ create a new engine """
+    default_datalog_engine = Datalog_engine()

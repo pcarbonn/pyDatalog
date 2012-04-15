@@ -19,8 +19,10 @@ Foundation, Inc.  51 Franklin St, Fifth Floor, Boston, MA 02110-1301
 USA
 
 """
-import pyDatalog
+import math
 import time
+
+import pyDatalog
 
 if __name__ == "__main__":
 
@@ -33,8 +35,10 @@ if __name__ == "__main__":
     datalog_engine.execute('+ p(a)')
     assert datalog_engine.ask('p(a)') == set([('a',)])
     
+    datalog_engine = None
+    
     # a decorator is used to create a program on the pyDatalog engine
-    @pyDatalog.program(datalog_engine)
+    @pyDatalog.program()
     def _(): # the function name is ignored
         # assert a unary fact
         + p(a) 
@@ -90,6 +94,10 @@ if __name__ == "__main__":
             + successor(_i+1, _i)
         assert ask(successor(2, 1)) == set([('2', '1')])
         
+        # built-in
+        assert abs(-3)==3
+        assert math.sin(3)==math.sin(3)
+        
         # recursion
         # even(N) <= (N==0)
         + even(0)
@@ -118,6 +126,8 @@ if __name__ == "__main__":
         # s <= (X == Y)   
         # assert ask(s(X,Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
 
+    pyDatalog.ask('p(a)') == set([('a',)])
+    
     # reset the engine
     datalog_engine = pyDatalog.Datalog_engine()
     @pyDatalog.program(datalog_engine)
@@ -137,6 +147,7 @@ if __name__ == "__main__":
         assert ask(even(0)) == set([('0',)])
         assert ask(odd(1)) == set([('1',)])
         assert ask(odd(5)) == set([('5',)])
+        assert ask(odd(1099)) == set([('1099',)])
         assert ask(even(5)) == None
         
     # a program can be entered piecemeal
@@ -199,7 +210,7 @@ if __name__ == "__main__":
     @pyDatalog.program(datalog_engine)
     def _(): # the function name is ignored
         for _parent in _parents:
-            + parent(_parent[0], _parent[1])       
+            + parent(_parent[0], unicode(_parent[1]))       
     
     # Factorial
     datalog_engine = pyDatalog.Datalog_engine()
