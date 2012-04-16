@@ -240,7 +240,7 @@ class Datalog_engine:
         
         lua_program_path = os.path.join(os.path.dirname(__file__), 'pyDatalog.lua')
         lua_program = open(lua_program_path).read()
-        self.lua.execute(lua_program)
+        self.lua.load(lua_program)
         
         self._insert = self.lua.eval('table.insert')
         self._make_const = self.lua.eval('datalog.make_const')      # make_const(id) --> { id: } unique, inherits from Const
@@ -345,7 +345,7 @@ class Datalog_engine:
         lua_code = eval(code, newglobals)
         return self._ask_literal(lua_code)
 
-    def execute(self, code):
+    def load(self, code):
         ast = compile(code, '<string>', 'exec')
         newglobals = {}
         self.add_symbols(ast.co_names, newglobals)
@@ -383,8 +383,8 @@ default_datalog_engine = Datalog_engine()
 
 def ask(code):
     return default_datalog_engine.ask(code)
-def execute(code):
-    return default_datalog_engine.execute(code)
+def load(code):
+    return default_datalog_engine.load(code)
 def clear():
     """ create a new engine """
     default_datalog_engine = Datalog_engine()
