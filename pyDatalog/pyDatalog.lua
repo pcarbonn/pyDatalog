@@ -604,6 +604,35 @@ local function resolve(clause, literal)
    return new
 end
 
+ 
+-- A stack of thunks used to delay the evaluation of some expressions
+
+local Fast=nil
+local tasks
+
+-- Schedule a task for later invocation
+
+local function sched(thunk)
+   if Fast then return thunk() end
+   return table.insert(tasks, thunk)
+end
+
+-- Invoke the scheduled tasks
+
+local function invoke(thunk)
+   if Fast then return thunk() end
+   tasks = {thunk}
+   while true do
+      local task = table.remove(tasks)
+      if task then
+	 task()
+      else
+	 break
+      end
+   end
+   tasks = nil
+end
+
 -- Store a fact, and inform all waiters of the fact too.
 
 local fact, rule, add_clause, search
@@ -611,11 +640,11 @@ local fact, rule, add_clause, search
 function fact(subgoal, literal)
    if not is_member(literal, subgoal.facts) then
       adjoin(literal, subgoal.facts)
-      for i=1,#subgoal.waiters do
+      for i=#subgoal.waiters,1,-1 do
 	 local waiter = subgoal.waiters[i]
 	 local resolvent = resolve(waiter.clause, literal)
 	 if resolvent then
-	    add_clause(waiter.subgoal, resolvent)
+	    sched(function () add_clause(waiter.subgoal, resolvent) end)
 	 end
       end
    end
@@ -635,13 +664,13 @@ function rule(subgoal, clause, selected)
 	 end
       end
       for i=1,#todo do
-	 add_clause(subgoal, todo[i])
+	 sched(function () add_clause(subgoal, todo[i]) end)
       end
    else
       sg = make_subgoal(selected)
       table.insert(sg.waiters, {subgoal = subgoal, clause = clause})
       merge(sg)
-      return search(sg)
+      return sched(function () search(sg) end)
    end
 end
 
@@ -675,11 +704,12 @@ end
 -- the predicate, the predicate's arity, and an array of constant
 -- terms for each answer.  If there are no answers, nil is returned.
 
-local function ask(literal)
+local function ask2(literal, fast)
+   Fast = fast
    subgoals = {}
    local subgoal = make_subgoal(literal)
    merge(subgoal)
-   search(subgoal)
+   invoke(function () search(subgoal) end)
    subgoals = nil
    local answers = {}
    for id,literal in pairs(subgoal.facts) do
@@ -696,6 +726,10 @@ local function ask(literal)
    else
       return nil
    end
+end
+
+local function ask(query)
+   return ask2(query, nil)
 end
 
 -- PRIMITIVES
@@ -1048,6 +1082,7 @@ datalog = {
    copy = copy,
    revert = revert,
    ask = ask,
+   ask2 = ask2,
    add_iter_prim = add_iter_prim,
 
    make_operand = make_operand,

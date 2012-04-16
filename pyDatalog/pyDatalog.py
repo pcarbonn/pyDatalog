@@ -77,11 +77,12 @@ class Symbol:
         else:
             self.lua = datalog_engine._make_const(name)
         
-    def __call__ (self, *args):
+    def __call__ (self, *args, **kwargs):
         "time to create a literal !"
         if self.name == 'ask':
             # TODO check that there is only one argument
-            return self.datalog_engine._ask_literal(args[0])
+            fast = kwargs['_fast'] if '_fast' in kwargs.keys() else False
+            return self.datalog_engine._ask_literal(args[0], fast)
         elif self.type == 'variable':
             raise TypeError("predicate name must start with a lower case : %s" % self.name)
         else:
@@ -240,7 +241,7 @@ class Datalog_engine:
         
         lua_program_path = os.path.join(os.path.dirname(__file__), 'pyDatalog.lua')
         lua_program = open(lua_program_path).read()
-        self.lua.load(lua_program)
+        self.lua.execute(lua_program)
         
         self._insert = self.lua.eval('table.insert')
         self._make_const = self.lua.eval('datalog.make_const')      # make_const(id) --> { id: } unique, inherits from Const
@@ -252,6 +253,7 @@ class Datalog_engine:
         self._assert = self.lua.eval('datalog.assert')              # assert(clause) --> clause or nil
         self._retract = self.lua.eval('datalog.retract')            # retract(clause) --> clause
         self._ask = self.lua.eval('datalog.ask')                    # ask(literal) = nil or {name: , arity: , <i>: {i: }}
+        self._ask2 = self.lua.eval('datalog.ask2')                  # ask2(literal, _fast) = nil or {name: , arity: , <i>: {i: }}
         self._db = self.lua.eval('datalog.db')
         self._add_iter_prim = self.lua.eval('datalog.add_iter_prim')# add_iter_prim(name, arity, iter) = 
         self._make_operand = self.lua.eval('datalog.make_operand')
@@ -328,9 +330,10 @@ class Datalog_engine:
         exec(code, newglobals)
         return self._NoCallFunction()
     
-    def _ask_literal(self, literal): # called by Literal
+    def _ask_literal(self, literal, _fast=None): # called by Literal
         # print("asking : %s" % str(literal))
-        lua_result = self._ask(literal.lua)
+        lua_result = self._ask2(literal.lua, _fast)
+        
         if not lua_result: return None
         # print pr(lua_result)
         result_set = set([lua_result[i+1] for i in range(len(lua_result))])
@@ -338,12 +341,12 @@ class Datalog_engine:
         #print(result)
         return result
     
-    def ask(self, code):
+    def ask(self, code, _fast=None):
         ast = compile(code, '<string>', 'eval')
         newglobals = {}
         self.add_symbols(ast.co_names, newglobals)
         lua_code = eval(code, newglobals)
-        return self._ask_literal(lua_code)
+        return self._ask_literal(lua_code, _fast)
 
     def load(self, code):
         ast = compile(code, '<string>', 'exec')
