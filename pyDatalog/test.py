@@ -160,7 +160,7 @@ if __name__ == "__main__":
         #assert ask(successor(99001,99000)) == set([('99001', '99000')])
         assert ask(odd(299)) == set([('299',)]) 
         #assert ask(odd(999)) == set([('999',)]) 
-        assert ask(odd(1099)) == set([('1099',)]) # TODO stack overflow around 1100 !
+        assert ask(odd(1999), _fast=False) == set([('1999',)])
         
         # TODO why is this much much slower ??
         # odd(N) <= even(N1) & successor(N, N1)
