@@ -32,7 +32,7 @@ if __name__ == "__main__":
     print("Defining a datalog program...")
     
     # test of expressions
-    datalog_engine.execute('+ p(a)')
+    datalog_engine.load('+ p(a)')
     assert datalog_engine.ask('p(a)') == set([('a',)])
     
     datalog_engine = None
