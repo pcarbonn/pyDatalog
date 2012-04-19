@@ -54,6 +54,8 @@ import lupa
 import os
 import string
 from lupa import LuaRuntime
+import six
+from six.moves import builtins
 
 default_datalog_engine = None # will contain the default datalog engine
 
@@ -152,7 +154,7 @@ class Expression:
     def __init__(self, lhs, operator, rhs, datalog_engine=default_datalog_engine):
         self.operator = operator
         self.lhs = lhs
-        if isinstance(lhs, str) or isinstance(lhs, int):
+        if isinstance(lhs, six.string_types) or isinstance(lhs, six.string_types):
             self.lhs = Symbol(lhs, datalog_engine)
         self.rhs = rhs
         if isinstance(rhs, str) or isinstance(rhs, int):
@@ -317,7 +319,7 @@ class Datalog_engine:
             raise TypeError("function or method argument expected")
         names = set(code.co_names)
         defined = set(code.co_varnames).union(set(func.__globals__.keys())) # local variables and global variables
-        defined = defined.union(__builtins__)
+        defined = defined.union(dir(builtins))
         defined.add('None')
         newglobals = func.__globals__.copy()
         i = None
@@ -327,7 +329,7 @@ class Datalog_engine:
                 # newglobals[name] = Symbol(name, self)
             else:
                 newglobals[name] = i
-        exec(code, newglobals)
+        six.exec_(code, newglobals)
         return self._NoCallFunction()
     
     def _ask_literal(self, literal, _fast=None): # called by Literal
@@ -352,7 +354,7 @@ class Datalog_engine:
         ast = compile(code, '<string>', 'exec')
         newglobals = {}
         self.add_symbols(ast.co_names, newglobals)
-        exec(ast, newglobals)
+        six.exec_(ast, newglobals)
 
     def prt(self):
         """
