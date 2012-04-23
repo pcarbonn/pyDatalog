@@ -79,6 +79,9 @@ if __name__ == "__main__":
         assert ask(q(a, Y)) == set([('a', 'b')])
         
         # clauses
+        p2(X) <= p(X)
+        assert ask(p2(a)) == set([('a',)])
+        
         r(X, Y) <= p(X) & p(Y)
         assert ask(r(a, a)) == set([('a', 'a')])
         assert ask(r(a, c)) == set([('a', 'c')])
@@ -105,6 +108,7 @@ if __name__ == "__main__":
         odd(N) <= successor(N, N1) & even(N1)
         assert ask(even(0)) == set([('0',)])
         assert ask(even(X)) == set([('4',), ('10',), ('6',), ('0',), ('2',), ('8',)])
+        assert ask(even(10)) == set([('10',)])
         assert ask(odd(1)) == set([('1',)])
         assert ask(odd(5)) == set([('5',)])
         assert ask(even(5)) == None

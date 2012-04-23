@@ -30,11 +30,11 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 Datalog vocabulary:
     q(X):- q(a)
-        X is a variable
-        a is a constant
+        X is a variable term
+        a is a constant term
         q is a predicate
         q(a) is a literal
-        q(a):- q(a) is a clause
+        q(X):- q(a) is a clause
 
 Design principle:
 Instead of writing our own parser, we use python's parser.  The datalog code is first compiled, 
@@ -56,6 +56,8 @@ import string
 from lupa import LuaRuntime
 import six
 from six.moves import builtins
+
+from pyEngine import *
 
 default_datalog_engine = None # will contain the default datalog engine
 
@@ -184,16 +186,16 @@ class Literal:
         self.datalog_engine = datalog_engine # needed to insert facts, clauses
         self.predicate_name = predicate_name
         self.terms = terms
-        tbl = datalog_engine.lua.eval('{ }')
+        tbl = []
         for a in terms:
             if isinstance(a, Symbol):
-                datalog_engine._insert(tbl, a.lua)
+                tbl.append(a.lua)
             elif isinstance(a, str):
-                datalog_engine._insert(tbl, datalog_engine._make_const(a))
+                tbl.append(datalog_engine._make_const(a))
             elif isinstance(a, Literal):
                 raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
             else:
-                datalog_engine._insert(tbl, datalog_engine._make_const(str(a)))
+                tbl.append(datalog_engine._make_const(str(a)))
         self.lua = datalog_engine._make_literal(predicate_name, tbl)
         #print pr(self.lua)
 
@@ -233,71 +235,38 @@ class Body:
         self.body.append(literal) 
         return self
 
-class Datalog_engine:
+def Datalog_engine(implementation='Lua'): # factory
+    if implementation == 'Lua':
+        return Lua_engine()
+    else:
+        return Python_engine()
+    
+class Datalog_engine_:
     """
-    wrapper of datalog engine in lua
+    common part for an engine. Subclasses are Python_engine and Lua_engine
     """
-    def __init__(self):
-        self.clauses = []
-        self.lua = LuaRuntime()
-        
-        lua_program_path = os.path.join(os.path.dirname(__file__), 'pyDatalog.lua')
-        lua_program = open(lua_program_path).read()
-        self.lua.execute(lua_program)
-        
-        self._insert = self.lua.eval('table.insert')
-        self._make_const = self.lua.eval('datalog.make_const')      # make_const(id) --> { id: } unique, inherits from Const
-        self._make_var = self.lua.eval('datalog.make_var')          # make_var(id) --> { id: ) unique, inherits from Var
-        self._make_literal = self.lua.eval('datalog.make_literal')  # make_literal(pred_name, terms) --> { pred: , id: , <i>: , tag: } 
-                                                                    #    where id represents name, terms; 
-                                                                    #    where tag is used as a key to literal by the subgoal table
-        self._make_clause = self.lua.eval('datalog.make_clause')    # make_clause(head, body) = { head: , <i>: }
-        self._assert = self.lua.eval('datalog.assert')              # assert(clause) --> clause or nil
-        self._retract = self.lua.eval('datalog.retract')            # retract(clause) --> clause
-        self._ask = self.lua.eval('datalog.ask')                    # ask(literal) = nil or {name: , arity: , <i>: {i: }}
-        self._ask2 = self.lua.eval('datalog.ask2')                  # ask2(literal, _fast) = nil or {name: , arity: , <i>: {i: }}
-        self._db = self.lua.eval('datalog.db')
-        self._add_iter_prim = self.lua.eval('datalog.add_iter_prim')# add_iter_prim(name, arity, iter) = 
-        self._make_operand = self.lua.eval('datalog.make_operand')
-        self._make_expression = self.lua.eval('datalog.make_expression')
-        self._add_expr_to_predicate = self.lua.eval('datalog.add_expr_to_predicate')
-        """ other functions available in datalog.lua
-            # make_pred(name, arity) -->  { id: , db: { <clause ID>: }} unique, where id = name/arity.  (Called by make_pred)
-            # get_name(pred) = 
-            # get_arity(pred) = 
-            # insert(pred) =
-            # remove(pred) = 
-            # save() = 
-            # restore() = 
-            # copy(src=None) = 
-            # revert(clone) = 
-        """
 
-    def add_symbols(self, names, vars):
+    def add_symbols(self, names, variables):
         for name in names:
             if not name.startswith('_'):
-                vars[name] = Symbol(name, self)            
+                variables[name] = Symbol(name, self)            
         
     def assert_fact(self, literal):
-        tbl = self.lua.eval('{ }')
-        clause = self._make_clause(literal.lua, tbl)
+        clause = self._make_clause(literal.lua, [])
         self._assert(clause)
         #print pr(self._db)
         
     def retract_fact(self, literal):
-        tbl = self.lua.eval('{ }')
-        clause = self._make_clause(literal.lua, tbl)
+        clause = self._make_clause(literal.lua, [])
         self._retract(clause)
 
     def add_clause(self,head,body):
-        tbl = self.lua.eval('{ }')
         if isinstance(body, Body):
-            for a in body.body:
-                self._insert(tbl, a.lua)
+            tbl = [a.lua for a in body.body]
             self.clauses.append((head, body.body))
         else: # body is a literal
             #print(body)
-            self._insert(tbl, body.lua)
+            tbl = (body.lua,)
             self.clauses.append((head,[body]))
         clause = self._make_clause(head.lua, tbl)
         return self._assert(clause)
@@ -332,17 +301,6 @@ class Datalog_engine:
         six.exec_(code, newglobals)
         return self._NoCallFunction()
     
-    def _ask_literal(self, literal, _fast=None): # called by Literal
-        # print("asking : %s" % str(literal))
-        lua_result = self._ask2(literal.lua, _fast)
-        
-        if not lua_result: return None
-        # print pr(lua_result)
-        result_set = set([lua_result[i+1] for i in range(len(lua_result))])
-        result = set(tuple(dict(lua_result[i+1]).values()) for i in range(len(lua_result)))
-        #print(result)
-        return result
-    
     def ask(self, code, _fast=None):
         ast = compile(code, '<string>', 'eval')
         newglobals = {}
@@ -366,6 +324,101 @@ class Datalog_engine:
             else:
                 print((h, ":-", str(b), "."))
 
+class Python_engine(Datalog_engine_):
+    def __init__(self):
+        self.clauses = []
+        
+        self._make_const = make_const       # make_const(id) --> { id: } unique, inherits from Const
+        self._make_var = make_var           # make_var(id) --> { id: ) unique, inherits from Var
+        self._make_literal = make_literal   # make_literal(pred_name, terms) --> { pred: , id: , <i>: , tag: } 
+                                            #    where id represents name, terms; 
+                                            #    where tag is used as a key to literal by the subgoal table
+        
+        self._make_clause = make_clause  # make_clause(head, body) = { head: , <i>: }
+        
+        self._assert = assert_              # assert(clause) --> clause or nil
+        self._retract = retract             # retract(clause) --> clause
+        self._ask = ask                    # ask(literal) = nil or {name: , arity: , <i>: {i: }}
+        self._ask2 = ask2                  # ask2(literal, _fast) = nil or {name: , arity: , <i>: {i: }}
+        self._db = db
+        self._add_iter_prim = add_iter_prim # add_iter_prim(name, arity, iter) = 
+        self._make_operand = make_operand
+        self._make_expression = make_expression
+        self._add_expr_to_predicate = add_expr_to_predicate
+        """ other functions available in datalog.lua
+            # make_pred(name, arity) -->  { id: , db: { <clause ID>: }} unique, where id = name/arity.  (Called by make_pred)
+            # get_name(pred) = 
+            # get_arity(pred) = 
+            # insert(pred) =
+            # remove(pred) = 
+            # save() = 
+            # restore() = 
+            # copy(src=None) = 
+            # revert(clone) = 
+        """
+
+    def _ask_literal(self, literal, _fast=None): # called by Literal
+        # print("asking : %s" % str(literal))
+        result = self._ask2(literal.lua, _fast)
+        return None if not result else set(result.answers)
+        
+class Lua_engine(Datalog_engine_):
+    def __init__(self):
+        self.clauses = []
+        self.lua = LuaRuntime()
+        
+        lua_program_path = os.path.join(os.path.dirname(__file__), 'pyDatalog.lua')
+        lua_program = open(lua_program_path).read()
+        self.lua.execute(lua_program)
+        
+        self._insert = self.lua.eval('table.insert')
+        self._make_const = self.lua.eval('datalog.make_const')      # make_const(id) --> { id: } unique, inherits from Const
+        self._make_var = self.lua.eval('datalog.make_var')          # make_var(id) --> { id: ) unique, inherits from Var
+        self.lua_make_literal = self.lua.eval('datalog.make_literal')  # make_literal(pred_name, terms) --> { pred: , id: , <i>: , tag: } 
+                                                                    #    where id represents name, terms; 
+                                                                    #    where tag is used as a key to literal by the subgoal table
+        self._make_literal = lambda name, atoms: self.lua_make_literal(name, self.lua_table(atoms))
+        
+        self.lua_make_clause = self.lua.eval('datalog.make_clause')    # make_clause(head, body) = { head: , <i>: }
+        self._make_clause = lambda head, body: self.lua_make_clause(head, self.lua_table(body))
+        
+        self._assert = self.lua.eval('datalog.assert')              # assert(clause) --> clause or nil
+        self._retract = self.lua.eval('datalog.retract')            # retract(clause) --> clause
+        self._ask = self.lua.eval('datalog.ask')                    # ask(literal) = nil or {name: , arity: , <i>: {i: }}
+        self._ask2 = self.lua.eval('datalog.ask2')                  # ask2(literal, _fast) = nil or {name: , arity: , <i>: {i: }}
+        self._db = self.lua.eval('datalog.db')
+        self._add_iter_prim = self.lua.eval('datalog.add_iter_prim')# add_iter_prim(name, arity, iter) = 
+        self._make_operand = self.lua.eval('datalog.make_operand')
+        self._make_expression = self.lua.eval('datalog.make_expression')
+        self._add_expr_to_predicate = self.lua.eval('datalog.add_expr_to_predicate')
+        """ other functions available in datalog.lua
+            # make_pred(name, arity) -->  { id: , db: { <clause ID>: }} unique, where id = name/arity.  (Called by make_pred)
+            # get_name(pred) = 
+            # get_arity(pred) = 
+            # insert(pred) =
+            # remove(pred) = 
+            # save() = 
+            # restore() = 
+            # copy(src=None) = 
+            # revert(clone) = 
+        """
+    
+    def lua_table(self, table):
+        tbl = self.lua.eval('{ }')
+        for a in table:
+            self._insert(tbl, a)
+        return tbl
+        
+    def _ask_literal(self, literal, _fast=None): # called by Literal
+        # print("asking : %s" % str(literal))
+        lua_result = self._ask2(literal.lua, _fast)
+        
+        if not lua_result: return None
+        # print pr(lua_result)
+        result = set(tuple(dict(lua_result[i+1]).values()) for i in range(len(lua_result)))
+        #print(result)
+        return result
+    
 def program(datalog_engine=None):
     """
     A decorator for datalog program
@@ -384,12 +437,14 @@ def pr(a, level=0):
     except:
         return a
 
-default_datalog_engine = Datalog_engine()
-
 def ask(code):
     return default_datalog_engine.ask(code)
 def load(code):
     return default_datalog_engine.load(code)
 def clear():
     """ create a new engine """
+    global default_datalog_engine
+    #default_datalog_engine = Datalog_engine()
     default_datalog_engine = Datalog_engine()
+
+clear()
