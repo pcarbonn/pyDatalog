@@ -62,7 +62,7 @@ if __name__ == "__main__":
         assert ask(p(c)) == set([('c',)])
         
         + p(1)
-        assert ask(p(1)) == set([('1',)])
+        assert ask(p(1)) == set([(1,)])
 
         # idem for secondary facts
         + q(a, b)
@@ -90,12 +90,12 @@ if __name__ == "__main__":
         # integer
         + integer(1)
         print(ask(integer(1)))
-        assert ask(integer(1)) == set([('1',)])
+        assert ask(integer(1)) == set([(1,)])
         
         # integer variable
         for _i in range(10):
             + successor(_i+1, _i)
-        assert ask(successor(2, 1)) == set([('2', '1')])
+        assert ask(successor(2, 1)) == set([(2, 1)])
         
         # built-in
         assert abs(-3)==3
@@ -106,11 +106,11 @@ if __name__ == "__main__":
         + even(0)
         even(N) <= successor(N, N1) & odd(N1)
         odd(N) <= successor(N, N1) & even(N1)
-        assert ask(even(0)) == set([('0',)])
-        assert ask(even(X)) == set([('4',), ('10',), ('6',), ('0',), ('2',), ('8',)])
-        assert ask(even(10)) == set([('10',)])
-        assert ask(odd(1)) == set([('1',)])
-        assert ask(odd(5)) == set([('5',)])
+        assert ask(even(0)) == set([(0,)])
+        assert ask(even(X)) == set([(4,), (10,), (6,), (0,), (2,), (8,)])
+        assert ask(even(10)) == set([(10,)])
+        assert ask(odd(1)) == set([(1,)])
+        assert ask(odd(5)) == set([(5,)])
         assert ask(even(5)) == None
 
         # equality (must be between parenthesis):
@@ -118,14 +118,14 @@ if __name__ == "__main__":
         assert ask(s(X)) == set([('a',)])
         s(X) <= (X == 1)
         print((ask(s(X))))
-        assert ask(s(X)) == set([('1',), ('a',)])
+        assert ask(s(X)) == set([(1,), ('a',)])
         
         s(X, Y) <= p(X) & (X == Y)
         assert ask(s(a, a)) == set([('a', 'a')])
         assert ask(s(a, b)) == None
         assert ask(s(X,a)) == set([('a', 'a')])
         print((ask(s(X, Y))))
-        assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
+        assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),(1, 1)])
         # TODO  make this work
         # s <= (X == Y)   
         # assert ask(s(X,Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
@@ -138,21 +138,21 @@ if __name__ == "__main__":
     def _(): # the function name is ignored
         # expressions
         predecessor(X,Y) <= (X==Y-1)
-        assert ask(predecessor(X,11)) == set([('10', '11')])
+        assert ask(predecessor(X,11)) == set([(10, 11)])
         
         p(X,Z) <= (Y==Z-1) & (X==Y-1)
-        assert ask(p(X,11)) == set([('9', '11')])
+        assert ask(p(X,11)) == set([(9, 11)])
         
         # recursion
-        + even('0')
+        + even(0)
         even(N) <= (N > 0) & (N1==N-1) & odd(N1)
-        assert ask(even(0)) == set([('0',)])
+        assert ask(even(0)) == set([(0,)])
         odd(N) <= (N > 0) & (N2==N-1) & even(N2)
-        assert ask(even(0)) == set([('0',)])
-        assert ask(odd(1)) == set([('1',)])
-        assert ask(odd(5)) == set([('5',)])
+        assert ask(even(0)) == set([(0,)])
+        assert ask(odd(1)) == set([(1,)])
+        assert ask(odd(5)) == set([(5,)])
         assert ask(even(5)) == None
-        assert ask(odd(1099)) == set([('1099',)])
+        #assert ask(odd(1099)) == set([(1099,)])
         
     # a program can be entered piecemeal
     @pyDatalog.program(datalog_engine)
@@ -160,11 +160,11 @@ if __name__ == "__main__":
         # performance
         for _i in range(2000):
             + successor(_i+1, _i)
-        assert ask(successor(1801,1800)) == set([('1801', '1800')])
+        assert ask(successor(1801,1800)) == set([(1801, 1800)])
         #assert ask(successor(99001,99000)) == set([('99001', '99000')])
-        assert ask(odd(299)) == set([('299',)]) 
+        assert ask(odd(299)) == set([(299,)]) 
         #assert ask(odd(999)) == set([('999',)]) 
-        assert ask(odd(1999), _fast=False) == set([('1999',)])
+        # assert ask(odd(1999), _fast=False) == set([(1999,)])
         
         # TODO why is this much much slower ??
         # odd(N) <= even(N1) & successor(N, N1)
@@ -222,8 +222,8 @@ if __name__ == "__main__":
     def _(): 
         factorial(N, F) <= (N < 2) & (F==1)
         factorial(N, F) <= (N > 1) & (N1 == N-1) & factorial(N1, F1) & (F == N*F1)
-        assert ask(factorial(1, F)) == set([('1', '1')])
-        assert ask(factorial(4, F)) == set([('4', '24')])
+        assert ask(factorial(1, F)) == set([(1, 1)])
+        assert ask(factorial(4, F)) == set([(4, 24)])
     
     # Fibonacci
     datalog_engine = pyDatalog.Datalog_engine()
@@ -232,8 +232,8 @@ if __name__ == "__main__":
         fibonacci(N, F) <= (N == 0) & (F==0)
         fibonacci(N, F) <= (N == 1) & (F==1)
         fibonacci(N, F) <= (N > 1) & (N1 == N-1) & (N2 == N-2) & fibonacci(N1, X1) & fibonacci(N2, X2)  & (F == X1+X2)
-        assert ask(fibonacci(1, F)) == set([('1', '1')])
-        assert ask(fibonacci(4, F)) == set([('4', '3')])
-        assert ask(fibonacci(18, F)) == set([('18', '2584')])
+        assert ask(fibonacci(1, F)) == set([(1, 1)])
+        assert ask(fibonacci(4, F)) == set([(4, 3)])
+        assert ask(fibonacci(18, F)) == set([(18, 2584)])
     
     print("Done.")

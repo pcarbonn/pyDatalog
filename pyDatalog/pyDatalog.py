@@ -79,7 +79,7 @@ class Symbol:
         if self.type == 'variable':
             self.lua = datalog_engine._make_var(name)
         else:
-            self.lua = datalog_engine._make_const(str(name))
+            self.lua = datalog_engine._make_const(name)
         
     def __call__ (self, *args, **kwargs):
         "time to create a literal !"
@@ -93,10 +93,10 @@ class Symbol:
             return Literal(self.name, args, self.datalog_engine)
 
     def _make_expression_literal(self, operator, other):
-        name = '=' + str(self) + '==' + str(other)
+        name = '=' + str(self) + operator + str(other)
         if isinstance(other, int):
             literal = Literal(name, [self], self.datalog_engine)
-            expr = self.datalog_engine._make_operand('constant', str(other))
+            expr = self.datalog_engine._make_operand('constant', other)
         else: # other is a symbol or an expression
             literal = Literal(name, [self] + list(other._variables().values()), self.datalog_engine)
             expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
@@ -195,7 +195,7 @@ class Literal:
             elif isinstance(a, Literal):
                 raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
             else:
-                tbl.append(datalog_engine._make_const(str(a)))
+                tbl.append(datalog_engine._make_const(a))
         self.lua = datalog_engine._make_literal(predicate_name, tbl)
         #print pr(self.lua)
 
@@ -235,7 +235,7 @@ class Body:
         self.body.append(literal) 
         return self
 
-def Datalog_engine(implementation='Python'): # factory
+def Datalog_engine(implementation='Lua'): # factory
     if implementation == 'Lua':
         return Lua_engine()
     else:
