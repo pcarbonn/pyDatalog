@@ -64,7 +64,7 @@ except:
 #Engine = 'Python'
 print('Using %s engine for Datalog.' % Engine)
 
-from pyEngine import *
+from pyDatalog.pyEngine import *
 
 default_datalog_engine = None # will contain the default datalog engine
 
@@ -79,7 +79,7 @@ class Symbol:
         self.datalog_engine = datalog_engine # needed to create Literal
         if isinstance(name, int):
             self.type = 'constant'
-        elif (name[0] in string.uppercase):
+        elif (name[0] in string.ascii_uppercase):
             self.type = 'variable'
         else:
             self.type = 'constant'

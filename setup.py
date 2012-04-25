@@ -2,7 +2,7 @@ from distutils.core import setup
 setup(
     name = "pyDatalog",
     packages = ["pyDatalog"],
-    version = "0.2.2",
+    version = "0.3.0",
     description = "pyDatalog embeds a subset of prolog in python using SLG algorithm with memoization",
     author = "Pierre Carbonnelle",
     author_email = "pierre.carbonnelle@gmail.com",
@@ -31,5 +31,7 @@ or at managing large sets of related information (e.g. in the semantic web).
 
 Datalog statements can be specified in any order, eliminating the need for sequence diagrams and the associated risk of tricky errors. 
 Datalog programs are often shorter than their python equivalent.  
-"""
+""",
+    setup_requires = ["six"],
+    install_requires = ["six"]
 )
