@@ -836,7 +836,7 @@ local function add_iter_prim(name, arity, iter)
             if n == arity then
                 local new = {pred = pred}
                 for i=1,n do
-                    new[i] = make_const(tostring(terms[i]))
+                    new[i] = make_const(terms[i])
                 end
                 if match(literal, new) then
                     fact(subgoal, new)
@@ -926,7 +926,7 @@ local function add_iter_prim_to_predicate(pred, iter) -- adapted from add_iter_p
             if n == #literal then
                 local new = {pred = pred}
                 for i=1,n do
-                    new[i] = datalog.make_const(tostring(terms[i]))
+                    new[i] = datalog.make_const(terms[i])
                 end
                 if match(literal, new) then
                     fact(subgoal, new)
@@ -950,7 +950,7 @@ function add_expr_to_predicate(pred, operator, expression)
                 for i, y in ipairs(literal) do
                     if 1 < i then --ignore x
                         if not y.is_const() then return nil    end
-                        table.insert(args, tonumber(y.id))
+                        table.insert(args, y.id)
                     end
                 end
 
@@ -962,7 +962,7 @@ function add_expr_to_predicate(pred, operator, expression)
                   or  literal.pred.operator == ">" and x:is_const() and x.id > X
                   or  literal.pred.operator == "<=" and x:is_const() and x.id <= X
                   or  literal.pred.operator == ">=" and x:is_const() and x.id >= X
-                  or  literal.pred.operator == "~=" and x:is_const() and tonumber(x.id) ~= X
+                  or  literal.pred.operator == "~=" and x:is_const() and x.id ~= X
                 then
                     table.insert(args, 1, x.id)
                     return args
@@ -978,7 +978,7 @@ function add_expr_to_predicate(pred, operator, expression)
             if n == #literal then
                 local new = {pred = pred}
                 for i=1,n do
-                    new[i] = datalog.make_const(tostring(terms[i]))
+                    new[i] = datalog.make_const(terms[i])
                 end
                 if match(literal, new) then
                     fact(subgoal, new)

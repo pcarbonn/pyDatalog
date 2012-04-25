@@ -69,7 +69,6 @@ class Interned (object):
     # registry = weakref.WeakValueDictionary() 
     def __new__(cls, *args, **kwargs):
         assert 0 < len(args)
-        assert isinstance(args[0], six.string_types)
         if not args[0] in cls.registry: # don't use setdefault to avoid creating unnecessary objects
             o = object.__new__(cls, *args, **kwargs) # o is the ref that keeps it alive
             cls.registry[args[0]] = o
@@ -312,7 +311,7 @@ function Var:get_id()
     return "v" .. self.id
 end
 """
-Const.get_id = lambda self : 'c' + self.id
+Const.get_id = lambda self : 'c' + str(self.id)
 Var.get_id = lambda self : 'v' + self.id
 Fresh_var.get_id = lambda self : 'v' + self.id
 
@@ -360,7 +359,7 @@ function Var:get_tag(i, env)
     return tag
 end
 """
-Const.get_tag = lambda self, i, env : 'c' + self.id
+Const.get_tag = lambda self, i, env : 'c' + str(self.id)
 Var.get_tag = lambda self, i, env : env[self] if self in env else env.setdefault(self, 'v%i' % i)
 Fresh_var.get_tag = lambda self, i, env : env[self] if self in env else env.setdefault(self, 'v%i' % i)
 
@@ -1315,7 +1314,7 @@ def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
     def prim(literal, subgoal, pred=pred, iter=iter):
         for terms in iter(literal):
             if len(terms) == len(literal.terms):
-                new = make_literal(pred, [make_const(str(term)) for term in terms])
+                new = make_literal(pred, [make_const(term) for term in terms])
                 if match(literal, new) != None:
                     fact(subgoal, new)
     pred.prim = prim
@@ -1472,17 +1471,17 @@ def add_expr_to_predicate(pred, operator, expression):
         for term in literal.terms[1:]:
             if not term.is_const():
                 return
-            args.append(int(term.id))
+            args.append(term.id)
             
-        X = int(literal.pred.expression.eval(args))
+        X = literal.pred.expression.eval(args)
         if literal.pred.operator == "=" and not x.is_const():
-            args.insert(0,str(X))
+            args.insert(0,X)
             yield args
-        elif ((literal.pred.operator == "<" and x.is_const() and int(x.id) < X)
-          or  (literal.pred.operator == ">" and x.is_const() and int(x.id) > X)
-          or  (literal.pred.operator == "<=" and x.is_const() and int(x.id) <= X)
-          or  (literal.pred.operator == ">=" and x.is_const() and int(x.id) >= X)
-          or  (literal.pred.operator == "~=" and x.is_const() and int(x.id) != X)):
+        elif ((literal.pred.operator == "<" and x.is_const() and x.id < X)
+          or  (literal.pred.operator == ">" and x.is_const() and x.id > X)
+          or  (literal.pred.operator == "<=" and x.is_const() and x.id <= X)
+          or  (literal.pred.operator == ">=" and x.is_const() and x.id >= X)
+          or  (literal.pred.operator == "~=" and x.is_const() and x.id != X)):
             args.insert(0,x.id)
             yield args
 
