@@ -30,7 +30,7 @@ if __name__ == "__main__":
     datalog_engine = pyDatalog.Datalog_engine()
     
     print("Defining a datalog program...")
-    
+        
     # test of expressions
     datalog_engine.load('+ p(a)')
     assert datalog_engine.ask('p(a)') == set([('a',)])
@@ -151,8 +151,8 @@ if __name__ == "__main__":
         assert ask(even(0)) == set([('0',)])
         assert ask(odd(1)) == set([('1',)])
         assert ask(odd(5)) == set([('5',)])
-        assert ask(odd(1099)) == set([('1099',)])
         assert ask(even(5)) == None
+        assert ask(odd(1099)) == set([('1099',)])
         
     # a program can be entered piecemeal
     @pyDatalog.program(datalog_engine)

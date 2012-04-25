@@ -79,7 +79,7 @@ class Symbol:
         if self.type == 'variable':
             self.lua = datalog_engine._make_var(name)
         else:
-            self.lua = datalog_engine._make_const(name)
+            self.lua = datalog_engine._make_const(str(name))
         
     def __call__ (self, *args, **kwargs):
         "time to create a literal !"
@@ -235,7 +235,7 @@ class Body:
         self.body.append(literal) 
         return self
 
-def Datalog_engine(implementation='Lua'): # factory
+def Datalog_engine(implementation='Python'): # factory
     if implementation == 'Lua':
         return Lua_engine()
     else:
