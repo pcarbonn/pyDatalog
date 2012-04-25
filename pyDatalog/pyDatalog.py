@@ -50,12 +50,19 @@ Classes contained in this file:
 * program : decorator function to create datalog programs
 
 """
-import lupa
 import os
 import string
-from lupa import LuaRuntime
 import six
 from six.moves import builtins
+
+try:
+    import lupa
+    from lupa import LuaRuntime
+    Engine = 'Lua'
+except:
+    Engine = 'Python'
+#Engine = 'Python'
+print('Using %s engine for Datalog.' % Engine)
 
 from pyEngine import *
 
@@ -85,7 +92,7 @@ class Symbol:
         "time to create a literal !"
         if self.name == 'ask':
             # TODO check that there is only one argument
-            fast = kwargs['_fast'] if '_fast' in kwargs.keys() else False
+            fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             return self.datalog_engine._ask_literal(args[0], fast)
         elif self.type == 'variable':
             raise TypeError("predicate name must start with a lower case : %s" % self.name)
@@ -235,8 +242,8 @@ class Body:
         self.body.append(literal) 
         return self
 
-def Datalog_engine(implementation='Lua'): # factory
-    if implementation == 'Lua':
+def Datalog_engine(implementation=None): # factory
+    if (implementation or Engine) == 'Lua':
         return Lua_engine()
     else:
         return Python_engine()
