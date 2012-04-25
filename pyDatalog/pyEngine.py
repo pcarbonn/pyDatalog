@@ -33,7 +33,7 @@ import six
 import weakref
 from six.moves import queue
 
-Debug = True
+Debug = False
 
 # DATA TYPES
 
@@ -1204,10 +1204,32 @@ do                                          # equals primitive
 
     binary_equals_pred.prim = equals_primitive
 end
+"""
+binary_equals_pred = make_pred("=", 2)
+
+def equals_primitive(literal, subgoal):
+    x = literal.terms[0]
+    y = literal.terms[1]
+    env = x.unify(y, {})# Both terms must unify,
+    if env != None:                     # and at least one of them
+        x = x.subst(env)          # must be a constant.
+        y = y.subst(env)
+    return x.equals_primitive(y, subgoal)
+binary_equals_pred.prim = equals_primitive
+
+Var.equals_primitive = lambda term, subgoal: None
+Fresh_var.equals_primitive = lambda term, subgoal: None
+
+def _(self, term, subgoal):
+    if self == term:          # Both terms are constant and equal.
+        literal = make_literal(binary_equals_pred, (self, self))
+        return fact(subgoal, literal)
+Const.equals_primitive = _
 
 # Does a literal unify with an fact known to contain only constant
 # terms?
 
+"""
 local function match(literal, fact)
     local env = {}
     for i=1,#literal do
@@ -1220,7 +1242,20 @@ local function match(literal, fact)
     end
     return env
 end
-
+"""
+def match(literal, fact):
+    env = {}
+    for i, term in enumerate(literal.terms):
+        if term != fact.terms[i]:
+            try:
+                if eval(term.id) == eval(fact.terms[i].id):
+                    continue
+            except:
+                pass
+            env = term.match(fact.terms[i], env)
+            if env == None: return env
+    return env
+"""
 function Const:match(const, env)
     return nil
 end
@@ -1236,6 +1271,18 @@ function Var:match(const, env)
         return nil
     end
 end
+"""
+Const.match = lambda self, const, env : None
+def _(self, const, env):
+    if self not in env:
+        env[self] = const
+        return env
+    elif env[self] == const:
+        return env
+    else:
+        return None
+Var.match = _
+Fresh_var.match = _
 
 # Add a primitives that is defined by an iterator.  When given a
 # literal, the iterator generates a sequences of answers.  Each
@@ -1243,6 +1290,7 @@ end
 # or a string.  The length of the array is equal to the arity of the
 # predicate.
 
+"""
 local function add_iter_prim(name, arity, iter)
     local pred = make_pred(name, arity)
     local function prim(literal, subgoal)
@@ -1263,8 +1311,19 @@ local function add_iter_prim(name, arity, iter)
     return insert(pred)
 end
 """
-def add_iter_prim(name, arity, iter):
-    return
+def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
+    def prim(literal, subgoal, pred=pred, iter=iter):
+        for terms in iter(literal):
+            if len(terms) == len(literal.terms):
+                new = make_literal(pred, [make_const(str(term)) for term in terms])
+                if match(literal, new) != None:
+                    fact(subgoal, new)
+    pred.prim = prim
+    
+def add_iter_prim(name, arity, iter): # TODO
+    pred = make_pred(name, arity)
+    add_iter_prim_to_predicate(pred, iter)
+    return insert(pred)
 
 """
 --[[
@@ -1284,7 +1343,7 @@ add_iter_prim("three", 1,
 )
 
 --]]
-
+"""
 
 # Support for expression
 
@@ -1296,6 +1355,7 @@ add_iter_prim("three", 1,
 # An Operand is either a constant or an index in the list of arguments of a literal
 # e.g. in P(X,Y) for X = Y-1, Y has an index of 1
 
+"""
 local Operand = {}
 Operand.__index = Operand
 function make_operand(type, value)
@@ -1308,10 +1368,7 @@ function make_operand(type, value)
     setmetatable(operand, Operand)
     return operand
 end
-"""
-def make_operand(type, value):
-    return
-"""
+
 function Operand:eval(environment)
     if self.index then
         return environment[self.index]
@@ -1319,7 +1376,18 @@ function Operand:eval(environment)
         return self.value
     end
 end
+"""
+class Operand:
+    def __init__(self, type, value):
+        self.value = value if type == 'constant' else None
+        self.index = value if type != 'constant' else None
+    def eval(self, environment):
+        return environment[self.index-1] if self.index != None else self.value
+        
+def make_operand(type, value):
+    return Operand(type, value)
 
+"""
 # an expression is specified by an operator and 2 operands
 
 local Expression = {}
@@ -1329,10 +1397,7 @@ function make_expression(operator, operand1, operand2)
     setmetatable(expression, Expression)
     return expression
 end
-"""
-def make_expression(operator, operand1, operand2):
-    return
-"""
+
 function Expression:eval(env)
     if self.operator == '+' then
         return self.operand1:eval(env) + self.operand2:eval(env)
@@ -1344,31 +1409,31 @@ function Expression:eval(env)
         return self.operand1:eval(env) / self.operand2:eval(env)
     end
 end
-
-# this function adds a primitive to an existing predicate
-
-local function add_iter_prim_to_predicate(pred, iter) # adapted from add_iter_prim
-    local function prim(literal, subgoal)
-        for terms in iter(literal) do
-            local n = #terms
-            if n == #literal then
-                local new = {pred = pred}
-                for i=1,n do
-                    new[i] = datalog.make_const(tostring(terms[i]))
-                end
-                if match(literal, new) then
-                    fact(subgoal, new)
-                end
-            end
-        end
-    end
-    pred.prim = prim
-end
+"""
+class Expression:
+    def __init__(self, operator, operand1, operand2):
+        self.operator = operator
+        self.operand1 = operand1
+        self.operand2 = operand2
+    def eval(self, env):
+        if self.operator == '+':
+            return self.operand1.eval(env) + self.operand2.eval(env)
+        elif self.operator == '-':
+            return self.operand1.eval(env) - self.operand2.eval(env)
+        elif self.operator == '*':
+            return self.operand1.eval(env) * self.operand2.eval(env)
+        elif self.operator == '/':
+            return self.operand1.eval(env) / self.operand2.eval(env)
+        assert False
+        
+def make_expression(operator, operand1, operand2):
+    return Expression(operator, operand1, operand2)
 
 # this functions adds an expression to an existing predicate
 
+"""
 function add_expr_to_predicate(pred, operator, expression)
-    local function expression_literal(literal) # modified from add() in e-mail from John
+    local function expression_iter(literal) # modified from add() in e-mail from John
         return function(s, v)
             if v then
                 return nil
@@ -1399,9 +1464,32 @@ function add_expr_to_predicate(pred, operator, expression)
             end
       end
     end
+    """
+def add_expr_to_predicate(pred, operator, expression):
+    def expression_iter(literal):
+        x = literal.terms[0]
+        args = []
+        for term in literal.terms[1:]:
+            if not term.is_const():
+                return
+            args.append(int(term.id))
+            
+        X = int(literal.pred.expression.eval(args))
+        if literal.pred.operator == "=" and not x.is_const():
+            args.insert(0,str(X))
+            yield args
+        elif ((literal.pred.operator == "<" and x.is_const() and int(x.id) < X)
+          or  (literal.pred.operator == ">" and x.is_const() and int(x.id) > X)
+          or  (literal.pred.operator == "<=" and x.is_const() and int(x.id) <= X)
+          or  (literal.pred.operator == ">=" and x.is_const() and int(x.id) >= X)
+          or  (literal.pred.operator == "~=" and x.is_const() and int(x.id) != X)):
+            args.insert(0,x.id)
+            yield args
 
+
+    """
     local function prim(literal, subgoal)
-        for terms in expression_literal(literal) do
+        for terms in expression_iter(literal) do
             local n = #terms
             if n == #literal then
                 local new = {pred = pred}
@@ -1420,8 +1508,10 @@ function add_expr_to_predicate(pred, operator, expression)
     datalog.insert(pred)
 end
 """
-def add_expr_to_predicate(pred, operator, expression):
-    return
+    add_iter_prim_to_predicate(pred, expression_iter)
+    pred.operator = operator
+    pred.expression = expression
+    insert(pred)
 
 """
 
