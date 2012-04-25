@@ -471,9 +471,9 @@ end
 def unify(literal, other):
     if literal.pred != other.pred: return None
     env = {}
-    for i, term in enumerate(literal.terms):
+    for term, otherterm in zip(literal.terms, other.terms):
         literal_i = term.chase(env)
-        other_i = other.terms[i].chase(env)
+        other_i = otherterm.chase(env)
         if literal_i != other_i:
             env = literal_i.unify(other_i, env)
             if env == None: return env
@@ -983,7 +983,7 @@ end
 """
 def fact(subgoal, literal):
     if not is_member(literal, subgoal.facts):
-        if Debug: print ("New fact : %s" % str(literal))
+        if Debug: print("New fact : %s" % str(literal))
         adjoin(literal, subgoal.facts)
         for waiter in reversed(subgoal.waiters):
             resolvent = resolve(waiter.clause, literal)
@@ -1024,17 +1024,17 @@ class Waiter(object):
 def rule(subgoal, clause, selected):
     sg = find(selected)
     if sg != None:
-        if Debug: print ("Rule, subgoal found : %s" % str(sg.literal))
+        if Debug: print("Rule, subgoal found : %s" % str(sg.literal))
         sg.waiters.append(Waiter(subgoal, clause))
         todo = []
-        for fact in sg.facts.values():
+        for fact in list(sg.facts.values()):
             resolvent = resolve(clause, fact)
             if resolvent != None: 
                 todo.append(resolvent)
         for t in todo:
             sched(lambda subgoal=subgoal, t=t: add_clause(subgoal, t))
     else:
-        if Debug: print ("Rule, subgoal not found : %s" % str(subgoal.literal))
+        if Debug: print("Rule, subgoal not found : %s" % str(subgoal.literal))
         sg = make_subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
         merge(sg)
@@ -1075,12 +1075,12 @@ end
 """
 
 def search(subgoal):
-    if Debug: print ("search : %s" % str(subgoal.literal))
+    if Debug: print("search : %s" % str(subgoal.literal))
     literal = subgoal.literal
     if literal.pred.prim:
         return literal.pred.prim(literal, subgoal)
     else:
-        for clause in literal.pred.db.values():
+        for clause in list(literal.pred.db.values()):
             renamed = rename_clause(clause)
             env = unify(literal, renamed.head)
             if env != None: # lua considers {} as true
@@ -1130,9 +1130,8 @@ def ask2(literal, fast):
     merge(subgoal)
     invoke(lambda subgoal=subgoal: search(subgoal))
     subgoals = None
-    answers = [ tuple([term.id for term in literal.terms]) for literal in subgoal.facts.values()]
+    answers = [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]
     if 0 < len(answers):
-        print answers # TODO
         answer = Answer(get_name(literal.pred), get_arity(literal.pred), answers)
         return answer
     return None
@@ -1244,14 +1243,14 @@ end
 """
 def match(literal, fact):
     env = {}
-    for i, term in enumerate(literal.terms):
-        if term != fact.terms[i]:
+    for term, factterm in zip(literal.terms, fact.terms):
+        if term != factterm:
             try:
-                if eval(term.id) == eval(fact.terms[i].id):
+                if eval(term.id) == eval(factterm.id):
                     continue
             except:
                 pass
-            env = term.match(fact.terms[i], env)
+            env = term.match(factterm, env)
             if env == None: return env
     return env
 """

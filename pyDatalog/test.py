@@ -19,12 +19,13 @@ Foundation, Inc.  51 Franklin St, Fifth Floor, Boston, MA 02110-1301
 USA
 
 """
+import cProfile
 import math
 import time
 
 import pyDatalog
 
-if __name__ == "__main__":
+def test():
 
     # instantiate a pyDatalog engine
     datalog_engine = pyDatalog.Datalog_engine()
@@ -34,8 +35,6 @@ if __name__ == "__main__":
     # test of expressions
     datalog_engine.load('+ p(a)')
     assert datalog_engine.ask('p(a)') == set([('a',)])
-    
-    datalog_engine = None
     
     # a decorator is used to create a program on the pyDatalog engine
     @pyDatalog.program()
@@ -57,6 +56,20 @@ if __name__ == "__main__":
         - p(b) # retract a unary fact
         assert ask(p(X)) == set([('a',)])
         
+    # a program can be entered piecemeal
+    @pyDatalog.program(datalog_engine)
+    def _(): # the function name is ignored
+        # spaces and uppercase in strings
+        + farmer('Moshe dayan')
+        + farmer('omar')
+        assert ask(farmer(X)) == set([('Moshe dayan',), ('omar',)])
+
+    # execute queries in a python program
+    moshe_is_a_farmer = datalog_engine.ask("farmer('Moshe dayan')")
+    assert moshe_is_a_farmer == set([('Moshe dayan',)])
+
+    @pyDatalog.program()
+    def _(): # the function name is ignored
         # strings and integers
         + p('c')
         assert ask(p(c)) == set([('c',)])
@@ -89,7 +102,6 @@ if __name__ == "__main__":
 
         # integer
         + integer(1)
-        print(ask(integer(1)))
         assert ask(integer(1)) == set([(1,)])
         
         # integer variable
@@ -130,7 +142,7 @@ if __name__ == "__main__":
         # s <= (X == Y)   
         # assert ask(s(X,Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
 
-    pyDatalog.ask('p(a)') == set([('a',)])
+    assert pyDatalog.ask('p(a)') == set([('a',)])
     
     # reset the engine
     datalog_engine = pyDatalog.Datalog_engine()
@@ -154,33 +166,14 @@ if __name__ == "__main__":
         assert ask(even(5)) == None
         #assert ask(odd(1099)) == set([(1099,)])
         
-    # a program can be entered piecemeal
+    """ TODO up-scope variables should be recognized, even if not global
+    _parents = (('edward', 'albert'), ('edward', 'victoria'))
     @pyDatalog.program(datalog_engine)
     def _(): # the function name is ignored
-        # performance
-        for _i in range(2000):
-            + successor(_i+1, _i)
-        assert ask(successor(1801,1800)) == set([(1801, 1800)])
-        #assert ask(successor(99001,99000)) == set([('99001', '99000')])
-        assert ask(odd(299)) == set([(299,)]) 
-        #assert ask(odd(999)) == set([('999',)]) 
-        # assert ask(odd(1999), _fast=False) == set([(1999,)])
-        
-        # TODO why is this much much slower ??
-        # odd(N) <= even(N1) & successor(N, N1)
-
-    # populate facts from python variables
-    _farmers = ('Moshe dayan', 'omar')
-    @pyDatalog.program(datalog_engine)
-    def _(): # the function name is ignored
-        # unary plus defines a fact
-        for _farmer in _farmers:
-            + farmer(_farmer)
-        assert ask(farmer(X)) == set([('Moshe dayan',), ('omar',)])
-
-    # execute queries in a python program
-    moshe_is_a_farmer = datalog_engine.ask("farmer('Moshe dayan')")
-    assert moshe_is_a_farmer == set([('Moshe dayan',)])
+        for _parent in _parents:
+            + parent(_parent[0], unicode(_parent[1]))       
+    
+    """
 
     # can't call a pyDatalog program
     error = False
@@ -202,19 +195,11 @@ if __name__ == "__main__":
     def _(): # the function name is ignored
         + parent(bill,mary)
         + parent(mary,john) 
-    print(datalog_engine.ask('parent(X,john)'))
     @pyDatalog.program(datalog_engine)
     def _(): # the function name is ignored
         ancestor(X,Y) <=  parent(X,Y)
         ancestor(X,Y) <= parent(X,Z) & ancestor(Z,Y)
     print(datalog_engine.ask('ancestor(bill,X)'))
-    
-    _parents = (('edward', 'albert'), ('edward', 'victoria'))
-    
-    @pyDatalog.program(datalog_engine)
-    def _(): # the function name is ignored
-        for _parent in _parents:
-            + parent(_parent[0], unicode(_parent[1]))       
     
     # Factorial
     datalog_engine = pyDatalog.Datalog_engine()
@@ -236,4 +221,21 @@ if __name__ == "__main__":
         assert ask(fibonacci(4, F)) == set([(4, 3)])
         assert ask(fibonacci(18, F)) == set([(18, 2584)])
     
+    @pyDatalog.program()
+    def _(): # the function name is ignored
+        # performance
+        for _i in range(2000):
+            + successor(_i+1, _i)
+        assert ask(successor(1801,1800)) == set([(1801, 1800)])
+        #assert ask(successor(99001,99000)) == set([('99001', '99000')])
+        assert ask(odd(299)) == set([(299,)]) 
+        #assert ask(odd(999)) == set([('999',)]) 
+        # assert ask(odd(1999), _fast=False) == set([(1999,)])
+        
+        # TODO why is this much much slower ??
+        # odd(N) <= even(N1) & successor(N, N1)
+
     print("Done.")
+
+if __name__ == "__main__":    
+    cProfile.runctx('test()', globals(), locals())
