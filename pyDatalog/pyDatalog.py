@@ -61,10 +61,10 @@ try:
     Engine = 'Lua'
 except:
     Engine = 'Python'
-#Engine = 'Python'
+Engine = 'Python'
 print('Using %s engine for Datalog.' % Engine)
 
-from pyDatalog.pyEngine import *
+from pyEngine import *
 
 default_datalog_engine = None # will contain the default datalog engine
 

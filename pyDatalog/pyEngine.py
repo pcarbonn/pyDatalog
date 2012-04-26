@@ -403,8 +403,8 @@ function Var:subst(env)
 end
 """
 Const.subst = lambda self, env : self
-Var.subst = lambda self, env : env[self] if self in env else self
-Fresh_var.subst = lambda self, env : env[self] if self in env else self
+Var.subst = lambda self, env : env.get(self, self)
+Fresh_var.subst = lambda self, env : env.get(self, self)
 
 # Shuffle creates an environment in which all variables are mapped to
 # freshly generated variables.
@@ -585,7 +585,7 @@ end
 """
 def is_member(literal, tbl):
     id_ = get_id(literal)
-    return tbl[id_] if id_ in tbl else None
+    return tbl.get(id_)
 
 def adjoin(literal, tbl):
     tbl[get_id(literal)] = literal
@@ -776,9 +776,9 @@ def assert_(clause):
         if len(clause.body) == 0: # if it is a fact, update indexes
             for i, term in enumerate(clause.head.terms):
                 clauses = pred.index[i].setdefault(term, set([])) # create a set if needed
-                clauses.add(get_clause_id(clause))
+                clauses.add(clause)
         else:
-            pred.clauses.add(get_clause_id(clause))
+            pred.clauses.add(clause)
         insert(pred)
     return clause
 
@@ -798,11 +798,12 @@ def retract(clause):
     
     if id_ in pred.db: 
         if len(clause.body) == 0: # if it is a fact, update indexes
+            clause = pred.db[id_] # make sure it is identical to the one in the index
             for i, term in enumerate(clause.head.terms):
-                pred.index[i][term].remove(get_clause_id(clause))
+                pred.index[i][term].remove(clause)
                 # TODO del pred.index[i][term] if the set is empty
         else:
-            pred.clauses.remove(get_clause_id(clause))
+            pred.clauses.remove(clause)
         del pred.db[id_]  # remove clause from pred.db
     if len(pred.db) == 0 and pred.prim == None: # if no definition left
         remove(pred)
@@ -821,8 +822,8 @@ def relevant_clauses(literal):
     if result == None: # no constants found
         return list(literal.pred.db.values())
     else:
-        result= [ literal.pred.db[id_] for id_ in result ] + [ literal.pred.db[id_] for id_ in literal.pred.clauses]
-        return result
+        #result= [ literal.pred.db[id_] for id_ in result ] + [ literal.pred.db[id_] for id_ in literal.pred.clauses]
+        return list(result) + list(literal.pred.clauses)
     
 # DATABASE CLONING
 
@@ -896,7 +897,7 @@ end
 """
 def find(literal):
     tag = get_tag(literal)
-    return subgoals[tag] if tag in subgoals else None
+    return subgoals.get(tag)
 
 def merge(subgoal):
     global subgoals
