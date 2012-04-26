@@ -187,6 +187,9 @@ class Pred(Interned):
             o = object.__new__(cls, *args, **kwargs) # o is the ref that keeps it alive
             o.id = _id
             o.db = {}
+            o.clauses = set([])
+            # one index per term. An index is a dictionary of sets
+            o.index = [{} for i in range(int(o.id.split('/')[-1]))]
             o.prim = None
             o.expression = None
             cls.registry[_id] = o
@@ -770,6 +773,12 @@ def assert_(clause):
     pred = clause.head.pred
     if not pred.prim:                   # Ignore assertions for primitives.
         pred.db[get_clause_id(clause)] = clause
+        if len(clause.body) == 0: # if it is a fact, update indexes
+            for i, term in enumerate(clause.head.terms):
+                clauses = pred.index[i].setdefault(term, set([])) # create a set if needed
+                clauses.add(get_clause_id(clause))
+        else:
+            pred.clauses.add(get_clause_id(clause))
         insert(pred)
     return clause
 
@@ -786,11 +795,35 @@ end
 def retract(clause):
     pred = clause.head.pred
     id_ = get_clause_id(clause)
-    if id_ in pred.db: del pred.db[id_]  # remove clause from pred.db
-    if len(pred.db) == 0 and not pred.prim: # if no definition left
+    
+    if id_ in pred.db: 
+        if len(clause.body) == 0: # if it is a fact, update indexes
+            for i, term in enumerate(clause.head.terms):
+                pred.index[i][term].remove(get_clause_id(clause))
+                # TODO del pred.index[i][term] if the set is empty
+        else:
+            pred.clauses.remove(get_clause_id(clause))
+        del pred.db[id_]  # remove clause from pred.db
+    if len(pred.db) == 0 and pred.prim == None: # if no definition left
         remove(pred)
     return clause
 
+def relevant_clauses(literal):
+    #returns matching clauses for a literal query, using index
+    result = None
+    for i, term in enumerate(literal.terms):
+        if term.is_const():
+            facts = literal.pred.index[i].get(term) or set({})
+            if result == None:
+                result = facts
+            else:
+                result = result.intersection(facts)
+    if result == None: # no constants found
+        return list(literal.pred.db.values())
+    else:
+        result= [ literal.pred.db[id_] for id_ in result ] + [ literal.pred.db[id_] for id_ in literal.pred.clauses]
+        return result
+    
 # DATABASE CLONING
 
 # A database can be saved and then later restored.  With copy and
@@ -1081,7 +1114,7 @@ def search(subgoal):
     if literal.pred.prim:
         return literal.pred.prim(literal, subgoal)
     else:
-        for clause in list(literal.pred.db.values()):
+        for clause in relevant_clauses(literal):
             renamed = rename_clause(clause)
             env = unify(literal, renamed.head)
             if env != None: # lua considers {} as true
