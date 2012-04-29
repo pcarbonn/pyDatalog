@@ -24,6 +24,7 @@ import math
 import time
 
 import pyDatalog
+_parents = (('edward', 'albert'), ('edward', 'victoria'))
 
 def test():
 
@@ -169,14 +170,11 @@ def test():
         assert ask(even(5)) == None
         assert ask(odd(1099)) == set([(1099,)])
         
-    """ TODO up-scope variables should be recognized, even if not global
-    _parents = (('edward', 'albert'), ('edward', 'victoria'))
+    #TODO up-scope variables should be recognized, even if not global
     @pyDatalog.program(datalog_engine)
     def _(): # the function name is ignored
         for _parent in _parents:
             + parent(_parent[0], unicode(_parent[1]))       
-    
-    """
 
     # can't call a pyDatalog program
     error = False

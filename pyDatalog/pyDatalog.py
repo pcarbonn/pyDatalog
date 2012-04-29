@@ -64,7 +64,10 @@ except:
 #Engine = 'Python'
 print(('Using %s engine for Datalog.' % Engine))
 
-from . import pyDatalog.pyEngine
+try:
+    from . import pyEngine
+except ValueError:
+    import pyEngine
 
 default_datalog_engine = None # will contain the default datalog engine
 
