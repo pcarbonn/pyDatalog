@@ -36,6 +36,9 @@ def test():
     datalog_engine.load('+ p(a)')
     assert datalog_engine.ask('p(a)') == set([('a',)])
     
+    datalog_engine.clear()
+    assert datalog_engine.ask('p(a)') == None
+    
     # a decorator is used to create a program on the pyDatalog engine
     @pyDatalog.program()
     def _(): # the function name is ignored
@@ -221,6 +224,7 @@ def test():
         assert ask(fibonacci(4, F)) == set([(4, 3)])
         assert ask(fibonacci(18, F)) == set([(18, 2584)])
     
+    pyDatalog.clear()
     @pyDatalog.program()
     def _(): # the function name is ignored
         # performance
@@ -228,6 +232,11 @@ def test():
             + successor(_i+1, _i)
         assert ask(successor(1801,1800)) == set([(1801, 1800)])
         #assert ask(successor(99001,99000)) == set([('99001', '99000')])
+
+        + even(0)
+        even(N) <= (N > 0) & (N1==N-1) & odd(N1)
+        odd(N) <= (N > 0) & (N2==N-1) & even(N2)
+        
         assert ask(odd(299)) == set([(299,)]) 
         #assert ask(odd(999)) == set([(999,)]) 
         assert ask(odd(1999)) == set([(1999,)])

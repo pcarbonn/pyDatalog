@@ -1057,7 +1057,6 @@ class Waiter(object):
         self.subgoal = subgoal
         self.clause = clause
         
-        
 def rule(subgoal, clause, selected):
     sg = find(selected)
     if sg != None:
@@ -1548,6 +1547,14 @@ end
     pred.expression = expression
     insert(pred)
 
+def clear():
+    global binary_equals_pred
+    db = {}
+    Pred.registry = weakref.WeakValueDictionary()
+    binary_equals_pred = make_pred("=", 2)
+    binary_equals_pred.prim = equals_primitive
+
+    
 """
 
 # The Lua API
