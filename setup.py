@@ -2,7 +2,7 @@ from distutils.core import setup
 setup(
     name = "pyDatalog",
     packages = ["pyDatalog"],
-    version = "0.3.0",
+    version = "0.3.1",
     description = "pyDatalog embeds a subset of prolog in python using SLG algorithm with memoization",
     author = "Pierre Carbonnelle",
     author_email = "pierre.carbonnelle@gmail.com",
