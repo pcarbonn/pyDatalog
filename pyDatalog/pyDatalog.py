@@ -62,9 +62,9 @@ try:
 except:
     Engine = 'Python'
 #Engine = 'Python'
-print('Using %s engine for Datalog.' % Engine)
+print(('Using %s engine for Datalog.' % Engine))
 
-import pyDatalog.pyEngine
+from . import pyDatalog.pyEngine
 
 default_datalog_engine = None # will contain the default datalog engine
 

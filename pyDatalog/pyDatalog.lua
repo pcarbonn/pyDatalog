@@ -550,7 +550,7 @@ local function retract(clause)
         end
     end
     pred.db[id] = nil
-    if not next(pred.db) and not pred.prim then -- TODO update index
+    if not next(pred.db) and not pred.prim then
         remove(pred)
     end
     return clause
