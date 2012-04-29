@@ -101,11 +101,36 @@ end
 
 -- Predicate symbols
 
+-- first define what a set is
+
+local Set = {}
+Set.__index = Set
+    
+function Set.new (t)
+    local set = {}
+    for _, l in ipairs(t) do set[l] = l end
+    setmetatable(set, Set)
+    return set
+end
+function Set:union (b)
+    local res = Set.new{}
+    for k in pairs(self) do res[k] = k end
+    for k in pairs(b) do res[k] = k end
+    return res
+end
+function Set:intersection (b)
+    local res = Set.new{}
+    for k in pairs(self) do
+        res[k] = b[k]
+    end
+    return res
+end
+
 -- A predicate symbol has a name, an arity, and a database table.  It
 -- can also have a function used to implement a primitive.
 
 local function mk_pred(id)
-    return {id = id, db = {}}
+    return {id = id, db = {}, clauses = Set.new{}, index = {}}
 end
 
 local intern_pred = mk_intern(mk_pred)
@@ -115,7 +140,11 @@ local function mk_pred_id(pred_name, arity)
 end
 
 local function make_pred(pred_name, arity)
-    return intern_pred(mk_pred_id(pred_name, arity))
+    local res = intern_pred(mk_pred_id(pred_name, arity))
+    for i=1, arity do
+        res.index[i]={}
+    end
+    return res
 end
 
 local function last_slash(s)          -- Returns the location of the last slash
@@ -146,7 +175,7 @@ local function dup(pred)
     for k,v in pairs(pred.db) do
         db[k] = v
     end
-    return {id = pred.id, db = db, prim = pred.prim, expression = pred.expression}
+    return {id = pred.id, db = db, prim = pred.prim, expression = pred.expression, clauses = pred.clauses, index = pred.index}
 end
 
 -- Literals
@@ -489,6 +518,17 @@ local function assert(clause)
         local pred = clause.head.pred
         if not pred.prim then          -- Ignore assertions for primitives.
             pred.db[get_clause_id(clause)] = clause
+            if not next(clause) then     -- if it is a fact, update indexes
+                for i=1,#clause.head do
+                    term = clause.head[i]
+                    if not pred.index[i][term] then  -- create a set if needed
+                        pred.index[i][term] = Set.new{}
+                    end
+                    pred.index[i][term][clause] = clause -- add clause to the set
+                end
+            else
+                pred.clauses[clause] = clause
+            end
             insert(pred)
         end
         return clause
@@ -497,13 +537,46 @@ end
 
 local function retract(clause)
     local pred = clause.head.pred
-    pred.db[get_clause_id(clause)] = nil
-    if not next(pred.db) and not pred.prim then
+    id = get_clause_id(clause)
+    clause = pred.db[id] -- make sure we have the one in db
+    if clause then
+        if not next(clause) then -- if it is a fact
+            for i=1, #clause.head do
+                local term = clause.head[i]
+                pred.index[i][term][clause] = nil
+            end
+        else
+            pred.clauses[clause] = nil
+        end
+    end
+    pred.db[id] = nil
+    if not next(pred.db) and not pred.prim then -- TODO update index
         remove(pred)
     end
     return clause
 end
 
+local function relevant_clauses(literal)
+    --returns matching clauses for a literal query, using index
+    local result = nil
+    for i=1, #literal do
+        local term = literal[i]
+        if term.is_const() then
+            local facts = literal.pred.index[i][term] or Set.new{}
+            if not result then
+                result = facts
+            else
+                result = result:intersection(facts)
+            end
+        end
+    end
+    if not result then -- no constants found
+        return literal.pred.db
+    else
+        return result:union(literal.pred.clauses)
+    end
+end
+    
 -- DATABASE CLONING
 
 -- A database can be saved and then later restored.  With copy and
@@ -689,7 +762,7 @@ function search(subgoal)
     if literal.pred.prim then
         return literal.pred.prim(literal, subgoal)
     else
-        for id,clause in pairs(literal.pred.db) do
+        for id,clause in pairs(relevant_clauses(literal)) do
             local renamed = rename_clause(clause)
             local env = unify(literal, renamed.head)
             if env then

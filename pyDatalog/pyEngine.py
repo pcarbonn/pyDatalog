@@ -241,7 +241,9 @@ end
 class Fresh_pred(object):
     def __init__(self, pred):
         self.id = pred.id
-        self.db = copy.copy(pred.db)
+        self.db = copy.copy(pred.db) # TODO shallow or deep copy ?
+        self.index = copy.copy(pred.index)
+        self.clauses = copy.copy(pred.clauses)
         self.prim = pred.prim
         self.expression = pred.expression
 def dup(pred):
