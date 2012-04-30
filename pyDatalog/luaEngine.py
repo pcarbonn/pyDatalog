@@ -1,3 +1,6 @@
+--0 """ This is actually a lua program, not a python one.
+-- It was easier to put a .py file in the distribution package than a .lua one.
+
 --[[                                 Emacs -*- mode: lua -*-
 
 @PACKAGE_NAME@ @VERSION@

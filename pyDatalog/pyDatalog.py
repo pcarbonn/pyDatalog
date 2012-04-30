@@ -382,7 +382,7 @@ class Lua_engine(Datalog_engine_):
         self.clauses = []
         self.lua = LuaRuntime()
         
-        lua_program_path = os.path.join(os.path.dirname(__file__), 'pyDatalog.lua')
+        lua_program_path = os.path.join(os.path.dirname(__file__), 'luaEngine.py')
         lua_program = open(lua_program_path).read()
         self.lua.execute(lua_program)
         
