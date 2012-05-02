@@ -31,7 +31,7 @@ def test():
     # instantiate a pyDatalog engine
     datalog_engine = pyDatalog.Datalog_engine()
     
-    print("Defining a datalog program...")
+    print("Defining a datalog program in %s..." % pyDatalog.Engine)
         
     # test of expressions
     datalog_engine.load('+ p(a)')
@@ -244,5 +244,8 @@ def test():
 
     print("Done.")
 
-if __name__ == "__main__":    
-    cProfile.runctx('test()', globals(), locals())
+if __name__ == "__main__":
+    for pyDatalog.Engine in ('Lua', 'Python'):    
+        pyDatalog.default_datalog_engine = pyDatalog.Datalog_engine()
+        test()
+        #cProfile.runctx('test()', globals(), locals())
