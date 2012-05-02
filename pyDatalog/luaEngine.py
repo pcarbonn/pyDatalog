@@ -122,7 +122,7 @@ function Set:union (b)
     return res
 end
 function Set:intersection (b)
-    local res = Set.new{}
+    local res = Set.new{}   -- TODO use self instead, for better performance
     for k in pairs(self) do
         res[k] = b[k]
     end
@@ -573,8 +573,9 @@ local function relevant_clauses(literal)
             end
         end
     end
+    -- TODO return facts first, in all cases, for better performance
     if not result then -- no constants found
-        return literal.pred.db
+        return literal.pred.db  
     else
         return result:union(literal.pred.clauses)
     end
