@@ -947,7 +947,8 @@ local function resolve(clause, literal)
 end
 """
 def resolve(clause, literal):
-    if len(clause.body) == 0: return None
+    if len(clause.body) == 0: # this never happens, in fact
+        return None 
     env = unify(clause.body[0], rename(literal))
     if env == None: return None
     return make_clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
@@ -1462,6 +1463,20 @@ class Expression:
         
 def make_expression(operator, operand1, operand2):
     return Expression(operator, operand1, operand2)
+
+"""
+lambda
+"""
+class Lambda:
+    def __init__(self, lambda_object, operands):
+        self.lambda_object = lambda_object
+        self.operands = operands
+    def eval(self, env):
+        operands = [operand.eval(env) for operand in self.operands]
+        return self.lambda_object(*operands)
+        
+def make_lambda(lambda_object, operands):
+    return Lambda(lambda_object, operands)
 
 # this functions adds an expression to an existing predicate
 

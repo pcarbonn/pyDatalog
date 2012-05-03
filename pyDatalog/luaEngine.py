@@ -994,6 +994,39 @@ function Expression:eval(env)
     end
 end
 
+-- a lambda is used to call a python lambda function
+
+local Lambda = {}
+Lambda.__index = Lambda
+function make_lambda(lambda_object, operands)
+    local lambda = {lambda_object=lambda_object, operands=operands}
+    setmetatable(lambda, Lambda)
+    return lambda
+end
+function Lambda:eval(env)
+    local tbl = {}
+    for i, operand in ipairs(self.operands) do
+        table.insert(tbl, operand:eval(env))
+    end
+    if #tbl == 0 then
+        return self.lambda_object()
+    elseif #tbl == 1 then
+        return self.lambda_object(tbl[1])
+    elseif #tbl == 2 then
+        return self.lambda_object(tbl[1], tbl[2])
+    elseif #tbl == 3 then
+        return self.lambda_object(tbl[1], tbl[2], tbl[3])
+    elseif #tbl == 4 then
+        return self.lambda_object(tbl[1], tbl[2], tbl[3], tbl[4])
+    elseif #tbl == 5 then
+        return self.lambda_object(tbl[1], tbl[2], tbl[3], tbl[4], tbl[5])
+    elseif #tbl == 6 then
+        return self.lambda_object(tbl[1], tbl[2], tbl[3], tbl[4], tbl[5], tbl[6])
+    else -- TODO more arguments
+        error("Too many arguments for lambda function: " .. #tbl)
+    end
+end
+
 -- this function adds a primitive to an existing predicate
 
 local function add_iter_prim_to_predicate(pred, iter) -- adapted from add_iter_prim
@@ -1093,6 +1126,7 @@ datalog = {
 
     make_operand = make_operand,
     make_expression = make_expression,
+    make_lambda = make_lambda,
     add_expr_to_predicate = add_expr_to_predicate
 }
 
