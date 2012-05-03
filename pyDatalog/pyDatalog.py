@@ -104,6 +104,8 @@ class Symbol:
             return Literal(self.name, args, self.datalog_engine)
 
     def _make_expression_literal(self, operator, other):
+        if isinstance(other, type(lambda: None)):
+            other = Lambda(other, self.datalog_engine)
         name = '=' + str(self) + operator + str(other)
         if isinstance(other, int):
             literal = Literal(name, [self], self.datalog_engine)
@@ -115,7 +117,7 @@ class Symbol:
         return literal
 
     def __eq__(self, other):
-        if self.type == 'variable' and isinstance(other, Expression):
+        if self.type == 'variable' and (isinstance(other, Expression) or isinstance(other, type(lambda: None))):
             return self._make_expression_literal('=', other)
         else:
             return Literal("=", (self, other), self.datalog_engine)
@@ -150,7 +152,7 @@ class Symbol:
         
     def lua_expr(self, variables):
         if self.type == 'variable':
-            return self.datalog_engine._make_operand(type, variables.index(self.name))
+            return self.datalog_engine._make_operand('variable', variables.index(self.name))
         else:
             return self.datalog_engine._make_operand('constant', self.name)
     
@@ -172,6 +174,8 @@ class Expression:
         self.rhs = rhs
         if isinstance(rhs, str) or isinstance(rhs, int):
             self.rhs = Symbol(rhs, datalog_engine)
+        elif isinstance(rhs, type(lambda: None)):
+            self.rhs = Lambda(rhs, datalog_engine)
         self.datalog_engine = datalog_engine
         
     def _variables(self):
@@ -185,6 +189,22 @@ class Expression:
     def __str__(self):
         return '(' + str(self.lhs) + self.operator + str(self.rhs) + ')'
 
+class Lambda:
+    def __init__(self, other, datalog_engine=default_datalog_engine):
+        self.operator = '<lambda>'
+        self.lambda_object = other
+        self.datalog_engine = datalog_engine
+        
+    def _variables(self):
+        return dict([ [var, Symbol(var, self.datalog_engine)] for var in self.lambda_object.func_code.co_varnames])
+    
+    def lua_expr(self, variables):
+        operands = [self.datalog_engine._make_operand('variable', variables.index(varname)) for varname in self.lambda_object.func_code.co_varnames] 
+        return self.datalog_engine._make_lambda(self.lambda_object, operands)
+    
+    def __str__(self):
+        return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(self.lambda_object.func_code.co_varnames))
+        
 class Literal:
     """
     created by source code like 'p(a, b)'
@@ -365,6 +385,7 @@ class Python_engine(Datalog_engine_):
         self._add_iter_prim = pyEngine.add_iter_prim # add_iter_prim(name, arity, iter) = 
         self._make_operand = pyEngine.make_operand
         self._make_expression = pyEngine.make_expression
+        self._make_lambda = pyEngine.make_lambda
         self._add_expr_to_predicate = pyEngine.add_expr_to_predicate
         """ other functions available in datalog.lua
             # make_pred(name, arity) -->  { id: , db: { <clause ID>: }} unique, where id = name/arity.  (Called by make_pred)
@@ -415,6 +436,8 @@ class Lua_engine(Datalog_engine_):
         self._add_iter_prim = self.lua.eval('datalog.add_iter_prim')# add_iter_prim(name, arity, iter) = 
         self._make_operand = self.lua.eval('datalog.make_operand')
         self._make_expression = self.lua.eval('datalog.make_expression')
+        self.lua_make_lambda = self.lua.eval('datalog.make_lambda')
+        self._make_lambda = lambda lambda_object, operands: self.lua_make_lambda(lambda_object, self.lua_table(operands))
         self._add_expr_to_predicate = self.lua.eval('datalog.add_expr_to_predicate')
         """ other functions available in datalog.lua
             # make_pred(name, arity) -->  { id: , db: { <clause ID>: }} unique, where id = name/arity.  (Called by make_pred)

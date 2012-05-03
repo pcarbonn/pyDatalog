@@ -167,7 +167,7 @@ def test():
         + even(0)
         even(N) <= (N > 0) & (N1==N-1) & odd(N1)
         assert ask(even(0)) == set([(0,)])
-        odd(N) <= (N > 0) & (N2==N-1) & even(N2)
+        odd(N) <= (N > 0) & (N2==(lambda N: N-1)) & even(N2)
         assert ask(even(0)) == set([(0,)])
         assert ask(odd(1)) == set([(1,)])
         assert ask(odd(5)) == set([(5,)])
@@ -236,8 +236,8 @@ def test():
         #assert ask(successor(99001,99000)) == set([('99001', '99000')])
 
         + even(0)
-        even(N) <= (N > 0) & (N1==N-1) & odd(N1)
-        odd(N) <= (N > 0) & (N2==N-1) & even(N2)
+        even(N) <= (N > 0) & successor(N,N1) & odd(N1)
+        odd(N) <= (N > 0) & successor(N,N2) & even(N2)
         
         assert ask(odd(299)) == set([(299,)]) 
         #assert ask(odd(999)) == set([(999,)]) 
@@ -249,7 +249,7 @@ def test():
     print("Done.")
 
 if __name__ == "__main__":
-    for pyDatalog.Engine in ('Lua', 'Python'):    
+    for pyDatalog.Engine in ('Lua', 'Python',):    # 
         pyDatalog.default_datalog_engine = pyDatalog.Datalog_engine()
-        test()
-        #cProfile.runctx('test()', globals(), locals())
+        #test()
+        cProfile.runctx('test()', globals(), locals())
