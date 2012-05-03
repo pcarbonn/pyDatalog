@@ -984,7 +984,12 @@ function make_expression(operator, operand1, operand2)
 end
 function Expression:eval(env)
     if self.operator == '+' then
-	    return self.operand1:eval(env) + self.operand2:eval(env)
+        lhs = self.operand1:eval(env)
+        if type(lhs) == 'string' then
+            return lhs .. self.operand2:eval(env)
+        else
+    	    return lhs + self.operand2:eval(env)
+    	end
     elseif self.operator == '-' then
         return self.operand1:eval(env) - self.operand2:eval(env)
     elseif self.operator == '*' then

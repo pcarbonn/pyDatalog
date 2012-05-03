@@ -225,6 +225,13 @@ def test():
         assert ask(fibonacci(1, F)) == set([(1, 1)])
         assert ask(fibonacci(4, F)) == set([(4, 3)])
         assert ask(fibonacci(18, F)) == set([(18, 2584)])
+        
+        # string manipulation
+        split(X, Y,Z) <= (X == Y+'-'+Z)
+        assert ask(split(X, 'a', 'b')) == set([('a-b', 'a', 'b')])
+        split(X, Y,Z) <= (Y == (lambda X: X.split('-')[0])) & (Z == (lambda X: X.split('-')[1]))
+        assert ask(split('a-b', Y, Z)) == set([('a-b', 'a', 'b')])
+        assert ask(split(X, 'a', 'b')) == set([('a-b', 'a', 'b')])
     
     pyDatalog.clear()
     @pyDatalog.program()
