@@ -51,6 +51,7 @@ Classes contained in this file:
 
 """
 import os
+import re
 import string
 import six
 from six.moves import builtins
@@ -188,7 +189,7 @@ class Literal:
     """
     created by source code like 'p(a, b)'
     unary operator '+' means insert it as fact
-    binary operator '+' means 'and', and returns a Body
+    binary operator '&' means 'and', and returns a Body
     operator '<=' means 'is true if', and creates a Clause
     """
     def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine):
@@ -319,6 +320,15 @@ class Datalog_engine_:
         return self._ask_literal(lua_code, _fast)
 
     def load(self, code):
+        # remove indentation based on first non-blank line
+        lines = code.splitlines()
+        r = re.compile('^\s*')
+        for line in lines:
+            spaces = r.match(line).group()
+            if spaces and line != spaces:
+                break
+        code = '\n'.join([line.replace(spaces,'') for line in lines])
+        
         ast = compile(code, '<string>', 'exec')
         newglobals = {}
         self.add_symbols(ast.co_names, newglobals)
