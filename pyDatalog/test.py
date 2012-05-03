@@ -34,7 +34,9 @@ def test():
     print("Defining a datalog program in %s..." % pyDatalog.Engine)
         
     # test of expressions
-    datalog_engine.load('+ p(a)')
+    datalog_engine.load("""
+        + p(a)
+    """)
     assert datalog_engine.ask('p(a)') == set([('a',)])
     
     datalog_engine.clear()
@@ -102,6 +104,8 @@ def test():
         r(X, Y) <= p(X) & p(Y)
         assert ask(r(a, a)) == set([('a', 'a')])
         assert ask(r(a, c)) == set([('a', 'c')])
+        r(X, b) <= p(X)
+        assert ask(r(a, b)) == set([('a', 'b')])
         # TODO more
 
         # integer
