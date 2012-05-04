@@ -21,9 +21,17 @@ USA
 """
 
 """
+This file contains the port of the datalog engine of J. D. Ramsdell, 
+from lua to python, with some enhancements:
+* indexing of facts,
+* support for lambda.
+
+The original code of the lua engine in included in the comments, 
+for reference.
+
 Some differences between python and lua:
 * lua indices start at 1, not 0
-* env is true in lua if it is not nil or false.
+* any variable is true in lua if it is not nil or false.
 * lua tables contain both a list and a dictionary --> need to change them to objects
 * lua variables are global by default, python ones are local by default
 * variable bindings in a closure.  See http://tiny.cc/7837cw, http://tiny.cc/rq47cw
@@ -878,6 +886,10 @@ Warren, D. S., J. Logic Prog. Vol. 24, No. 3, pp. 161-199.  Another
 important reference is "Tabled Evaluation with Delaying for General
 Logic Programs", Chen, W., and Warren, D. S., J. ACM, Vol. 43, No. 1,
 Jan. 1996, pp. 20-74.
+
+It should be noted that a simplified version of the algorithm of 
+"Efficient top-down computation" is implemented : negations are not 
+supported. 
 """
 
 # The subgoal table

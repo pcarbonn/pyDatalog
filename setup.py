@@ -25,9 +25,10 @@ setup(
 pyDatalog brings logic programming to python.  Assert facts and insert logic clauses directly in your python code, 
 and use the inference engine to resolve complex, recursive queries fast.  
 
-Datalog is a subset of prolog that is best at simulating intelligent behavior (e.g. in games), 
-at performing recursive algorithms (e.g. in graph analysis) 
-or at managing large sets of related information (e.g. in the semantic web).  
+Datalog is a subset of prolog that is best 
+at managing large sets of related information (e.g. in data integration or the semantic web).  
+at simulating intelligent behavior (e.g. in games), 
+or at performing recursive algorithms (e.g. in network protocol, code and graph analysis) 
 
 Datalog statements can be specified in any order, eliminating the need for sequence diagrams and the associated risk of tricky errors. 
 Datalog programs are often shorter than their python equivalent.  
