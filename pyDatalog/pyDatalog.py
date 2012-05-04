@@ -34,20 +34,29 @@ Datalog vocabulary:
         a is a constant term
         q is a predicate
         q(a) is a literal
-        q(X):- q(a) is a clause
+        q(X):- q(a) is a clause, where q(X) is the head and q(a) the body
 
 Design principle:
-Instead of writing our own parser, we use python's parser.  The datalog code is first compiled, 
-then "undefined" variables are initialized as instance of Symbol, then the code is finally executed.
-This is done in the Datalog_engine class.
+Instead of writing our own parser, we use python's parser.  The datalog code is first compiled in python byte code, 
+then "undefined" variables are initialized as instance of Symbol, then the code is finally executed to load the clauses.
+This is done in the load() and add_program() method of Datalog_engine class.
 
 Classes contained in this file:
 * Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
-* Expression : made of an operator and 2 operands. Instantiated when an operand is applied to a symbol while executing the datalog program
+* Expression : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
+* Lambda : represents a lambda function, used in expressions
 * Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
 * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
-* Datalog_engine : implements the interface to the lua datalog engine.  Instantiated by the calling module
-* program : decorator function to create datalog programs
+* Datalog_engine_ : common part for an engine. Subclasses are Python_engine and Lua_engine
+* Python_engine :implements the interface to the datalog engine written in python.  Instantiated by the calling module
+* Lua_engine :implements the interface to the lua datalog engine written in Lua.  Instantiated by the calling module
+
+Methods contained in this file:
+* Datalog_engine(implementation=None) : a factory for Datalog_engine_. Returns a python or lua engine, depending on parameter
+* program(datalog_engine=None) : decorator function to create datalog programs
+* ask(code) : returns the result of the query contained in the code string, and run in the default datalog engine
+* load(code) : loads the clauses contained in the code string into the default datalog engine
+* clear() : resets the default engine
 
 """
 import os
@@ -56,6 +65,7 @@ import string
 import six
 from six.moves import builtins
 
+# determine which engine to use, python or lua
 try:
     import lupa
     from lupa import LuaRuntime
@@ -166,6 +176,7 @@ class Symbol:
         return str(self.name)
 
 class Expression:
+    """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
     def __init__(self, lhs, operator, rhs, datalog_engine=default_datalog_engine):
         self.operator = operator
         self.lhs = lhs
@@ -190,6 +201,7 @@ class Expression:
         return '(' + str(self.lhs) + self.operator + str(self.rhs) + ')'
 
 class Lambda:
+    """represents a lambda function, used in expressions"""
     def __init__(self, other, datalog_engine=default_datalog_engine):
         self.operator = '<lambda>'
         self.lambda_object = other
@@ -266,7 +278,8 @@ class Body:
         self.body.append(literal) 
         return self
 
-def Datalog_engine(implementation=None): # factory
+def Datalog_engine(implementation=None): 
+    """ a factory for Datalog_engine_ """
     if (implementation or Engine) == 'Lua':
         return Lua_engine()
     else:
@@ -304,7 +317,7 @@ class Datalog_engine_:
         
     class _NoCallFunction:
         """
-        This class prevents a call to a datalog program
+        This class prevents a call to a datalog program created using the 'program' decorator
         """
         def __call__(self):
             raise TypeError("Datalog programs are not callable")
@@ -477,6 +490,7 @@ def program(datalog_engine=None):
     return datalog_engine.add_program
 
 def pr(a, level=0):
+    # used to debug the lua engine
     try:
         #if isinstance(a, 'Lua_table'):
         if level<3:
@@ -488,11 +502,13 @@ def pr(a, level=0):
         return a
 
 def ask(code):
+    """returns the result of the query contained in the code string, and run in the default datalog engine"""
     return default_datalog_engine.ask(code)
 def load(code):
+    """loads the clauses contained in the code string into the default datalog engine"""
     return default_datalog_engine.load(code)
 def clear():
-    """ create a new engine """
+    """ resets the default datalog engine """
     global default_datalog_engine
     default_datalog_engine.clear()
 
