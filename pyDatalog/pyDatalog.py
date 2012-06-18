@@ -114,6 +114,7 @@ class Symbol:
             return Literal(self.name, args, self.datalog_engine)
 
     def _make_expression_literal(self, operator, other):
+        """private function to create a literal for comparisons"""
         if isinstance(other, type(lambda: None)):
             other = Lambda(other, self.datalog_engine)
         name = '=' + str(self) + operator + str(other)
@@ -248,9 +249,14 @@ class Literal:
         self.datalog_engine.assert_fact(self)
 
     def __neg__(self):
-        " unary + means insert into datalog_engine as fact "
+        " unary - means retract fact from datalog_engine "
         # TODO verify that terms are constants !
         self.datalog_engine.retract_fact(self)
+        
+    def __invert__(self):
+        """unary ~ means negation """
+        negated_literal = Literal('~' + self.predicate_name, self.terms, self.datalog_engine)
+        return negated_literal
 
     def __le__(self, body):
         " head <= body"
