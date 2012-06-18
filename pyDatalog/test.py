@@ -35,7 +35,7 @@ def test():
         
     # test of expressions
     datalog_engine.load("""
-        + p(a)
+        + p(a) # p is a proposition
     """)
     assert datalog_engine.ask('p(a)') == set([('a',)])
     

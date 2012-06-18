@@ -132,7 +132,7 @@ class Fresh_var(object): # no interning needed
         Fresh_var.fresh_var_state += 1 # ensures freshness
     def is_const(self):
         return False
-    def __str__(self): return self.id 
+    def __str__(self): return "variable_%s" % self.id 
 def mk_fresh_var():
     return Fresh_var()
 
@@ -277,6 +277,8 @@ class Literal(object):
     def __init__(self, pred, terms):
         if isinstance(pred, six.string_types):
             self.pred = make_pred(pred, len(terms))
+            if pred[:1] == '~':
+                self.pred.base_pred = make_pred(pred[1:], len(terms))
         else:
             self.pred = pred
         self.terms = terms
@@ -1128,6 +1130,14 @@ def search(subgoal):
     literal = subgoal.literal
     if literal.pred.prim:
         return literal.pred.prim(literal, subgoal)
+    elif hasattr(literal.pred, 'base_pred'): # this is a negated literal
+        for term in literal.terms:
+            if not term.is_const(): # all terms of a negated predicate must be bound
+                raise RuntimeError('Terms of a negation must be bound : %s' % str(literal))
+        base_literal = Literal(literal.pred.base_pred, literal.terms)
+        result = ask(base_literal)
+        if result is None or 0 == len(result.answers):
+            return fact(subgoal, literal)
     else:
         for clause in relevant_clauses(literal):
             renamed = rename_clause(clause)
@@ -1170,15 +1180,25 @@ class Answer(object):
         self.name = name
         self.arity = arity
         self.answers = answers
-        
+
+Stack = []        
 def ask2(literal, fast):
-    global Fast, subgoals
+    # same as 'ask', but with 'fast' argument
+    global Fast, subgoals, tasks, Stack
     Fast = fast
+    
+    #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
+    # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
+    
+    Stack.append((subgoals, tasks)) # save the environment to the stack
+    
     subgoals = {}
     subgoal = make_subgoal(literal)
     merge(subgoal)
     invoke(lambda subgoal=subgoal: search(subgoal))
-    subgoals = None
+    
+    subgoals, tasks = Stack.pop()
+    
     answers = [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]
     if 0 < len(answers):
         answer = Answer(get_name(literal.pred), get_arity(literal.pred), answers)
