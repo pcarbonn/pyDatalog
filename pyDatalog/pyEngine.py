@@ -39,7 +39,6 @@ Some differences between python and lua:
 import copy
 import six
 import weakref
-from six.moves import queue
 
 Debug = False
 
@@ -975,6 +974,7 @@ local tasks
 """
 Fast = None
 tasks = None
+Stack = []        
 
 # Schedule a task for later invocation
 
@@ -987,7 +987,7 @@ end
 def sched(thunk):
     global tasks
     if Fast: return thunk()
-    return tasks.put(thunk)
+    return tasks.append(thunk)
 
 # Invoke the scheduled tasks
 
@@ -1007,12 +1007,15 @@ local function invoke(thunk)
 end
 """
 def invoke(thunk):
-    global tasks
+    global tasks, subgoals
     if Fast: return thunk()
-    tasks = queue.Queue()
-    tasks.put(thunk)
-    while not tasks.empty():
-        tasks.get()() # get the thunk and execute it
+    tasks = []
+    tasks.append(thunk)
+    while tasks or Stack:
+        while tasks:
+            tasks.pop(0)() # get the thunk and execute it
+        if Stack: subgoals, tasks = Stack.pop()
+    
     tasks = None
     
 # Store a fact, and inform all waiters of the fact too.
@@ -1124,7 +1127,6 @@ function search(subgoal)
     end
 end
 """
-
 def search(subgoal):
     if Debug: print("search : %s" % str(subgoal.literal))
     literal = subgoal.literal
@@ -1133,11 +1135,37 @@ def search(subgoal):
     elif hasattr(literal.pred, 'base_pred'): # this is a negated literal
         for term in literal.terms:
             if not term.is_const(): # all terms of a negated predicate must be bound
-                raise RuntimeError('Terms of a negation must be bound : %s' % str(literal))
+                raise RuntimeError('Terms of a negated literal must be bound : %s' % str(literal))
         base_literal = Literal(literal.pred.base_pred, literal.terms)
-        result = ask(base_literal)
-        if result is None or 0 == len(result.answers):
-            return fact(subgoal, literal)
+        """ the rest of the processing essentially performs the following, 
+        but in its own environment, and with precautions to avoid stack overflow :
+            result = ask(base_literal)
+            if result is None or 0 == len(result.answers):
+                return fact(subgoal, literal)
+        """
+        
+        def _search(base_literal, subgoal, literal): # first-level thunk for ask(base_literal)
+            global Fast, subgoals, tasks, Stack
+            #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
+            # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
+            
+            Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
+            subgoals, tasks = {}, []
+
+            base_subgoal = make_subgoal(base_literal)
+            merge(base_subgoal)
+            sched(lambda base_subgoal=base_subgoal: search(base_subgoal))
+
+            def _(base_subgoal, subgoal, literal): # thunk to be processed when the search is complete
+                if 0 == len(list(base_subgoal.facts.values())):
+                    fact(subgoal, literal)
+            if Fast: return _(base_subgoal, subgoal, literal) 
+            # prepend the post-processing at one level lower in the Stack, so that it is run immediately by invoke() after the search() thunk is complete
+            Stack[-1][1].insert(0, lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
+                     _(base_subgoal, subgoal, literal))
+                
+        sched(lambda base_literal=base_literal, subgoal=subgoal, literal=literal: 
+                       _search(base_literal, subgoal, literal))
     else:
         for clause in relevant_clauses(literal):
             renamed = rename_clause(clause)
@@ -1181,23 +1209,16 @@ class Answer(object):
         self.arity = arity
         self.answers = answers
 
-Stack = []        
 def ask2(literal, fast):
     # same as 'ask', but with 'fast' argument
     global Fast, subgoals, tasks, Stack
     Fast = fast
     
-    #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
-    # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-    
-    Stack.append((subgoals, tasks)) # save the environment to the stack
-    
     subgoals = {}
     subgoal = make_subgoal(literal)
     merge(subgoal)
     invoke(lambda subgoal=subgoal: search(subgoal))
-    
-    subgoals, tasks = Stack.pop()
+    subgoals = None
     
     answers = [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]
     if 0 < len(answers):
