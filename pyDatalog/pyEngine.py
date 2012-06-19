@@ -989,6 +989,17 @@ def sched(thunk):
     if Fast: return thunk()
     return tasks.append(thunk)
 
+def complete(thunk, post_thunk):
+    """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
+    global Fast, subgoals, tasks, Stack
+    Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
+    subgoals, tasks = {}, []
+    sched(thunk)
+    if Fast: return post_thunk() # don't bother with thunks if Fast
+    # prepend post_thunk at one level lower in the Stack, 
+    # so that it is run immediately by invoke() after the search() thunk is complete
+    Stack[-1][1].insert(0, post_thunk) 
+    
 # Invoke the scheduled tasks
 
 """
@@ -1145,24 +1156,15 @@ def search(subgoal):
         """
         
         def _search(base_literal, subgoal, literal): # first-level thunk for ask(base_literal)
-            global Fast, subgoals, tasks, Stack
+            
             #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
             # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
             
-            Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
-            subgoals, tasks = {}, []
-
             base_subgoal = make_subgoal(base_literal)
-            merge(base_subgoal)
-            sched(lambda base_subgoal=base_subgoal: search(base_subgoal))
 
-            def _(base_subgoal, subgoal, literal): # thunk to be processed when the search is complete
-                if 0 == len(list(base_subgoal.facts.values())):
-                    fact(subgoal, literal)
-            if Fast: return _(base_subgoal, subgoal, literal) 
-            # prepend the post-processing at one level lower in the Stack, so that it is run immediately by invoke() after the search() thunk is complete
-            Stack[-1][1].insert(0, lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
-                     _(base_subgoal, subgoal, literal))
+            complete(lambda base_subgoal=base_subgoal: merge(base_subgoal) or search(base_subgoal),
+                     lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
+                        fact(subgoal, literal) if 0 == len(list(base_subgoal.facts.values())) else None)
                 
         sched(lambda base_literal=base_literal, subgoal=subgoal, literal=literal: 
                        _search(base_literal, subgoal, literal))
