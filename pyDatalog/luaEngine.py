@@ -697,6 +697,24 @@ local function sched(thunk)
     return table.insert(tasks, thunk)
 end
 
+-- Schedule a task to be completed later, with post-processing 
+
+local Stack_of_subgoals = {}
+local Stack_of_tasks = {}
+
+local function complete(thunk, post_thunk)
+    if Fast then -- don't bother with thunks if Fast
+        thunk()
+        return post_thunk()
+    end 
+    table.insert(tasks, 1, post_thunk)
+    -- save the environment to the stack. Invoke will eventually do the Stack.pop().
+    table.insert(Stack_of_subgoals, subgoals)
+    table.insert(Stack_of_tasks, tasks)
+    subgoals, tasks = {}, {}
+    sched(thunk)
+end
+
 -- Invoke the scheduled tasks
 
 local function invoke(thunk)
@@ -707,7 +725,11 @@ local function invoke(thunk)
         if task then
             task()
         else
-            break
+            subgoals = table.remove(Stack_of_subgoals)
+            tasks = table.remove(Stack_of_tasks)
+            if not tasks then
+                break
+            end
         end
     end
     tasks = nil
@@ -715,9 +737,10 @@ end
 
 -- Store a fact, and inform all waiters of the fact too.
 
-local fact, rule, add_clause, search, ask
+local fact, rule, add_clause, search
 
 function fact(subgoal, literal)
+    -- print('New fact: ' .. literal.pred.id .. ' ' .. literal[1].id)
     if not is_member(literal, subgoal.facts) then
         adjoin(literal, subgoal.facts)
         for i=#subgoal.waiters,1,-1 do
@@ -774,10 +797,27 @@ function search(subgoal)
                error('Terms of a negated literal must be bound.') 
             end
         end
+        -- TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
+        -- example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
+    
         local base_literal = make_literal(get_name(literal.pred.base_pred), literal)
-        if not ask(base_literal) then
-            return fact(subgoal, literal)
-        end 
+        sched(function ()
+                local base_subgoal = make_subgoal(base_literal)
+                complete(
+                    function()
+                        merge(base_subgoal)
+                        return search(base_subgoal)
+                    end,
+                    function()
+                        for id,l in pairs(base_subgoal.facts) do 
+                            for i=1,#l do -- if there is a base fact, there is no fact
+                                return
+                            end 
+                        end
+                        return fact(subgoal, literal)
+                    end
+                )
+              end)
     else
         for id,clause in pairs(relevant_clauses(literal)) do
             local renamed = rename_clause(clause)
@@ -794,26 +834,14 @@ end
 -- the predicate, the predicate's arity, and an array of constant
 -- terms for each answer.  If there are no answers, nil is returned.
 
-local Stack_of_subgoals = {}
-local Stack_of_tasks = {}
 local function ask2(literal, fast)
     Fast = fast
 
-    -- TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
-    -- example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-    
-    --  save the environment to the stack
-    table.insert(Stack_of_subgoals, subgoals)
-    table.insert(Stack_of_tasks, tasks)
-    
     subgoals = {}
     local subgoal = make_subgoal(literal)
     merge(subgoal)
     invoke(function () search(subgoal) end)
     
-    -- restore the previous environment
-    subgoals = table.remove(Stack_of_subgoals)
-    tasks = table.remove(Stack_of_tasks)
     local answers = {}
     for id,literal in pairs(subgoal.facts) do
         local answer = {}
@@ -831,7 +859,7 @@ local function ask2(literal, fast)
     end
 end
 
-function ask(query)
+local function ask(query)
     return ask2(query, nil)
 end
 
