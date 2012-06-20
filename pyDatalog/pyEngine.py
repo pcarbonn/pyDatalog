@@ -40,7 +40,8 @@ import copy
 import six
 import weakref
 
-Debug = False
+Trace = False # True --> show new facts when they are established
+Debug = False # for deeper traces
 
 # DATA TYPES
 
@@ -1025,8 +1026,9 @@ def invoke(thunk):
     while tasks or Stack:
         while tasks:
             tasks.pop(0)() # get the thunk and execute it
-        if Stack: subgoals, tasks = Stack.pop()
-    
+        if Stack: 
+            subgoals, tasks = Stack.pop()
+            if Debug: print('pop')
     tasks = None
     
 # Store a fact, and inform all waiters of the fact too.
@@ -1049,7 +1051,7 @@ end
 """
 def fact(subgoal, literal):
     if not is_member(literal, subgoal.facts):
-        if Debug: print("New fact : %s" % str(literal))
+        if Trace: print("New fact : %s" % str(literal))
         adjoin(literal, subgoal.facts)
         for waiter in reversed(subgoal.waiters):
             resolvent = resolve(waiter.clause, literal)
@@ -1154,7 +1156,6 @@ def search(subgoal):
             if result is None or 0 == len(result.answers):
                 return fact(subgoal, literal)
         """
-        
         def _search(base_literal, subgoal, literal): # first-level thunk for ask(base_literal)
             
             #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop

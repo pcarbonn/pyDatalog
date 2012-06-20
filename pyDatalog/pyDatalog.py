@@ -226,7 +226,6 @@ class Literal:
     operator '<=' means 'is true if', and creates a Clause
     """
     def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine):
-        # TODO verify that terms are not Literals
         self.datalog_engine = datalog_engine # needed to insert facts, clauses
         self.predicate_name = predicate_name
         self.terms = terms
