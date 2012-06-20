@@ -2,9 +2,9 @@
 /* http://railroad.my28msec.com/rr/ui
 */
 datalog_statement ::= ('+' | '-') predicate '(' (constant | python_variable) (',' (constant | python_variable))* ')' 
-  | predicate '(' (variable | constant) (',' (variable | constant))* ')' '<=' (predicate '(' (variable | constant | python_variable) (',' (variable | constant | python_variable))* ')' 
+  | predicate '(' (variable | constant) (',' (variable | constant))* ')' '<=' ( '~' ? predicate '(' (variable | constant | python_variable) (',' (variable | constant | python_variable))* ')' 
   | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')') 
-    ( '&' (predicate '(' (variable | constant | python_variable)(',' (variable | constant | python_variable))* ')' | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')' ))*
+    ( '&' ( '~' ? predicate '(' (variable | constant | python_variable)(',' (variable | constant | python_variable))* ')' | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')' ))*
 expression ::= (constant 
   | python_variable
   | variable 
