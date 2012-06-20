@@ -1,3 +1,2 @@
 include licence.txt
-include pyDatalog\pyDatalog.lua
 include pyDatalog\test.py
