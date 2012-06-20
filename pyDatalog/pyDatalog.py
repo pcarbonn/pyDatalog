@@ -64,6 +64,10 @@ import re
 import string
 import six
 from six.moves import builtins
+import sys
+
+PY3 = sys.version_info[0] == 3
+func_code = '__code__' if PY3 else 'func_code'
 
 # determine which engine to use, python or lua
 try:
@@ -209,14 +213,14 @@ class Lambda:
         self.datalog_engine = datalog_engine
         
     def _variables(self):
-        return dict([ [var, Symbol(var, self.datalog_engine)] for var in self.lambda_object.func_code.co_varnames])
+        return dict([ [var, Symbol(var, self.datalog_engine)] for var in getattr(self.lambda_object,func_code).co_varnames])
     
     def lua_expr(self, variables):
-        operands = [self.datalog_engine._make_operand('variable', variables.index(varname)) for varname in self.lambda_object.func_code.co_varnames] 
+        operands = [self.datalog_engine._make_operand('variable', variables.index(varname)) for varname in getattr(self.lambda_object,func_code).co_varnames] 
         return self.datalog_engine._make_lambda(self.lambda_object, operands)
     
     def __str__(self):
-        return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(self.lambda_object.func_code.co_varnames))
+        return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(getattr(self.lambda_object,func_code).co_varnames))
         
 class Literal:
     """

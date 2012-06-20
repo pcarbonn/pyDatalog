@@ -22,6 +22,7 @@ USA
 import cProfile
 import math
 import time
+import six
 
 import pyDatalog
 _parents = (('edward', 'albert'), ('edward', 'victoria'))
@@ -182,7 +183,7 @@ def test():
     @pyDatalog.program(datalog_engine)
     def _(): # the function name is ignored
         for _parent in _parents:
-            + parent(_parent[0], unicode(_parent[1]))       
+            + parent(_parent[0], six.text_type(_parent[1]))       
 
     # can't call a pyDatalog program
     error = False
@@ -260,7 +261,7 @@ def test():
     print("Done.")
 
 if __name__ == "__main__":
-    for pyDatalog.Engine in ('Lua', 'Python',):    # 
+    for pyDatalog.Engine in ('Python','Lua', ):    # 
         pyDatalog.default_datalog_engine = pyDatalog.Datalog_engine()
         #test()
         cProfile.runctx('test()', globals(), locals())
