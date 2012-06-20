@@ -25,7 +25,7 @@ import time
 
 import pyDatalog
 _parents = (('edward', 'albert'), ('edward', 'victoria'))
-
+_o = object()
 def test():
 
     # instantiate a pyDatalog engine
@@ -54,7 +54,7 @@ def test():
         assert ask(p(b)) == None
         
         + p(b)
-        assert ask(p(X)) == set([('a',), ('b',)])
+        assert ask(p(X), _fast=True) == set([('a',), ('b',)])
         
         + p(b) # facts are unique
         assert ask(p(X)) == set([('a',), ('b',)])
@@ -82,6 +82,10 @@ def test():
         
         + p(1)
         assert ask(p(1)) == set([(1,)])
+        
+        #object
+        #+ q(_o)
+        #assert ask(p(_o)) == set([(_o,)])
 
         # idem for secondary facts
         + q(a, b)
@@ -125,7 +129,7 @@ def test():
         # even(N) <= (N==0)
         + even(0)
         even(N) <= successor(N, N1) & odd(N1)
-        odd(N) <= successor(N, N1) & even(N1)
+        odd(N) <= ~ even(N)
         assert ask(even(0)) == set([(0,)])
         assert ask(even(X)) == set([(4,), (10,), (6,), (0,), (2,), (8,)])
         assert ask(even(10)) == set([(10,)])
@@ -167,12 +171,12 @@ def test():
         + even(0)
         even(N) <= (N > 0) & (N1==N-1) & odd(N1)
         assert ask(even(0)) == set([(0,)])
-        odd(N) <= (N > 0) & (N2==(lambda N: N-1)) & even(N2)
+        odd(N) <= (N > 0) & ~ even(N)
         assert ask(even(0)) == set([(0,)])
         assert ask(odd(1)) == set([(1,)])
         assert ask(odd(5)) == set([(5,)])
         assert ask(even(5)) == None
-        assert ask(odd(1099)) == set([(1099,)])
+        assert ask(odd(10099)) == set([(10099,)])
         
     #TODO up-scope variables should be recognized, even if not global
     @pyDatalog.program(datalog_engine)
