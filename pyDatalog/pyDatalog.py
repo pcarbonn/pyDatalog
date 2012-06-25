@@ -303,14 +303,23 @@ class Mixin():
         def __getattr__(cls, method):
             def my_callable(self, *args):
                 predicate_name = "%s.%s" % (cls.__name__, method)
+                
                 terms = []
+                # first term is self
+                terms.append( Symbol('X') if self == [] else self)
                 for i, arg in enumerate(args):
-                    if arg == []:
-                        terms.append(Symbol('X%i' % i))
-                    else:
-                        terms.append(Symbol(arg))
+                    terms.append( Symbol('X%i' % i) if arg == [] else arg)
+                    
                 literal = Literal(predicate_name, terms)
-                return default_datalog_engine._ask_literal(literal)
+                result = default_datalog_engine._ask_literal(literal)
+                if result: 
+                    result = list(zip(*result)) # transpose result
+                    if self==[]:
+                        self.extend(result[0])
+                    for i, arg in enumerate(args):
+                        if arg==[]:
+                            arg.extend(result[i+1])
+                return result
             return my_callable
   
 def program(datalog_engine=None):
