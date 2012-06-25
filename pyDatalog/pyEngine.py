@@ -327,7 +327,8 @@ function Var:get_id()
     return "v" .. self.id
 end
 """
-Const.get_id = lambda self : 'c' + str(self.id)
+Const.get_id = lambda self : ( 'c' + str(self.id) if isinstance(self.id, six.string_types) or isinstance(self.id, int) 
+                    else 'o' + str(id(self)) )  # TODO for performance : calculate it at constant creation
 Var.get_id = lambda self : 'v' + self.id
 Fresh_var.get_id = lambda self : 'v' + self.id
 

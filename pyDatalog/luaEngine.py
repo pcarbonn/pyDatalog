@@ -222,7 +222,11 @@ local function get_id(literal)
 end
 
 function Const:get_id()
-    return "c" .. self.id
+    if type(self)=="userdata" then
+        return "o" .. tostring(self.id) -- TODO for performance : calculate it at constant creation
+    else
+        return "c" .. tostring(self.id)
+    end
 end
 
 function Var:get_id()

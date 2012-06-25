@@ -184,11 +184,15 @@ class Expression:
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
     def __init__(self, lhs, operator, rhs, datalog_engine=default_datalog_engine):
         self.operator = operator
+        
         self.lhs = lhs
-        if isinstance(lhs, six.string_types) or isinstance(lhs, six.string_types):
+        if isinstance(lhs, six.string_types) or isinstance(lhs, int):
             self.lhs = Symbol(lhs, datalog_engine)
+        elif isinstance(lhs, type(lambda: None)):
+            self.lhs = Lambda(rhs, datalog_engine)
+            
         self.rhs = rhs
-        if isinstance(rhs, str) or isinstance(rhs, int):
+        if isinstance(rhs, six.string_types) or isinstance(rhs, int):
             self.rhs = Symbol(rhs, datalog_engine)
         elif isinstance(rhs, type(lambda: None)):
             self.rhs = Lambda(rhs, datalog_engine)
@@ -237,7 +241,7 @@ class Literal:
         for a in terms:
             if isinstance(a, Symbol):
                 tbl.append(a.lua)
-            elif isinstance(a, str):
+            elif isinstance(a, six.string_types):
                 tbl.append(datalog_engine._make_const(a))
             elif isinstance(a, Literal):
                 raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
@@ -249,12 +253,12 @@ class Literal:
     def __pos__(self):
         " unary + means insert into datalog_engine as fact "
         # TODO verify that terms are constants !
-        self.datalog_engine.assert_fact(self)
+        self.datalog_engine._assert_fact(self)
 
     def __neg__(self):
         " unary - means retract fact from datalog_engine "
         # TODO verify that terms are constants !
-        self.datalog_engine.retract_fact(self)
+        self.datalog_engine._retract_fact(self)
         
     def __invert__(self):
         """unary ~ means negation """
@@ -304,15 +308,23 @@ class Datalog_engine_:
             if not name.startswith('_'):
                 variables[name] = Symbol(name, self)            
         
-    def assert_fact(self, literal):
+    def _assert_fact(self, literal):
         clause = self._make_clause(literal.lua, [])
         self._assert(clause)
         #print pr(self._db)
         
-    def retract_fact(self, literal):
+    def assert_fact(self, predicate_name, *args):
+        literal = Literal(predicate_name, args, datalog_engine=self)
+        self._assert_fact(literal)
+    
+    def _retract_fact(self, literal):
         clause = self._make_clause(literal.lua, [])
         self._retract(clause)
 
+    def retract_fact(self, predicate_name, *args):
+        literal = Literal(predicate_name, args, datalog_engine=self)
+        self._retract_fact(literal)
+    
     def add_clause(self,head,body):
         if isinstance(body, Body):
             tbl = [a.lua for a in body.body]

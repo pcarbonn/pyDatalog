@@ -142,14 +142,14 @@ def test():
         s(X) <= (X == a)
         assert ask(s(X)) == set([('a',)])
         s(X) <= (X == 1)
-        print((ask(s(X))))
+        #print((ask(s(X))))
         assert ask(s(X)) == set([(1,), ('a',)])
         
         s(X, Y) <= p(X) & (X == Y)
         assert ask(s(a, a)) == set([('a', 'a')])
         assert ask(s(a, b)) == None
         assert ask(s(X,a)) == set([('a', 'a')])
-        print((ask(s(X, Y))))
+        #print((ask(s(X, Y))))
         assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),(1, 1)])
         # TODO  make this work
         # s <= (X == Y)   
@@ -209,7 +209,7 @@ def test():
     def _(): # the function name is ignored
         ancestor(X,Y) <=  parent(X,Y)
         ancestor(X,Y) <= parent(X,Z) & ancestor(Z,Y)
-    print(datalog_engine.ask('ancestor(bill,X)'))
+    #print(datalog_engine.ask('ancestor(bill,X)'))
     
     # Factorial
     datalog_engine = pyDatalog.Datalog_engine()
@@ -258,10 +258,35 @@ def test():
         # TODO why is this much much slower ??
         # odd(N) <= even(N1) & successor(N, N1)
 
+    datalog_engine = pyDatalog.Datalog_engine()
+    datalog_engine.load("""
+        + even(0)
+        even(N) <= (N > 0) & (N1==N-1) & odd(N1)
+        odd(N) <= (N2==N+2) & ~ even(N) & (N2>0)
+    """)
+    assert datalog_engine.ask('~ odd(7)', _fast=True) == None
+    assert datalog_engine.ask('~ odd(2)', _fast=True) == set([(2,)])
+    assert datalog_engine.ask('odd(3)', _fast=True) == set([(3,)])
+    assert datalog_engine.ask('odd(3)'             ) == set([(3,)])
+    assert datalog_engine.ask('odd(5)', _fast=True) == set([(5,)])
+    assert datalog_engine.ask('odd(5)'            ) == set([(5,)])
+    assert datalog_engine.ask('even(5)', _fast=True) == None
+    assert datalog_engine.ask('even(5)'            ) == None
+    #assert datalog_engine.ask('odd(10001)') == set([(10001,)])
+
+    @pyDatalog.program(datalog_engine)
+    def _():
+        # literal cannot have a literal as argument
+        _error = False
+        try:
+            ask('odd(X)')
+        except: _error = True
+        assert _error
+
     print("Done.")
 
 if __name__ == "__main__":
-    for pyDatalog.Engine in ('Python','Lua', ):    # 
+    for pyDatalog.Engine in ('Python', 'Lua',):    # 
         pyDatalog.default_datalog_engine = pyDatalog.Datalog_engine()
         #test()
         cProfile.runctx('test()', globals(), locals())
