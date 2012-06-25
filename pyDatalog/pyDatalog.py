@@ -84,214 +84,6 @@ try:
 except ValueError:
     import pyEngine
 
-default_datalog_engine = None # will contain the default datalog engine
-
-class Symbol:
-    """
-    can be constant, variable or predicate name
-    ask() creates a query
-    created when analysing the datalog program
-    """
-    def __init__ (self, name, datalog_engine=default_datalog_engine):
-        self.name = name
-        self.datalog_engine = datalog_engine # needed to create Literal
-        if isinstance(name, int):
-            self.type = 'constant'
-        elif (name[0] in string.ascii_uppercase):
-            self.type = 'variable'
-        else:
-            self.type = 'constant'
-        if self.type == 'variable':
-            self.lua = datalog_engine._make_var(name)
-        else:
-            self.lua = datalog_engine._make_const(name)
-        
-    def __call__ (self, *args, **kwargs):
-        "time to create a literal !"
-        if self.name == 'ask':
-            # TODO check that there is only one argument
-            fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
-            return self.datalog_engine._ask_literal(args[0], fast)
-        else:
-            return Literal(self.name, args, self.datalog_engine)
-
-    def _make_expression_literal(self, operator, other):
-        """private function to create a literal for comparisons"""
-        if isinstance(other, type(lambda: None)):
-            other = Lambda(other, self.datalog_engine)
-        name = '=' + str(self) + operator + str(other)
-        if isinstance(other, int):
-            literal = Literal(name, [self], self.datalog_engine)
-            expr = self.datalog_engine._make_operand('constant', other)
-        else: # other is a symbol or an expression
-            literal = Literal(name, [self] + list(other._variables().values()), self.datalog_engine)
-            expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
-        self.datalog_engine._add_expr_to_predicate(literal.lua.pred, operator, expr)
-        return literal
-
-    def __eq__(self, other):
-        if self.type == 'variable' and (isinstance(other, Expression) or isinstance(other, type(lambda: None))):
-            return self._make_expression_literal('=', other)
-        else:
-            return Literal("=", (self, other), self.datalog_engine)
-    def __ne__(self, other):
-        return self._make_expression_literal('~=', other)
-    def __le__(self, other):
-        return self._make_expression_literal('<=', other)
-    def __lt__(self, other):
-        return self._make_expression_literal('<', other)
-    def __ge__(self, other):
-        return self._make_expression_literal('>=', other)
-    def __gt__(self, other):
-        return self._make_expression_literal('>', other)
-    
-    def __add__(self, other):
-        return Expression(self, '+', other, self.datalog_engine)
-    def __sub__(self, other):
-        return Expression(self, '-', other, self.datalog_engine)
-    def __mul__(self, other):
-        return Expression(self, '*', other, self.datalog_engine)
-    def __div__(self, other):
-        return Expression(self, '/', other, self.datalog_engine)
-    
-    def __radd__(self, other):
-        return Expression(other, '+', self, self.datalog_engine)
-    def __rsub__(self, other):
-        return Expression(other, '-', self, self.datalog_engine)
-    def __rmul__(self, other):
-        return Expression(other, '*', self, self.datalog_engine)
-    def __rdiv__(self, other):
-        return Expression(other, '/', self, self.datalog_engine)
-    
-    def __getattr__(self, name):
-        return Symbol(self.name + '.' + name, self.datalog_engine)
-        
-    def lua_expr(self, variables):
-        if self.type == 'variable':
-            return self.datalog_engine._make_operand('variable', variables.index(self.name))
-        else:
-            return self.datalog_engine._make_operand('constant', self.name)
-    
-    def _variables(self):
-        if self.type == 'variable':
-            return {self.name : self}
-        else:
-            return {}
-
-    def __str__(self):
-        return str(self.name)
-
-class Expression:
-    """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
-    def __init__(self, lhs, operator, rhs, datalog_engine=default_datalog_engine):
-        self.operator = operator
-        
-        self.lhs = lhs
-        if isinstance(lhs, six.string_types) or isinstance(lhs, int):
-            self.lhs = Symbol(lhs, datalog_engine)
-        elif isinstance(lhs, type(lambda: None)):
-            self.lhs = Lambda(rhs, datalog_engine)
-            
-        self.rhs = rhs
-        if isinstance(rhs, six.string_types) or isinstance(rhs, int):
-            self.rhs = Symbol(rhs, datalog_engine)
-        elif isinstance(rhs, type(lambda: None)):
-            self.rhs = Lambda(rhs, datalog_engine)
-        self.datalog_engine = datalog_engine
-        
-    def _variables(self):
-        temp = self.lhs._variables()
-        temp.update(self.rhs._variables())
-        return temp
-    
-    def lua_expr(self, variables):
-        return self.datalog_engine._make_expression(self.operator, self.lhs.lua_expr(variables), self.rhs.lua_expr(variables))
-    
-    def __str__(self):
-        return '(' + str(self.lhs) + self.operator + str(self.rhs) + ')'
-
-class Lambda:
-    """represents a lambda function, used in expressions"""
-    def __init__(self, other, datalog_engine=default_datalog_engine):
-        self.operator = '<lambda>'
-        self.lambda_object = other
-        self.datalog_engine = datalog_engine
-        
-    def _variables(self):
-        return dict([ [var, Symbol(var, self.datalog_engine)] for var in getattr(self.lambda_object,func_code).co_varnames])
-    
-    def lua_expr(self, variables):
-        operands = [self.datalog_engine._make_operand('variable', variables.index(varname)) for varname in getattr(self.lambda_object,func_code).co_varnames] 
-        return self.datalog_engine._make_lambda(self.lambda_object, operands)
-    
-    def __str__(self):
-        return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(getattr(self.lambda_object,func_code).co_varnames))
-        
-class Literal:
-    """
-    created by source code like 'p(a, b)'
-    unary operator '+' means insert it as fact
-    binary operator '&' means 'and', and returns a Body
-    operator '<=' means 'is true if', and creates a Clause
-    """
-    def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine):
-        self.datalog_engine = datalog_engine # needed to insert facts, clauses
-        self.predicate_name = predicate_name
-        self.terms = terms
-        tbl = []
-        for a in terms:
-            if isinstance(a, Symbol):
-                tbl.append(a.lua)
-            elif isinstance(a, six.string_types):
-                tbl.append(datalog_engine._make_const(a))
-            elif isinstance(a, Literal):
-                raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
-            else:
-                tbl.append(datalog_engine._make_const(a))
-        self.lua = datalog_engine._make_literal(predicate_name, tbl)
-        #print pr(self.lua)
-
-    def __pos__(self):
-        " unary + means insert into datalog_engine as fact "
-        # TODO verify that terms are constants !
-        self.datalog_engine._assert_fact(self)
-
-    def __neg__(self):
-        " unary - means retract fact from datalog_engine "
-        # TODO verify that terms are constants !
-        self.datalog_engine._retract_fact(self)
-        
-    def __invert__(self):
-        """unary ~ means negation """
-        negated_literal = Literal('~' + self.predicate_name, self.terms, self.datalog_engine)
-        return negated_literal
-
-    def __le__(self, body):
-        " head <= body"
-        result = self.datalog_engine.add_clause(self, body)
-        if not result: 
-            raise TypeError("Can't create clause %s <= %s" % (str(self), str(body)))
-
-    def __and__(self, literal):
-        " literal & literal" 
-        return Body(self, literal)
-
-    def __str__(self):
-        terms = list(map (str, self.terms))
-        return str(self.predicate_name) + "(" + string.join(terms,',') + ")"
-
-class Body:
-    """
-    created by p(a,b) + q(c,d)
-    operator '+' means 'and', and returns a Body
-    """
-    def __init__(self, literal1, literal2):
-        self.body = [literal1, literal2]
-
-    def __and__(self, literal):
-        self.body.append(literal) 
-        return self
-
 def Datalog_engine(implementation=None): 
     """ a factory for Datalog_engine_ """
     if (implementation or Engine) == 'Lua':
@@ -504,6 +296,8 @@ class Lua_engine(Datalog_engine_):
         #print(result)
         return result
 
+default_datalog_engine = Datalog_engine()
+
 class Mixin():
     class __metaclass__(type):
         def __getattr__(cls, method):
@@ -516,9 +310,9 @@ class Mixin():
                     else:
                         terms.append(Symbol(arg))
                 literal = Literal(predicate_name, terms)
-                return self._ask_literal(literal)
+                return default_datalog_engine._ask_literal(literal)
             return my_callable
-    
+  
 def program(datalog_engine=None):
     """
     A decorator for datalog program
@@ -549,4 +343,211 @@ def clear():
     global default_datalog_engine
     default_datalog_engine.clear()
 
-default_datalog_engine = Datalog_engine()
+class Symbol:
+    """
+    can be constant, variable or predicate name
+    ask() creates a query
+    created when analysing the datalog program
+    """
+    def __init__ (self, name, datalog_engine=default_datalog_engine):
+        self.name = name
+        self.datalog_engine = datalog_engine # needed to create Literal
+        if isinstance(name, int):
+            self.type = 'constant'
+        elif (name[0] in string.ascii_uppercase):
+            self.type = 'variable'
+        else:
+            self.type = 'constant'
+        if self.type == 'variable':
+            self.lua = datalog_engine._make_var(name)
+        else:
+            self.lua = datalog_engine._make_const(name)
+        
+    def __call__ (self, *args, **kwargs):
+        "time to create a literal !"
+        if self.name == 'ask':
+            # TODO check that there is only one argument
+            fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
+            return self.datalog_engine._ask_literal(args[0], fast)
+        else:
+            return Literal(self.name, args, self.datalog_engine)
+
+    def _make_expression_literal(self, operator, other):
+        """private function to create a literal for comparisons"""
+        if isinstance(other, type(lambda: None)):
+            other = Lambda(other, self.datalog_engine)
+        name = '=' + str(self) + operator + str(other)
+        if isinstance(other, int):
+            literal = Literal(name, [self], self.datalog_engine)
+            expr = self.datalog_engine._make_operand('constant', other)
+        else: # other is a symbol or an expression
+            literal = Literal(name, [self] + list(other._variables().values()), self.datalog_engine)
+            expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
+        self.datalog_engine._add_expr_to_predicate(literal.lua.pred, operator, expr)
+        return literal
+
+    def __eq__(self, other):
+        if self.type == 'variable' and (isinstance(other, Expression) or isinstance(other, type(lambda: None))):
+            return self._make_expression_literal('=', other)
+        else:
+            return Literal("=", (self, other), self.datalog_engine)
+    def __ne__(self, other):
+        return self._make_expression_literal('~=', other)
+    def __le__(self, other):
+        return self._make_expression_literal('<=', other)
+    def __lt__(self, other):
+        return self._make_expression_literal('<', other)
+    def __ge__(self, other):
+        return self._make_expression_literal('>=', other)
+    def __gt__(self, other):
+        return self._make_expression_literal('>', other)
+    
+    def __add__(self, other):
+        return Expression(self, '+', other, self.datalog_engine)
+    def __sub__(self, other):
+        return Expression(self, '-', other, self.datalog_engine)
+    def __mul__(self, other):
+        return Expression(self, '*', other, self.datalog_engine)
+    def __div__(self, other):
+        return Expression(self, '/', other, self.datalog_engine)
+    
+    def __radd__(self, other):
+        return Expression(other, '+', self, self.datalog_engine)
+    def __rsub__(self, other):
+        return Expression(other, '-', self, self.datalog_engine)
+    def __rmul__(self, other):
+        return Expression(other, '*', self, self.datalog_engine)
+    def __rdiv__(self, other):
+        return Expression(other, '/', self, self.datalog_engine)
+    
+    def __coerce__(self, other):
+        return None
+    
+    def __getattr__(self, name):
+        return Symbol(self.name + '.' + name, self.datalog_engine)
+        
+    def lua_expr(self, variables):
+        if self.type == 'variable':
+            return self.datalog_engine._make_operand('variable', variables.index(self.name))
+        else:
+            return self.datalog_engine._make_operand('constant', self.name)
+    
+    def _variables(self):
+        if self.type == 'variable':
+            return {self.name : self}
+        else:
+            return {}
+
+    def __str__(self):
+        return str(self.name)
+
+class Expression:
+    """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
+    def __init__(self, lhs, operator, rhs, datalog_engine=default_datalog_engine):
+        self.operator = operator
+        
+        self.lhs = lhs
+        if isinstance(lhs, six.string_types) or isinstance(lhs, int):
+            self.lhs = Symbol(lhs, datalog_engine)
+        elif isinstance(lhs, type(lambda: None)):
+            self.lhs = Lambda(rhs, datalog_engine)
+            
+        self.rhs = rhs
+        if isinstance(rhs, six.string_types) or isinstance(rhs, int):
+            self.rhs = Symbol(rhs, datalog_engine)
+        elif isinstance(rhs, type(lambda: None)):
+            self.rhs = Lambda(rhs, datalog_engine)
+        self.datalog_engine = datalog_engine
+        
+    def _variables(self):
+        temp = self.lhs._variables()
+        temp.update(self.rhs._variables())
+        return temp
+    
+    def lua_expr(self, variables):
+        return self.datalog_engine._make_expression(self.operator, self.lhs.lua_expr(variables), self.rhs.lua_expr(variables))
+    
+    def __str__(self):
+        return '(' + str(self.lhs) + self.operator + str(self.rhs) + ')'
+
+class Lambda:
+    """represents a lambda function, used in expressions"""
+    def __init__(self, other, datalog_engine=default_datalog_engine):
+        self.operator = '<lambda>'
+        self.lambda_object = other
+        self.datalog_engine = datalog_engine
+        
+    def _variables(self):
+        return dict([ [var, Symbol(var, self.datalog_engine)] for var in getattr(self.lambda_object,func_code).co_varnames])
+    
+    def lua_expr(self, variables):
+        operands = [self.datalog_engine._make_operand('variable', variables.index(varname)) for varname in getattr(self.lambda_object,func_code).co_varnames] 
+        return self.datalog_engine._make_lambda(self.lambda_object, operands)
+    
+    def __str__(self):
+        return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(getattr(self.lambda_object,func_code).co_varnames))
+        
+class Literal:
+    """
+    created by source code like 'p(a, b)'
+    unary operator '+' means insert it as fact
+    binary operator '&' means 'and', and returns a Body
+    operator '<=' means 'is true if', and creates a Clause
+    """
+    def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine):
+        self.datalog_engine = datalog_engine # needed to insert facts, clauses
+        self.predicate_name = predicate_name
+        self.terms = terms
+        tbl = []
+        for a in terms:
+            if isinstance(a, Symbol):
+                tbl.append(a.lua)
+            elif isinstance(a, six.string_types):
+                tbl.append(datalog_engine._make_const(a))
+            elif isinstance(a, Literal):
+                raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
+            else:
+                tbl.append(datalog_engine._make_const(a))
+        self.lua = datalog_engine._make_literal(predicate_name, tbl)
+        #print pr(self.lua)
+
+    def __pos__(self):
+        " unary + means insert into datalog_engine as fact "
+        # TODO verify that terms are constants !
+        self.datalog_engine._assert_fact(self)
+
+    def __neg__(self):
+        " unary - means retract fact from datalog_engine "
+        # TODO verify that terms are constants !
+        self.datalog_engine._retract_fact(self)
+        
+    def __invert__(self):
+        """unary ~ means negation """
+        negated_literal = Literal('~' + self.predicate_name, self.terms, self.datalog_engine)
+        return negated_literal
+
+    def __le__(self, body):
+        " head <= body"
+        result = self.datalog_engine.add_clause(self, body)
+        if not result: 
+            raise TypeError("Can't create clause %s <= %s" % (str(self), str(body)))
+
+    def __and__(self, literal):
+        " literal & literal" 
+        return Body(self, literal)
+
+    def __str__(self):
+        terms = list(map (str, self.terms))
+        return str(self.predicate_name) + "(" + string.join(terms,',') + ")"
+
+class Body:
+    """
+    created by p(a,b) + q(c,d)
+    operator '+' means 'and', and returns a Body
+    """
+    def __init__(self, literal1, literal2):
+        self.body = [literal1, literal2]
+
+    def __and__(self, literal):
+        self.body.append(literal) 
+        return self
