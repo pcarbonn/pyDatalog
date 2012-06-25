@@ -112,8 +112,6 @@ class Symbol:
             # TODO check that there is only one argument
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             return self.datalog_engine._ask_literal(args[0], fast)
-        elif self.type == 'variable':
-            raise TypeError("predicate name must start with a lower case : %s" % self.name)
         else:
             return Literal(self.name, args, self.datalog_engine)
 
@@ -164,6 +162,9 @@ class Symbol:
         return Expression(other, '*', self, self.datalog_engine)
     def __rdiv__(self, other):
         return Expression(other, '/', self, self.datalog_engine)
+    
+    def __getattr__(self, name):
+        return Symbol(self.name + '.' + name, self.datalog_engine)
         
     def lua_expr(self, variables):
         if self.type == 'variable':
@@ -502,6 +503,21 @@ class Lua_engine(Datalog_engine_):
         result = set(tuple(dict(lua_result[i+1]).values()) for i in range(len(lua_result)))
         #print(result)
         return result
+
+class Mixin():
+    class __metaclass__(type):
+        def __getattr__(cls, method):
+            def my_callable(self, *args):
+                predicate_name = "%s.%s" % (cls.__name__, method)
+                terms = []
+                for i, arg in enumerate(args):
+                    if arg == []:
+                        terms.append(Symbol('X%i' % i))
+                    else:
+                        terms.append(Symbol(arg))
+                literal = Literal(predicate_name, terms)
+                return self._ask_literal(literal)
+            return my_callable
     
 def program(datalog_engine=None):
     """
