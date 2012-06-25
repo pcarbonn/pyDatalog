@@ -376,7 +376,7 @@ function Var:get_tag(i, env)
     return tag
 end
 """
-Const.get_tag = lambda self, i, env : 'c' + str(self.id)
+Const.get_tag = lambda self, i, env : self.get_id()
 Var.get_tag = lambda self, i, env : env[self] if self in env else env.setdefault(self, 'v%i' % i)
 Fresh_var.get_tag = lambda self, i, env : env[self] if self in env else env.setdefault(self, 'v%i' % i)
 
