@@ -1141,6 +1141,19 @@ function search(subgoal)
     end
 end
 """
+
+def _(self):
+    """determine the python class for a prefixed predicate (and cache it)"""
+    if hasattr(self, '_cls'): 
+        return self._cls
+    if '.' in self.id:
+        words = self.id.split('.')
+        self._cls = Class_dict.get(words[0], '')
+    else:
+        self._cls = ''
+    return self._cls
+Pred._class = _
+
 def search(subgoal):
     if Debug: print("search : %s" % str(subgoal.literal))
     literal = subgoal.literal
@@ -1170,12 +1183,20 @@ def search(subgoal):
                 
         sched(lambda base_literal=base_literal, subgoal=subgoal, literal=literal: 
                        _search(base_literal, subgoal, literal))
-    else:
+    elif literal.pred.db: # has a datalog definition
+        #TODO test if there is a conflicting python definition ?
         for clause in relevant_clauses(literal):
             renamed = rename_clause(clause)
             env = unify(literal, renamed.head)
             if env != None: # lua considers {} as true
+                #TODO use sched() too ?
                 add_clause(subgoal, subst_in_clause(renamed, env))
+    else: # try resolving a prefixed literal by accessing the corresponding python class
+        _class = literal.pred._class()
+        if _class:
+            #TODO use sched() too ?
+            result = _class.pyDatalog_search(literal)
+            fact(subgoal, result)
             
 # Sets up and calls the subgoal search procedure, and then extracts
 # the answers into an easily used table.  The table has the name of
