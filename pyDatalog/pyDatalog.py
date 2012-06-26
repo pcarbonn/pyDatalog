@@ -145,10 +145,14 @@ class Datalog_engine_:
         except:
             raise TypeError("function or method argument expected")
         names = set(code.co_names)
-        defined = set(code.co_varnames).union(set(func.__globals__.keys())) # local variables and global variables
+        if PY3:
+            func_globals = func.__globals__
+        else:
+            func_globals = func.func_globals
+        defined = set(code.co_varnames).union(set(func_globals.keys())) # local variables and global variables
         defined = defined.union(dir(builtins))
         defined.add('None')
-        newglobals = func.__globals__.copy()
+        newglobals = func_globals.copy()
         i = None
         for name in names.difference(defined): # for names that are not defined
             if not name.startswith('_'):
@@ -298,30 +302,67 @@ class Lua_engine(Datalog_engine_):
 
 default_datalog_engine = Datalog_engine()
 
-class Mixin():
-    class __metaclass__(type):
-        def __getattr__(cls, method):
-            def my_callable(self, *args):
-                predicate_name = "%s.%s" % (cls.__name__, method)
+"""Keep a dictionary of classes with datalog capabilities.  This list is used by pyEngine to resolve prefixed literals."""
+# it is not defined in pyEngine, so that luaEngine can later use it too.
+Class_dict = {}
+pyEngine.Class_dict = Class_dict # TODO better way to share it with pyEngine.py ?
+
+class metaMixin(type):
+    """Metaclass used to define the behavior of a subclass of Mixin"""
+    
+    def __init__(cls, name, bases, dct):
+        """when creating a subclass of Mixin, save the subclass in Class_dict. """
+        type.__init__(cls, name, bases, dct)
+        Class_dict[name]=cls
+    
+    def __getattr__(cls, method):
+        """when access to an attribute of a subclass of Mixin fails, return a callable that queries pyEngine """
+        #TODO call super ?
+        def my_callable(self, *args):
+            predicate_name = "%s.%s" % (cls.__name__, method)
+            
+            terms = []
+            # first term is self
+            if self == []:
+                terms.append( Symbol('X') )
+            elif self.__class__ != cls:
+                raise TypeError("Object is incompatible with the class that is queried.")
+            else:
+                terms.append( self ) 
+            
+            for i, arg in enumerate(args):
+                terms.append( Symbol('X%i' % i) if arg == [] else arg)
                 
-                terms = []
-                # first term is self
-                terms.append( Symbol('X') if self == [] else self)
+            literal = Literal(predicate_name, terms)
+            result = default_datalog_engine._ask_literal(literal)
+            if result: 
+                result = list(zip(*result)) # transpose result
+                if self==[]:
+                    self.extend(result[0])
                 for i, arg in enumerate(args):
-                    terms.append( Symbol('X%i' % i) if arg == [] else arg)
-                    
-                literal = Literal(predicate_name, terms)
-                result = default_datalog_engine._ask_literal(literal)
-                if result: 
-                    result = list(zip(*result)) # transpose result
-                    if self==[]:
-                        self.extend(result[0])
-                    for i, arg in enumerate(args):
-                        if arg==[]:
-                            arg.extend(result[i+1])
-                return result
-            return my_callable
-  
+                    if arg==[]:
+                        arg.extend(result[i+1])
+            return result
+        return my_callable
+
+    def pyDatalog_search(cls, literal):
+        """Called by pyEngine to resolve a literal for a subclass of Mixin."""
+        terms = literal.terms
+        if len(terms)==2:
+            if terms[0].is_const():
+                # try accessing the attribute of the first term in literal
+                pred_name = literal.pred.id.split('/')[0]
+                attr_name = pred_name.split('.')[1]
+                try:
+                    Y = getattr(terms[0].id, attr_name)
+                except:
+                    raise RuntimeError("Can't access %s of %s" % (attr_name, cls.__name__))
+                result = Literal(pred_name, (terms[0].id, Y))
+                return result.lua
+
+# following syntax is used for compatibility with python 2 and 3
+Mixin = metaMixin('Mixin', (object,), {})
+
 def program(datalog_engine=None):
     """
     A decorator for datalog program
