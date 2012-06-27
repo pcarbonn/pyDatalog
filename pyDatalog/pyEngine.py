@@ -1195,8 +1195,8 @@ def search(subgoal):
         _class = literal.pred._class()
         if _class:
             #TODO use sched() too ?
-            result = _class.pyDatalog_search(literal)
-            fact(subgoal, result)
+            for result in _class.pyDatalog_search(literal):
+                fact(subgoal, result)
             
 # Sets up and calls the subgoal search procedure, and then extracts
 # the answers into an easily used table.  The table has the name of
@@ -1602,7 +1602,7 @@ def add_expr_to_predicate(pred, operator, expression):
             args.append(term.id)
             
         X = literal.pred.expression.eval(args)
-        if literal.pred.operator == "=" and not x.is_const():
+        if literal.pred.operator == "=" and (not x.is_const() or x.id == X):
             args.insert(0,X)
             yield args
         elif ((literal.pred.operator == "<" and x.is_const() and x.id < X)

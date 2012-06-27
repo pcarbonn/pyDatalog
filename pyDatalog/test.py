@@ -286,7 +286,7 @@ def test():
     print("Done.")
 
 if __name__ == "__main__":
-    for pyDatalog.Engine in ('Python', 'Lua',):    # 
+    for pyDatalog.Engine in ('Python', ):    # 'Lua',
         pyDatalog.default_datalog_engine = pyDatalog.Datalog_engine()
-        #test()
-        cProfile.runctx('test()', globals(), locals())
+        test()
+        #cProfile.runctx('test()', globals(), locals())
