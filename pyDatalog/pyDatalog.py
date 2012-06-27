@@ -59,12 +59,14 @@ Methods contained in this file:
 * clear() : resets the default engine
 
 """
+from collections import defaultdict
 import os
 import re
 import string
 import six
 from six.moves import builtins
 import sys
+import weakref
 
 PY3 = sys.version_info[0] == 3
 func_code = '__code__' if PY3 else 'func_code'
@@ -356,12 +358,47 @@ class metaMixin(type):
                 try:
                     Y = getattr(terms[0].id, attr_name)
                 except:
-                    raise RuntimeError("Can't access %s of %s" % (attr_name, cls.__name__))
-                result = Literal(pred_name, (terms[0].id, Y))
-                return result.lua
+                    raise RuntimeError ("%s could not be resolved" % pred_name)
+                if Y: # ignore None's
+                    result = Literal(pred_name, (terms[0].id, Y))
+                    yield result.lua
+                return
+        raise RuntimeError ("%s could not be resolved" % pred_name)
 
 # following syntax is used for compatibility with python 2 and 3
 Mixin = metaMixin('Mixin', (object,), {})
+
+class Register(Mixin):
+    """A pyDatalog mixin that keeps a register of each of its instances"""
+    __refs__ = defaultdict(list)
+
+    def __init__(self):
+        Register.__refs__[self.__class__].append(weakref.ref(self))
+
+    @classmethod
+    def pyDatalog_search(cls, literal):
+        """Called by pyEngine to resolve a literal for a subclass of Mixin."""
+        terms = literal.terms
+        pred_name = literal.pred.id.split('/')[0]
+        attr_name = pred_name.split('.')[1]
+        if len(terms)==2:
+            X = terms[0]
+            Y = terms[1]
+            if not X.is_const() and Y.is_const():
+                # predicate(X, atom)
+                for X in Register.__refs__[cls]:
+                    if getattr(X(), attr_name)==Y.id:
+                        yield Literal(pred_name, (X(), Y.id)).lua 
+                return
+            elif not X.is_const() and not Y.is_const():
+                # predicate(X, Y)
+                for X in Register.__refs__[cls]:
+                    Y = getattr(X(), attr_name)
+                    if Y:
+                        yield Literal(pred_name, (X(), Y)).lua
+                return
+        for r in Mixin.pyDatalog_search(literal):
+            yield r
 
 def program(datalog_engine=None):
     """
