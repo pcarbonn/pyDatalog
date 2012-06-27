@@ -78,7 +78,7 @@ try:
     Engine = 'Lua'
 except:
     Engine = 'Python'
-#Engine = 'Python'
+Engine = 'Python'
 print(('Using %s engine for Datalog.' % Engine))
 
 try:
@@ -100,8 +100,7 @@ class Datalog_engine_:
 
     def add_symbols(self, names, variables):
         for name in names:
-            if not name.startswith('_'):
-                variables[name] = Symbol(name, self)            
+            variables[name] = Symbol(name, self)            
         
     def _assert_fact(self, literal):
         clause = self._make_clause(literal.lua, [])
@@ -157,11 +156,7 @@ class Datalog_engine_:
         newglobals = func_globals.copy()
         i = None
         for name in names.difference(defined): # for names that are not defined
-            if not name.startswith('_'):
-                self.add_symbols((name,), newglobals)
-                # newglobals[name] = Symbol(name, self)
-            else:
-                newglobals[name] = i
+            self.add_symbols((name,), newglobals)
         six.exec_(code, newglobals)
         return self._NoCallFunction()
     

@@ -25,8 +25,6 @@ import time
 import six
 
 import pyDatalog
-_parents = (('edward', 'albert'), ('edward', 'victoria'))
-_o = object()
 def test():
 
     # instantiate a pyDatalog engine
@@ -84,10 +82,6 @@ def test():
         + p(1)
         assert ask(p(1)) == set([(1,)])
         
-        #object
-        #+ q(_o)
-        #assert ask(p(_o)) == set([(_o,)])
-
         # idem for secondary facts
         + q(a, b)
         assert ask(q(a, b)) == set([('a', 'b')])
@@ -179,12 +173,6 @@ def test():
         assert ask(even(5)) == None
         assert ask(odd(10099)) == set([(10099,)])
         
-    #TODO up-scope variables should be recognized, even if not global
-    @pyDatalog.program(datalog_engine)
-    def _(): # the function name is ignored
-        for _parent in _parents:
-            + parent(_parent[0], six.text_type(_parent[1]))       
-
     # can't call a pyDatalog program
     error = False
     try:
