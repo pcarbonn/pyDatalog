@@ -24,7 +24,7 @@ class Employee(Base): # --> Employee inherits from the Base class
     @pyDatalog.program() # indicates that the following function contains pyDatalog clauses
     def _():
         # the salary class of employee X is computed as a function of his/her salary
-        Employee.salary_class(X,N) <= Employee.salary(X,N1) & (N==N1/1000)
+        Employee.salary_class(X,N) <= Employee.salary(X,N1) & (N==N1//1000)
         
         # all the indirect managers of employee X are derived from his manager, recursively
         Employee.indirect_manager(X,Y) <= Employee.manager(X,Y)
