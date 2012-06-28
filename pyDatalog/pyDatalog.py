@@ -68,6 +68,11 @@ from six.moves import builtins
 import sys
 import weakref
 
+try:
+    from sqlalchemy.ext.declarative import DeclarativeMeta
+except:
+    DeclarativeMeta = object
+    
 PY3 = sys.version_info[0] == 3
 func_code = '__code__' if PY3 else 'func_code'
 
@@ -309,12 +314,19 @@ class metaMixin(type):
     
     def __init__(cls, name, bases, dct):
         """when creating a subclass of Mixin, save the subclass in Class_dict. """
-        type.__init__(cls, name, bases, dct)
+        super(metaMixin, cls).__init__(name, bases, dct)
         Class_dict[name]=cls
+        cls.has_SQLAlchemy = False
+        for base in bases:
+            cls.has_SQLAlchemy = cls.has_SQLAlchemy or base.__module__ in ('sqlalchemy.ext.declarative',)
+        pass
     
     def __getattr__(cls, method):
         """when access to an attribute of a subclass of Mixin fails, return a callable that queries pyEngine """
         #TODO call super ?
+        if cls in ('Mixin', 'metaMixin') or method in ('__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__'):
+            raise AttributeError
+
         def my_callable(self, *args):
             predicate_name = "%s.%s" % (cls.__name__, method)
             
@@ -343,25 +355,40 @@ class metaMixin(type):
         return my_callable
 
     def pyDatalog_search(cls, literal):
-        """Called by pyEngine to resolve a literal for a subclass of Mixin."""
+        """Called by pyEngine to resolve a prefixed literal for a subclass of Mixin."""
         terms = literal.terms
+        pred_name = literal.pred.id.split('/')[0]
+        attr_name = pred_name.split('.')[1]
         if len(terms)==2:
             if terms[0].is_const():
                 # try accessing the attribute of the first term in literal
-                pred_name = literal.pred.id.split('/')[0]
-                attr_name = pred_name.split('.')[1]
                 try:
                     Y = getattr(terms[0].id, attr_name)
                 except:
-                    raise RuntimeError ("%s could not be resolved" % pred_name)
-                if Y: # ignore None's
-                    result = Literal(pred_name, (terms[0].id, Y))
-                    yield result.lua
-                return
+                    pass
+                else:
+                    if Y: # ignore None's
+                        result = Literal(pred_name, (terms[0].id, Y))
+                        yield result.lua
+                    return
+            if cls.has_SQLAlchemy:
+                if cls.session:
+                    q = cls.session.query(cls)
+                    if terms[0].is_const():
+                        raise RuntimeError ("%s could not be resolved" % pred_name)
+                    if terms[1].is_const():
+                        q = q.filter(getattr(cls, attr_name) == terms[1].id)
+                    for r in q:
+                        Y = getattr(r, attr_name)
+                        if Y:
+                            result = Literal(pred_name, (r, Y))
+                            yield result.lua
+                    return
         raise RuntimeError ("%s could not be resolved" % pred_name)
 
 # following syntax is used for compatibility with python 2 and 3
 Mixin = metaMixin('Mixin', (object,), {})
+class sqlMetaMixin(metaMixin, DeclarativeMeta): pass
 
 class Register(Mixin):
     """A pyDatalog mixin that keeps a register of each of its instances"""
@@ -373,6 +400,7 @@ class Register(Mixin):
     @classmethod
     def pyDatalog_search(cls, literal):
         """Called by pyEngine to resolve a literal for a subclass of Mixin."""
+        """ overides the definition made in Mixin"""
         terms = literal.terms
         pred_name = literal.pred.id.split('/')[0]
         attr_name = pred_name.split('.')[1]
