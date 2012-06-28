@@ -41,10 +41,11 @@ def test():
     datalog_engine.clear()
     assert datalog_engine.ask('p(a)') == None
     
-    # a decorator is used to create a program on the pyDatalog engine
+    """unary facts                                                            """
+    
     @pyDatalog.program()
-    def _(): # the function name is ignored
-        # assert a unary fact
+    def _(): 
+        
         + p(a) 
         # check that unary queries work
         assert ask(p(a)) == set([('a',)])
@@ -61,9 +62,13 @@ def test():
         - p(b) # retract a unary fact
         assert ask(p(X)) == set([('a',)])
         
-    # a program can be entered piecemeal
-    @pyDatalog.program(datalog_engine)
-    def _(): # the function name is ignored
+        # strings and integers
+        + p('c')
+        assert ask(p(c)) == set([('c',)])
+        
+        + p(1)
+        assert ask(p(1)) == set([(1,)])
+        
         # spaces and uppercase in strings
         + farmer('Moshe dayan')
         + farmer('omar')
@@ -73,16 +78,10 @@ def test():
     moshe_is_a_farmer = datalog_engine.ask("farmer('Moshe dayan')")
     assert moshe_is_a_farmer == set([('Moshe dayan',)])
 
+    """ secondary facts                                                         """
+    
     @pyDatalog.program()
-    def _(): # the function name is ignored
-        # strings and integers
-        + p('c')
-        assert ask(p(c)) == set([('c',)])
-        
-        + p(1)
-        assert ask(p(1)) == set([(1,)])
-        
-        # idem for secondary facts
+    def _(): 
         + q(a, b)
         assert ask(q(a, b)) == set([('a', 'b')])
         assert ask(q(X, b)) == set([('a', 'b')])
@@ -96,7 +95,11 @@ def test():
         - q(a,c)
         assert ask(q(a, Y)) == set([('a', 'b')])
         
-        # clauses
+    """ clauses                                                              """
+
+    @pyDatalog.program()
+    def _(): 
+    
         p2(X) <= p(X)
         assert ask(p2(a)) == set([('a',)])
         
@@ -107,21 +110,19 @@ def test():
         assert ask(r(a, b)) == set([('a', 'b')])
         # TODO more
 
-        # integer
-        + integer(1)
-        assert ask(integer(1)) == set([(1,)])
-        
         # integer variable
-        for _i in range(10):
-            + successor(_i+1, _i)
+        for i in range(10):
+            + successor(i+1, i)
         assert ask(successor(2, 1)) == set([(2, 1)])
         
         # built-in
         assert abs(-3)==3
         assert math.sin(3)==math.sin(3)
         
-        # recursion
-        # even(N) <= (N==0)
+    """ recursion                                                         """
+    
+    @pyDatalog.program()
+    def _(): 
         + even(0)
         even(N) <= successor(N, N1) & odd(N1)
         odd(N) <= ~ even(N)
@@ -151,18 +152,19 @@ def test():
 
     assert pyDatalog.ask('p(a)') == set([('a',)])
     
+    """ recursion with expressions                                         """
     # reset the engine
     datalog_engine = pyDatalog.Datalog_engine()
     @pyDatalog.program(datalog_engine)
-    def _(): # the function name is ignored
-        # expressions
+    def _(): 
+        
         predecessor(X,Y) <= (X==Y-1)
         assert ask(predecessor(X,11)) == set([(10, 11)])
         
         p(X,Z) <= (Y==Z-1) & (X==Y-1)
         assert ask(p(X,11)) == set([(9, 11)])
         
-        # recursion
+        # odd and even
         + even(0)
         even(N) <= (N > 0) & (N1==N-1) & odd(N1)
         assert ask(even(0)) == set([(0,)])
@@ -171,34 +173,7 @@ def test():
         assert ask(odd(1)) == set([(1,)])
         assert ask(odd(5)) == set([(5,)])
         assert ask(even(5)) == None
-        assert ask(odd(10099)) == set([(10099,)])
         
-    # can't call a pyDatalog program
-    error = False
-    try:
-        _()
-    except: error = True
-    assert error
-
-    @pyDatalog.program(datalog_engine)
-    def _():
-        # literal cannot have a literal as argument
-        _error = False
-        try:
-            + farmer(farmer(moshe))
-        except: _error = True
-        assert _error
-
-    @pyDatalog.program(datalog_engine)
-    def _(): # the function name is ignored
-        + parent(bill,mary)
-        + parent(mary,john) 
-    @pyDatalog.program(datalog_engine)
-    def _(): # the function name is ignored
-        ancestor(X,Y) <=  parent(X,Y)
-        ancestor(X,Y) <= parent(X,Z) & ancestor(Z,Y)
-    #print(datalog_engine.ask('ancestor(bill,X)'))
-    
     # Factorial
     datalog_engine = pyDatalog.Datalog_engine()
     @pyDatalog.program(datalog_engine)
@@ -218,34 +193,18 @@ def test():
         assert ask(fibonacci(1, F)) == set([(1, 1)])
         assert ask(fibonacci(4, F)) == set([(4, 3)])
         assert ask(fibonacci(18, F)) == set([(18, 2584)])
-        
-        # string manipulation
+
+    # string manipulation
+    @pyDatalog.program(datalog_engine)
+    def _(): 
         split(X, Y,Z) <= (X == Y+'-'+Z)
         assert ask(split(X, 'a', 'b')) == set([('a-b', 'a', 'b')])
         split(X, Y,Z) <= (Y == (lambda X: X.split('-')[0])) & (Z == (lambda X: X.split('-')[1]))
         assert ask(split('a-b', Y, Z)) == set([('a-b', 'a', 'b')])
         assert ask(split(X, 'a', 'b')) == set([('a-b', 'a', 'b')])
+
+    """ negation                                                     """    
     
-    pyDatalog.clear()
-    @pyDatalog.program()
-    def _(): # the function name is ignored
-        # performance
-        for _i in range(2000):
-            + successor(_i+1, _i)
-        assert ask(successor(1801,1800)) == set([(1801, 1800)])
-        #assert ask(successor(99001,99000)) == set([('99001', '99000')])
-
-        + even(0)
-        even(N) <= (N > 0) & successor(N,N1) & odd(N1)
-        odd(N) <= (N > 0) & successor(N,N2) & even(N2)
-        
-        assert ask(odd(299)) == set([(299,)]) 
-        #assert ask(odd(999)) == set([(999,)]) 
-        assert ask(odd(1999)) == set([(1999,)])
-        
-        # TODO why is this much much slower ??
-        # odd(N) <= even(N1) & successor(N, N1)
-
     datalog_engine = pyDatalog.Datalog_engine()
     datalog_engine.load("""
         + even(0)
@@ -260,21 +219,29 @@ def test():
     assert datalog_engine.ask('odd(5)'            ) == set([(5,)])
     assert datalog_engine.ask('even(5)', _fast=True) == None
     assert datalog_engine.ask('even(5)'            ) == None
-    #assert datalog_engine.ask('odd(10001)') == set([(10001,)])
+    
+    """ can't call a pyDatalog program                             """
+    
+    error = False
+    try:
+        _()
+    except: error = True
+    assert error
+
+    """ literal cannot have a literal as argument                      """
 
     @pyDatalog.program(datalog_engine)
     def _():
-        # literal cannot have a literal as argument
+
         _error = False
         try:
-            ask('odd(X)')
+            + farmer(farmer(moshe))
         except: _error = True
         assert _error
-
+        
     print("Done.")
 
 if __name__ == "__main__":
-    for pyDatalog.Engine in ('Python', ):    # 'Lua',
-        pyDatalog.default_datalog_engine = pyDatalog.Datalog_engine()
-        test()
-        #cProfile.runctx('test()', globals(), locals())
+    pyDatalog.default_datalog_engine = pyDatalog.Datalog_engine()
+    test()
+    #cProfile.runctx('test()', globals(), locals())
