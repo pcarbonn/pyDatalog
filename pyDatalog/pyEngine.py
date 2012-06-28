@@ -1537,6 +1537,8 @@ class Expression:
             return self.operand1.eval(env) * self.operand2.eval(env)
         elif self.operator == '/':
             return self.operand1.eval(env) / self.operand2.eval(env)
+        elif self.operator == '//':
+            return self.operand1.eval(env) // self.operand2.eval(env)
         assert False
         
 def make_expression(operator, operand1, operand2):

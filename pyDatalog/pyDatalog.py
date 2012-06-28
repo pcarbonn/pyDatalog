@@ -324,7 +324,9 @@ class metaMixin(type):
     def __getattr__(cls, method):
         """when access to an attribute of a subclass of Mixin fails, return a callable that queries pyEngine """
         #TODO call super ?
-        if cls in ('Mixin', 'metaMixin') or method in ('__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__'):
+        if cls in ('Mixin', 'metaMixin') or method in (
+                '__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__', 
+                '__table_cls__'):
             raise AttributeError
 
         def my_callable(self, *args):
@@ -520,6 +522,10 @@ class Symbol:
         return Expression(self, '*', other, self.datalog_engine)
     def __div__(self, other):
         return Expression(self, '/', other, self.datalog_engine)
+    def __truediv__(self, other):
+        return Expression(self, '/', other, self.datalog_engine)
+    def __floordiv__(self, other):
+        return Expression(self, '//', other, self.datalog_engine)
     
     def __radd__(self, other):
         return Expression(other, '+', self, self.datalog_engine)
