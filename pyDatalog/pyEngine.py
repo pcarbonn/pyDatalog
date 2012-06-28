@@ -1189,8 +1189,8 @@ def search(subgoal):
             renamed = rename_clause(clause)
             env = unify(literal, renamed.head)
             if env != None: # lua considers {} as true
-                #TODO use sched() too ?
-                add_clause(subgoal, subst_in_clause(renamed, env))
+                sched(lambda subgoal=subgoal, renamed=renamed, env=env: 
+                      add_clause(subgoal, subst_in_clause(renamed, env)))
     else: # try resolving a prefixed literal by accessing the corresponding python class
         _class = literal.pred._class()
         if _class:
