@@ -38,22 +38,19 @@ Mary = Employee('Mary', John, 6300)
 # the following python statements implicitly use the datalog clauses
 
 # who has a salary of 6300 ?
-X=[]
+X = pyDatalog.Variable()
 Employee.salary(X, 6300) # notice the similarity to a pyDatalog query
 print(X) # prints Mary
 
 # what is the salary class of Mary ?
-Y = []
-Employee.salary_class(Mary, Y)
-print(Y) # prints 6
+Employee.salary_class(Mary, X)
+print(X) # prints 6
 
 # who are the indirect managers of Mary ?
-X, Y =[], []
 Employee.indirect_manager(Mary, X)
 print(X) # prints (John,)
 
 # Who are the employees with a salary class of 6 ?
-X=[]
 Employee.salary_class(X, 6)
 print(X) # prints (John, Mary)
 
