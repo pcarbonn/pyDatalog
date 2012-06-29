@@ -310,21 +310,18 @@ class Lua_engine(Datalog_engine_):
 default_datalog_engine = Datalog_engine()
 
 """Keep a dictionary of classes with datalog capabilities.  This list is used by pyEngine to resolve prefixed literals."""
-# it is not defined in pyEngine, so that luaEngine can later use it too.
 Class_dict = {}
 pyEngine.Class_dict = Class_dict # TODO better way to share it with pyEngine.py ?
 
 class metaMixin(type):
     """Metaclass used to define the behavior of a subclass of Mixin"""
+    __refs__ = defaultdict(list)
     
     def __init__(cls, name, bases, dct):
         """when creating a subclass of Mixin, save the subclass in Class_dict. """
         super(metaMixin, cls).__init__(name, bases, dct)
         Class_dict[name]=cls
-        cls.has_SQLAlchemy = False
-        for base in bases:
-            cls.has_SQLAlchemy = cls.has_SQLAlchemy or base.__module__ in ('sqlalchemy.ext.declarative',)
-        pass
+        cls.has_SQLAlchemy = any(base.__module__ in ('sqlalchemy.ext.declarative',) for base in bases)
     
     def __getattr__(cls, method):
         """when access to an attribute of a subclass of Mixin fails, return a callable that queries pyEngine """
@@ -367,7 +364,9 @@ class metaMixin(type):
         pred_name = literal.pred.id.split('/')[0]
         attr_name = pred_name.split('.')[1]
         if len(terms)==2:
-            if terms[0].is_const():
+            X = terms[0]
+            Y = terms[1]
+            if X.is_const():
                 # try accessing the attribute of the first term in literal
                 # TODO raise TypeError("Object is incompatible with the class that is queried.")
                 try:
@@ -382,62 +381,52 @@ class metaMixin(type):
             if cls.has_SQLAlchemy:
                 if cls.session:
                     q = cls.session.query(cls)
-                    if terms[0].is_const():
+                    if X.is_const():
                         raise RuntimeError ("%s could not be resolved" % pred_name)
-                    if terms[1].is_const():
-                        q = q.filter(getattr(cls, attr_name) == terms[1].id)
+                    if Y.is_const():
+                        q = q.filter(getattr(cls, attr_name) == Y.id)
                     for r in q:
                         Y = getattr(r, attr_name)
                         if Y:
                             result = Literal(pred_name, (r, Y))
                             yield result.lua
                     return
+            else:
+                if not X.is_const() and Y.is_const():
+                    # predicate(X, atom)
+                    for X in metaMixin.__refs__[cls]:
+                        if getattr(X(), attr_name)==Y.id:
+                            yield Literal(pred_name, (X(), Y.id)).lua 
+                    return
+                elif not X.is_const() and not Y.is_const():
+                    # predicate(X, Y)
+                    for X in metaMixin.__refs__[cls]:
+                        Y = getattr(X(), attr_name)
+                        if Y:
+                            yield Literal(pred_name, (X(), Y)).lua
+                    return
         raise RuntimeError ("%s could not be resolved" % pred_name)
 
-# following syntax is used for compatibility with python 2 and 3
+# following syntax to declare Mixin is used for compatibility with python 2 and 3
 Mixin = metaMixin('Mixin', (object,), {})
-class sqlMetaMixin(metaMixin, DeclarativeMeta): pass
 
+""" When creating a Mixin object without SQLAlchemy, add it to the list of instances,
+    so that it can be included in the result of queries"""
+def __init__(self):
+    if not self.__class__.has_SQLAlchemy:
+        metaMixin.__refs__[self.__class__].append(weakref.ref(self))
+Mixin.__init__ = __init__
+
+class sqlMetaMixin(metaMixin, DeclarativeMeta): 
+    """ metaclass to be used with Mixin for SQLAlchemy"""
+    pass
+
+""" attach a method to answer class.attribute(X,Y) queries for classes with SQLAlchemy"""
 def InstrumentedAttribute_call(self, *args):
-    """ answers class.attribute(X,Y) queries for SQLAlchemy classes"""
     cls = self.class_
     method = self.key
     return cls.__getattr__(method)(*args)
-
 InstrumentedAttribute.__call__ = InstrumentedAttribute_call
-
-class Register(Mixin):
-    """A pyDatalog mixin that keeps a register of each of its instances"""
-    __refs__ = defaultdict(list)
-
-    def __init__(self):
-        Register.__refs__[self.__class__].append(weakref.ref(self))
-
-    @classmethod
-    def pyDatalog_search(cls, literal):
-        """Called by pyEngine to resolve a literal for a subclass of Mixin."""
-        """ overides the definition made in Mixin"""
-        terms = literal.terms
-        pred_name = literal.pred.id.split('/')[0]
-        attr_name = pred_name.split('.')[1]
-        if len(terms)==2:
-            X = terms[0]
-            Y = terms[1]
-            if not X.is_const() and Y.is_const():
-                # predicate(X, atom)
-                for X in Register.__refs__[cls]:
-                    if getattr(X(), attr_name)==Y.id:
-                        yield Literal(pred_name, (X(), Y.id)).lua 
-                return
-            elif not X.is_const() and not Y.is_const():
-                # predicate(X, Y)
-                for X in Register.__refs__[cls]:
-                    Y = getattr(X(), attr_name)
-                    if Y:
-                        yield Literal(pred_name, (X(), Y)).lua
-                return
-        for r in Mixin.pyDatalog_search(literal):
-            yield r
 
 def program(datalog_engine=None):
     """
