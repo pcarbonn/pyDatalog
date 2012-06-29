@@ -72,6 +72,11 @@ try:
     from sqlalchemy.ext.declarative import DeclarativeMeta
 except:
     DeclarativeMeta = object
+
+try:
+    from sqlalchemy.orm.attributes import InstrumentedAttribute
+except:
+    InstrumentedAttribute = object()
     
 PY3 = sys.version_info[0] == 3
 func_code = '__code__' if PY3 else 'func_code'
@@ -83,7 +88,7 @@ try:
     Engine = 'Lua'
 except:
     Engine = 'Python'
-Engine = 'Python'
+Engine = 'Python' # let's use Python after all
 print(('Using %s engine for Datalog.' % Engine))
 
 try:
@@ -364,6 +369,7 @@ class metaMixin(type):
         if len(terms)==2:
             if terms[0].is_const():
                 # try accessing the attribute of the first term in literal
+                # TODO raise TypeError("Object is incompatible with the class that is queried.")
                 try:
                     Y = getattr(terms[0].id, attr_name)
                 except:
@@ -391,6 +397,14 @@ class metaMixin(type):
 # following syntax is used for compatibility with python 2 and 3
 Mixin = metaMixin('Mixin', (object,), {})
 class sqlMetaMixin(metaMixin, DeclarativeMeta): pass
+
+def InstrumentedAttribute_call(self, *args):
+    """ answers class.attribute(X,Y) queries for SQLAlchemy classes"""
+    cls = self.class_
+    method = self.key
+    return cls.__getattr__(method)(*args)
+
+InstrumentedAttribute.__call__ = InstrumentedAttribute_call
 
 class Register(Mixin):
     """A pyDatalog mixin that keeps a register of each of its instances"""
