@@ -64,27 +64,30 @@ session.add(John)
 session.add(Mary)
 session.commit()
 
+# reload Mary
+Mary = session.query(Employee).filter_by(name='Mary').one()
+
 """ 4. Query the objects using the datalog engine """
 # the following python statements implicitly use the datalog clauses
-Mary = session.query(Employee).filter_by(name='Mary').one()
-John = session.query(Employee).filter_by(name='John').one()
+
+# who has a salary of 6300 ?
+X=[]
+Employee.salary(X, 6300) # notice the similarity to a pyDatalog query
+print(X) # prints Mary
 
 # what is the salary class of Mary ?
-# TODO use Employee.name(X, 'Mary')
 Y = []
 Employee.salary_class(Mary, Y)
 print(Y) # prints 6
+
+# who are the indirect managers of Mary ?
+X, Y =[], []
+Employee.indirect_manager(Mary, X)
+print(X) # prints (John,)
 
 # Who are the employees with a salary class of 6 ?
 X, Y =[], []
 Employee.salary_class(X, 6)
 print(X) # prints (John, Mary)
 
-# who are the indirect managers of Mary ?
-X, Y =[], []
-Employee.indirect_manager(Mary, X) # notice the similarity to a pyDatalog query
-print(X) # prints (John,)
 
-X, Y =[], []
-Employee.indirect_manager(X, John) 
-print(X) # prints (Mary,)

@@ -37,10 +37,15 @@ Mary = Employee('Mary', John, 6300)
 """ 3. Query the objects using the datalog engine """
 # the following python statements implicitly use the datalog clauses
 
-# what is the salary class of John ?
+# who has a salary of 6300 ?
+X=[]
+Employee.salary(X, 6300) # notice the similarity to a pyDatalog query
+print(X) # prints Mary
+
+# what is the salary class of Mary ?
 Y = []
-Employee.salary_class(John, Y) # notice the similarity to a pyDatalog query
-print(Y)
+Employee.salary_class(Mary, Y)
+print(Y) # prints 6
 
 # who are the indirect managers of Mary ?
 X, Y =[], []
