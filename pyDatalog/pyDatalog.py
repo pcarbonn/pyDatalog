@@ -192,16 +192,6 @@ class Datalog_engine_:
         self.add_symbols(ast.co_names, newglobals)
         six.exec_(ast, newglobals)
 
-    def prt(self):
-        """
-        TODO Print the clauses
-        """
-        for (h,b) in self.clauses:
-            if isinstance(b, list):
-                print((h, ":-", string.join(list(map(str, b)), " , "), "."))
-            else:
-                print((h, ":-", str(b), "."))
-
 class Python_engine(Datalog_engine_):
     def __init__(self):
         self.clauses = []
@@ -328,7 +318,6 @@ class metaMixin(type):
     
     def __getattr__(cls, method):
         """when access to an attribute of a subclass of Mixin fails, return a callable that queries pyEngine """
-        #TODO call super ?
         if cls in ('Mixin', 'metaMixin') or method in (
                 '__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__', 
                 '__table_cls__'):
@@ -376,14 +365,15 @@ class metaMixin(type):
             Y = terms[1]
             if X.is_const():
                 # try accessing the attribute of the first term in literal
-                # TODO raise TypeError("Object is incompatible with the class that is queried.")
+                if X.id.__class__ != cls:
+                    raise TypeError("Object is incompatible with the class that is queried.")
                 try:
-                    Y = getattr(terms[0].id, attr_name)
+                    Y = getattr(X.id, attr_name)
                 except:
                     pass
                 else:
                     if Y: # ignore None's
-                        result = Literal(pred_name, (terms[0].id, Y))
+                        result = Literal(pred_name, (X.id, Y))
                         yield result.lua
                     return
             if cls.has_SQLAlchemy:
@@ -489,7 +479,8 @@ class Symbol:
     def __call__ (self, *args, **kwargs):
         "time to create a literal !"
         if self.name == 'ask':
-            # TODO check that there is only one argument
+            if 1<len(args):
+                raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             return self.datalog_engine._ask_literal(args[0], fast)
         else:
@@ -640,12 +631,10 @@ class Literal:
 
     def __pos__(self):
         " unary + means insert into datalog_engine as fact "
-        # TODO verify that terms are constants !
         self.datalog_engine._assert_fact(self)
 
     def __neg__(self):
         " unary - means retract fact from datalog_engine "
-        # TODO verify that terms are constants !
         self.datalog_engine._retract_fact(self)
         
     def __invert__(self):

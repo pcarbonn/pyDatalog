@@ -108,7 +108,7 @@ def test():
         assert ask(r(a, c)) == set([('a', 'c')])
         r(X, b) <= p(X)
         assert ask(r(a, b)) == set([('a', 'b')])
-        # TODO more
+        # TODO more tests
 
         # integer variable
         for i in range(10):
