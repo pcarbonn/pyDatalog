@@ -309,6 +309,9 @@ class Lua_engine(Datalog_engine_):
 
 default_datalog_engine = Datalog_engine()
 
+class Variable(list):
+    pass
+
 """Keep a dictionary of classes with datalog capabilities.  This list is used by pyEngine to resolve prefixed literals."""
 Class_dict = {}
 pyEngine.Class_dict = Class_dict # TODO better way to share it with pyEngine.py ?
@@ -336,7 +339,8 @@ class metaMixin(type):
             
             terms = []
             # first term is self
-            if self == []:
+            if isinstance(self, Variable): 
+                del self[:] # reset variable
                 terms.append( Symbol('X') )
             elif self.__class__ != cls:
                 raise TypeError("Object is incompatible with the class that is queried.")
@@ -344,16 +348,20 @@ class metaMixin(type):
                 terms.append( self ) 
             
             for i, arg in enumerate(args):
-                terms.append( Symbol('X%i' % i) if arg == [] else arg)
+                if isinstance(arg, Variable):
+                    del arg[:] # reset variables
+                    terms.append(Symbol('X%i' % i))
+                else:
+                    terms.append(arg)
                 
             literal = Literal(predicate_name, terms)
             result = default_datalog_engine._ask_literal(literal)
             if result: 
                 result = list(zip(*result)) # transpose result
-                if self==[]:
+                if isinstance(self, Variable) and len(self)==0:
                     self.extend(result[0])
                 for i, arg in enumerate(args):
-                    if arg==[]:
+                    if isinstance(arg, Variable) and len(arg)==0:
                         arg.extend(result[i+1])
             return result
         return my_callable
