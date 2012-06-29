@@ -10,7 +10,7 @@ It has 3 parts :
 import pyDatalog
 
 """ 1. define python class and business rules """
-Base = pyDatalog.Register # --> Base is a class with the pyDatalog capability to use logic clauses
+Base = pyDatalog.Mixin # --> Base is a class with the pyDatalog capability to use logic clauses
 
 class Employee(Base): # --> Employee inherits from the Base class
     def __init__(self, name, manager, salary): # function to initialize instances
