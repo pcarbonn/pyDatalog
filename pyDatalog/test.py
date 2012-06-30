@@ -41,6 +41,9 @@ def test():
     datalog_engine.clear()
     assert datalog_engine.ask('p(a)') == None
     
+    pyDatalog.assert_fact('p', 'a', 'b')
+    assert pyDatalog.ask('p(a, "b")') == set([('a', 'b')])
+    
     """unary facts                                                            """
     
     @pyDatalog.program()

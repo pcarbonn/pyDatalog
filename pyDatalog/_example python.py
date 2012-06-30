@@ -7,7 +7,7 @@ It has 3 parts :
     3. Query the objects using the datalog engine
 """
 
-import pyDatalog
+import pyDatalog # or: from pyDatalog import pyDatalog
 
 """ 1. define python class and business rules """
 

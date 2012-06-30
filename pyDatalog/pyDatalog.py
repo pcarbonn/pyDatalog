@@ -45,16 +45,6 @@ import sys
 import weakref
 
 try:
-    from sqlalchemy.ext.declarative import DeclarativeMeta
-except:
-    DeclarativeMeta = object
-
-try:
-    from sqlalchemy.orm.attributes import InstrumentedAttribute
-except:
-    InstrumentedAttribute = object()
-    
-try:
     from . import pyEngine
 except ValueError:
     import pyEngine
@@ -70,6 +60,16 @@ except ValueError:
 default_datalog_engine = pyParser.default_datalog_engine
 Datalog_engine = pyParser.Datalog_engine
 Engine = pyParser.Engine
+
+try:
+    from sqlalchemy.ext.declarative import DeclarativeMeta
+except:
+    DeclarativeMeta = object
+
+try:
+    from sqlalchemy.orm.attributes import InstrumentedAttribute
+except:
+    InstrumentedAttribute = Datalog_engine # not used; could be any class, really
     
 
 """ ****************** direct access to datalog knowledge base ***************** """
@@ -84,6 +84,8 @@ def program(datalog_engine=None):
 def ask(code):
     """returns the result of the query contained in the code string, and run in the default datalog engine"""
     return default_datalog_engine.ask(code)
+def assert_fact(predicate_name, *args):
+    return default_datalog_engine.assert_fact(predicate_name, *args)
 def load(code):
     """loads the clauses contained in the code string into the default datalog engine"""
     return default_datalog_engine.load(code)

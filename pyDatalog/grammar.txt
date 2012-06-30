@@ -1,20 +1,29 @@
 
 /* http://railroad.my28msec.com/rr/ui
 */
-datalog_statement ::= ('+' | '-') predicate '(' (constant | python_variable) (',' (constant | python_variable))* ')' 
-  | predicate '(' (variable | constant) (',' (variable | constant))* ')' '<=' ( '~' ? predicate '(' (variable | constant | python_variable) (',' (variable | constant | python_variable))* ')' 
+datalog_statement ::= ('+' | '-') fact 
+  | head '<=' body
+
+fact ::= simple_predicate '(' (constant | python_variable) (',' (constant | python_variable))* ')'
+
+head ::= literal
+body ::= ( '~' ? literal 
   | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')') 
-    ( '&' ( '~' ? predicate '(' (variable | constant | python_variable)(',' (variable | constant | python_variable))* ')' | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')' ))*
+    ( '&' ( '~' ? literal | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')' ))*
+
+literal ::= predicate '(' (variable | constant | python_variable) (',' (variable | constant | python_variable))* ')'
+predicate ::= simple_predicate | simple_predicate '.' simple_predicate
+
 expression ::= (constant 
   | python_variable
   | variable 
   | '(' expression ')'  
   | '(' lambda-expression ')' 
-  | expression [+*/-] expression
+  | expression ([+*/-] | '//') expression
   )
+
   
-  
-predicate ::= [a-f] [0-9a-fA-F_]*
+simple_predicate ::= [a-fA-F_] [0-9a-fA-F_]*
 constant ::= [a-f] [0-9a-fA-F_]* | ["'] char ["']
-python_variable ::= '_' [0-9a-fA-F_]*
+python_variable ::= [a-fA-F_] [0-9a-fA-F_]*
 variable::= [A-F] [0-9a-fA-F_]*

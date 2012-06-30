@@ -2,7 +2,7 @@ from distutils.core import setup
 setup(
     name = "pyDatalog",
     packages = ["pyDatalog"],
-    version = "0.5.0",
+    version = "0.6.0",
     description = "A pure-python implementation of a subset of prolog, using SLG algorithm with memoization",
     author = "Pierre Carbonnelle",
     author_email = "pierre.carbonnelle@gmail.com",
@@ -22,7 +22,7 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         ],
     long_description = """\
-pyDatalog brings logic programming to python.  Assert facts and insert logic clauses directly in your python code, 
+pyDatalog embeds logic programming in python.  Assert facts and insert logic clauses directly in your python code, 
 and use the inference engine to resolve complex, recursive queries fast.  
 
 Datalog is a subset of prolog that is best 
