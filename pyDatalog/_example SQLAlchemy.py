@@ -9,7 +9,7 @@ It has 4 parts :
     4. Query the objects using the datalog engine
 """
 
-import pyDatalog
+import pyDatalog # or: from pyDatalog import pyDatalog
 
 """ 1.initialize the ORM  """
 from sqlalchemy import create_engine
@@ -73,16 +73,17 @@ Mary = session.query(Employee).filter_by(name='Mary').one()
 # who has a salary of 6300 ?
 X = pyDatalog.Variable()
 Employee.salary(X, 6300) # notice the similarity to a pyDatalog query
-print(X) # prints Mary
+print(X) # prints (Mary,)
 
 # what is the salary class of Mary ?
 Employee.salary_class(Mary, X)
-print(X) # prints 6
+print(X) # prints (6,)
+
+# Who are the employees with a salary class of 6 ?
+Employee.salary_class(X, 6)
+print(X) # prints (John, Mary)
 
 # who are the indirect managers of Mary ?
 Employee.indirect_manager(Mary, X)
 print(X) # prints (John,)
 
-# Who are the employees with a salary class of 6 ?
-Employee.salary_class(X, 6)
-print(X) # prints (John, Mary)
