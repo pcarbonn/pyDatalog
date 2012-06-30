@@ -433,18 +433,6 @@ def program(datalog_engine=None):
     datalog_engine = datalog_engine or default_datalog_engine
     return datalog_engine.add_program
 
-def pr(a, level=0):
-    # used to debug the lua engine
-    try:
-        #if isinstance(a, 'Lua_table'):
-        if level<3:
-            return [ (x[0], pr(x[1], level+1)) for x in list(a.items()) ]
-        else:
-            return [ (x[0], x[1]) for x in list(a.items()) ]
-
-    except:
-        return a
-
 def ask(code):
     """returns the result of the query contained in the code string, and run in the default datalog engine"""
     return default_datalog_engine.ask(code)
