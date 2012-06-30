@@ -27,43 +27,20 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 """
 
-Datalog vocabulary:
-    q(X):- q(a)
-        X is a variable term
-        a is a constant term
-        q is a predicate
-        q(a) is a literal
-        q(X):- q(a) is a clause, where q(X) is the head and q(a) the body
-
-Design principle:
-Instead of writing our own parser, we use python's parser.  The datalog code is first compiled in python byte code, 
-then "undefined" variables are initialized as instance of Symbol, then the code is finally executed to load the clauses.
-This is done in the load() and add_program() method of Datalog_engine class.
-
-Classes contained in this file:
-* Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
-* Expression : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
-* Lambda : represents a lambda function, used in expressions
-* Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
-* Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
-* Datalog_engine_ : common part for an engine. Subclasses are Python_engine and Lua_engine
-* Python_engine :implements the interface to the datalog engine written in python.  Instantiated by the calling module
-* Lua_engine :implements the interface to the lua datalog engine written in Lua.  Instantiated by the calling module
-
-Methods contained in this file:
-* Datalog_engine(implementation=None) : a factory for Datalog_engine_. Returns a python or lua engine, depending on parameter
-* program(datalog_engine=None) : decorator function to create datalog programs
-* ask(code) : returns the result of the query contained in the code string, and run in the default datalog engine
-* load(code) : loads the clauses contained in the code string into the default datalog engine
-* clear() : resets the default engine
-
+Objects exposed by this file:
+for direct access to datalog knowledge base:
+  * Datalog_engine(implementation=None) : a factory for Datalog_engine_. Returns a python or lua engine, depending on parameter
+  * program(datalog_engine=None) : decorator function to create datalog programs
+  * ask(code) : returns the result of the query contained in the code string, and run in the default datalog engine
+  * load(code) : loads the clauses contained in the code string into the default datalog engine
+  * clear() : resets the default engine
+for Python Mixin:
+  * Variable : a class to define Variable, for use in datalog queries
+  * Mixin : a class that can be mixed in another class to give it datalog capability
+  * sqlMetaMixin : a metaclass to be used when creating a class with both SQLAlchemy and datalog capability
+  
 """
 from collections import defaultdict
-import os
-import re
-import string
-import six
-from six.moves import builtins
 import sys
 import weakref
 
@@ -77,19 +54,6 @@ try:
 except:
     InstrumentedAttribute = object()
     
-PY3 = sys.version_info[0] == 3
-func_code = '__code__' if PY3 else 'func_code'
-
-# determine which engine to use, python or lua
-try:
-    import lupa
-    from lupa import LuaRuntime
-    Engine = 'Lua'
-except:
-    Engine = 'Python'
-Engine = 'Python' # let's use Python after all
-print(('Using %s engine for Datalog.' % Engine))
-
 try:
     from . import pyEngine
 except ValueError:
@@ -105,7 +69,31 @@ except ValueError:
     from pyParser import Symbol, Expression, Lambda, Literal, Body
 default_datalog_engine = pyParser.default_datalog_engine
 Datalog_engine = pyParser.Datalog_engine
+Engine = pyParser.Engine
     
+
+""" ****************** direct access to datalog knowledge base ***************** """
+
+def program(datalog_engine=None):
+    """
+    A decorator for datalog program
+    """
+    datalog_engine = datalog_engine or default_datalog_engine
+    return datalog_engine.add_program
+
+def ask(code):
+    """returns the result of the query contained in the code string, and run in the default datalog engine"""
+    return default_datalog_engine.ask(code)
+def load(code):
+    """loads the clauses contained in the code string into the default datalog engine"""
+    return default_datalog_engine.load(code)
+def clear():
+    """ resets the default datalog engine """
+    global default_datalog_engine
+    default_datalog_engine.clear()
+
+""" ****************** python Mixin ***************** """
+
 class Variable(list):
     pass
 
@@ -226,28 +214,10 @@ class sqlMetaMixin(metaMixin, DeclarativeMeta):
     """ metaclass to be used with Mixin for SQLAlchemy"""
     pass
 
-""" attach a method to answer class.attribute(X,Y) queries for classes with SQLAlchemy"""
+""" attach a method to SQLAlchemy class.attribute, so that it can answer queries like class.attribute(X,Y)"""
 def InstrumentedAttribute_call(self, *args):
     cls = self.class_
     method = self.key
     return cls.__getattr__(method)(*args)
 InstrumentedAttribute.__call__ = InstrumentedAttribute_call
-
-def program(datalog_engine=None):
-    """
-    A decorator for datalog program
-    """
-    datalog_engine = datalog_engine or default_datalog_engine
-    return datalog_engine.add_program
-
-def ask(code):
-    """returns the result of the query contained in the code string, and run in the default datalog engine"""
-    return default_datalog_engine.ask(code)
-def load(code):
-    """loads the clauses contained in the code string into the default datalog engine"""
-    return default_datalog_engine.load(code)
-def clear():
-    """ resets the default datalog engine """
-    global default_datalog_engine
-    default_datalog_engine.clear()
 

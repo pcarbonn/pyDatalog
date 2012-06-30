@@ -25,6 +25,23 @@ in accordance with the Python Software Foundation licence.
 http://www.python.org/download/releases/2.0.1/license/ )
 
 """
+"""
+Design principle:
+Instead of writing our own parser, we use python's parser.  The datalog code is first compiled in python byte code, 
+then "undefined" variables are initialized as instance of Symbol, then the code is finally executed to load the clauses.
+This is done in the load() and add_program() method of Datalog_engine class.
+
+Classes contained in this file:
+* Datalog_engine_ : common part for an engine. Subclasses are Python_engine and Lua_engine
+* Python_engine :implements the interface to the datalog engine written in python.  Instantiated by the calling module
+* Lua_engine :implements the interface to the lua datalog engine written in Lua.  Instantiated by the calling module
+* Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
+* Expression : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
+* Lambda : represents a lambda function, used in expressions
+* Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
+* Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
+"""
+
 from collections import defaultdict
 import os
 import re
@@ -471,4 +488,3 @@ class Body:
     def __and__(self, literal):
         self.body.append(literal) 
         return self
-
