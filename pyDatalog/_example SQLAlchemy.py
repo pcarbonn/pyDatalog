@@ -64,9 +64,6 @@ session.add(John)
 session.add(Mary)
 session.commit()
 
-# reload Mary
-Mary = session.query(Employee).filter_by(name='Mary').one()
-
 """ 4. Query the objects using the datalog engine """
 # the following python statements implicitly use the datalog clauses
 
@@ -86,4 +83,3 @@ print(X) # prints (John, Mary)
 # who are the indirect managers of Mary ?
 Employee.indirect_manager(Mary, X)
 print(X) # prints (John,)
-

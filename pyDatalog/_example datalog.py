@@ -7,7 +7,7 @@ It has 3 parts:
     3. Query the datalog engine
 """
 
-import pyDatalog
+import pyDatalog # or: from pyDatalog import pyDatalog
 
 """ 1. create facts for 2 employees in the datalog engine """
 pyDatalog.load("+ salary('John', 6800)")
