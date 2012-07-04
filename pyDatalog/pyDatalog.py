@@ -114,49 +114,84 @@ class metaMixin(type):
         cls.has_SQLAlchemy = any(base.__module__ in ('sqlalchemy.ext.declarative',) for base in bases)
     
     def __getattr__(cls, method):
-        """when access to an attribute of a subclass of Mixin fails, return a callable that queries pyEngine """
+        """when access to an attribute of a subclass of Mixin fails, return an object that responds to () and to [] """
         if cls in ('Mixin', 'metaMixin') or method in (
                 '__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__', 
                 '__table_cls__'):
             raise AttributeError
 
-        def my_callable(self, *args):
-            predicate_name = "%s.%s" % (cls.__name__, method)
-            
-            terms = []
-            # first term is self
-            if isinstance(self, Variable): 
-                del self[:] # reset variable
-                terms.append( Symbol('X') )
-            elif self.__class__ != cls:
-                raise TypeError("Object is incompatible with the class that is queried.")
-            else:
-                terms.append( self ) 
-            
-            for i, arg in enumerate(args):
-                if isinstance(arg, Variable):
-                    del arg[:] # reset variables
-                    terms.append(Symbol('X%i' % i))
-                else:
-                    terms.append(arg)
+        class Pseudo_attribute(object):
+            def __call__(self, *args):
+                """ responds to class.attribute(x,y)"""
+                predicate_name = "%s.%s" % (cls.__name__, method)
                 
-            literal = Literal(predicate_name, terms)
-            result = default_datalog_engine._ask_literal(literal)
-            if result: 
-                result = list(zip(*result)) # transpose result
-                if isinstance(self, Variable) and len(self)==0:
-                    self.extend(result[0])
+                terms = []                
                 for i, arg in enumerate(args):
-                    if isinstance(arg, Variable) and len(arg)==0:
-                        arg.extend(result[i+1])
-            return result
-        return my_callable
+                    if isinstance(arg, Variable):
+                        del arg[:] # reset variables
+                        # TODO deal with (X,X)
+                        terms.append(Symbol('X%i' % i))
+                    elif i==0 and arg.__class__ != cls:
+                        raise TypeError("Object is incompatible with the class that is queried.")
+                    else:
+                        terms.append(arg)
+                    
+                literal = Literal(predicate_name, terms)
+                result = default_datalog_engine._ask_literal(literal)
+                if result: 
+                    result = list(zip(*result)) # transpose result
+                    for i, arg in enumerate(args):
+                        if isinstance(arg, Variable) and len(arg)==0:
+                            arg.extend(result[i])
+                return result
+            
+            def __getitem__(self, *keys):
+                """ responds to class.attribute[x,y] by returning another object"""
+                class Logic_function(object):
+                    def __eq__(self, other):
+                        if isinstance(other, Variable) or not getattr(other, '__iter__', False):
+                            other = (other,)
+                        predicate_name = "%s.%s[%i]" % (cls.__name__, method, len(keys))
+                        
+                        terms = []                
+                        for i, arg in enumerate(keys):
+                            if isinstance(arg, Variable):
+                                del arg[:] # reset variables
+                                # TODO deal with [X,X]
+                                terms.append(Symbol('X%i' % i))
+                            elif i==0 and arg.__class__ != cls:
+                                raise TypeError("Object is incompatible with the class that is queried.")
+                            else:
+                                terms.append(arg)
+                        for i, arg in enumerate(other):
+                            if isinstance(arg, Variable):
+                                del arg[:] # reset variables
+                                # TODO deal with [X,X]
+                                terms.append(Symbol('Y%i' % i))
+                            else:
+                                terms.append(arg)
+                            
+                        literal = Literal(predicate_name, terms)
+                        result = default_datalog_engine._ask_literal(literal)
+                        if result: 
+                            result = list(zip(*result)) # transpose result
+                            for i, arg in enumerate(keys):
+                                if isinstance(arg, Variable) and len(arg)==0:
+                                    arg.extend(result[i])
+                            j = i+1
+                            for i, arg in enumerate(other):
+                                if isinstance(arg, Variable) and len(arg)==0:
+                                    arg.extend(result[j+i])
+                        return result
+                return Logic_function()
+        return Pseudo_attribute()
 
     def pyDatalog_search(cls, literal):
         """Called by pyEngine to resolve a prefixed literal for a subclass of Mixin."""
         terms = literal.terms
         pred_name = literal.pred.id.split('/')[0]
-        attr_name = pred_name.split('.')[1]
+        attr_name = pred_name.split('[')[0].split('.')[1]
+        # TODO check prearity
         if len(terms)==2:
             X = terms[0]
             Y = terms[1]
@@ -216,10 +251,18 @@ class sqlMetaMixin(metaMixin, DeclarativeMeta):
     """ metaclass to be used with Mixin for SQLAlchemy"""
     pass
 
-""" attach a method to SQLAlchemy class.attribute, so that it can answer queries like class.attribute(X,Y)"""
+""" attach a method to SQLAlchemy class.attribute, 
+    so that it can answer queries like class.attribute(X,Y)"""
 def InstrumentedAttribute_call(self, *args):
     cls = self.class_
     method = self.key
     return cls.__getattr__(method)(*args)
 InstrumentedAttribute.__call__ = InstrumentedAttribute_call
 
+""" attach a method to SQLAlchemy class.attribute, 
+    so that it can answer queries like class.attribute[X,Y]"""
+def InstrumentedAttribute_getitem(self, *args):
+    cls = self.class_
+    method = self.key
+    return cls.__getattr__(method)[args[0]] # TODO
+InstrumentedAttribute.__getitem__ = InstrumentedAttribute_getitem
