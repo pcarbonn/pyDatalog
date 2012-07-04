@@ -364,6 +364,9 @@ class Symbol:
     
     def __getattr__(self, name):
         return Symbol(self.name + '.' + name, self.datalog_engine)
+    
+    def __getitem__(self, *keys):
+        return Function(self.name, self.datalog_engine, *keys)
         
     def lua_expr(self, variables):
         if self.type == 'variable':
@@ -433,10 +436,11 @@ class Literal:
     binary operator '&' means 'and', and returns a Body
     operator '<=' means 'is true if', and creates a Clause
     """
-    def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine):
+    def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine, prearity=None):
         self.datalog_engine = datalog_engine # needed to insert facts, clauses
         self.predicate_name = predicate_name
         self.terms = terms
+        self.prearity = prearity or len(terms)
         tbl = []
         for a in terms:
             if isinstance(a, Symbol):
@@ -447,7 +451,7 @@ class Literal:
                 raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
             else:
                 tbl.append(datalog_engine._make_const(a))
-        self.lua = datalog_engine._make_literal(predicate_name, tbl)
+        self.lua = datalog_engine._make_literal(predicate_name, tbl, prearity)
         #print pr(self.lua)
 
     def __pos__(self):
@@ -488,3 +492,16 @@ class Body:
     def __and__(self, literal):
         self.body.append(literal) 
         return self
+
+class Function:
+    """ represents predicate[a, b]"""
+    def __init__(self, name, datalog_engine, *keys):
+        self.name = "%s[%i]" % (name, len(keys))
+        self.datalog_engine = datalog_engine
+        self.keys = keys
+        
+    def __eq__(self, other):
+        terms = list(self.keys)
+        terms.append(other)
+        l = Literal(self.name, terms, datalog_engine=self.datalog_engine, prearity=len(self.keys))
+        return l

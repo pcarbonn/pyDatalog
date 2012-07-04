@@ -98,6 +98,15 @@ def test():
         - q(a,c)
         assert ask(q(a, Y)) == set([('a', 'b')])
         
+    """ functions                                                         """
+    @pyDatalog.program()
+    def _(): 
+        + (f[a]==b)
+        assert ask(f[a]==b) == set([('a', 'b')])
+    
+        + (f[a]==c)
+        assert ask(f[a]==X) == set([('a', 'c')])
+
     """ clauses                                                              """
 
     @pyDatalog.program()

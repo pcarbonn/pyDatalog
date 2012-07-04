@@ -65,5 +65,5 @@ def test():
 
 if __name__ == "__main__":
     pyDatalog.default_datalog_engine = pyDatalog.Datalog_engine()
-    test()
-    #cProfile.runctx('test()', globals(), locals())
+    #test()
+    cProfile.runctx('test()', globals(), locals())

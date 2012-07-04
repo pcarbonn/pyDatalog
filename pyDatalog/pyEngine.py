@@ -274,7 +274,7 @@ local function make_literal(pred_name, terms)
 end
 """
 class Literal(object):
-    def __init__(self, pred, terms):
+    def __init__(self, pred, terms, prearity=None):
         if isinstance(pred, six.string_types):
             self.pred = make_pred(pred, len(terms))
             if pred[:1] == '~':
@@ -282,9 +282,10 @@ class Literal(object):
         else:
             self.pred = pred
         self.terms = terms
+        self.prearity = prearity or len(terms) # TODO save in pred, not in literal
     def __str__(self): return "%s(%s)" % (get_name(self.pred), ','.join([str(term) for term in self.terms])) 
-def make_literal(pred_name, terms):
-    return Literal(pred_name, terms)
+def make_literal(pred_name, terms, prearity=None):
+    return Literal(pred_name, terms, prearity)
 
 """
 local function add_size(str)
@@ -328,9 +329,22 @@ function Var:get_id()
 end
 """
 Const.get_id = lambda self : ( 'c' + str(self.id) if isinstance(self.id, six.string_types) or isinstance(self.id, int) 
-                    else 'o' + str(id(self)) )  # TODO for performance : calculate it at constant creation
+                    else 'o' + str(id(self)) )  # TODO for performance : calculate it at constant creation, or use id(self) for all ?
 Var.get_id = lambda self : 'v' + self.id
 Fresh_var.get_id = lambda self : 'v' + self.id
+
+# A literal's key is similar to get_id, but only uses the terms up to the prearity. 
+# It is used to ensure unicity of results of functions like "pred[k]=v"
+
+def get_key(literal):
+    if not hasattr(literal, 'key'):
+        terms = literal.terms
+        if len(terms) == literal.prearity:
+            literal.key = get_id(literal)
+        else:
+            literal.key = add_size(literal.pred.id) + ''.join([add_size(terms[i].get_id()) for i in range(literal.prearity)])
+    return literal.key
+    
 
 # Variant tag
 
@@ -399,7 +413,7 @@ end
 """
 def subst(literal, env):
     if len(env) == 0: return literal
-    return make_literal(literal.pred, [term.subst(env) for term in literal.terms])
+    return make_literal(literal.pred, [term.subst(env) for term in literal.terms], literal.prearity)
 
 """
 function Const:subst(env)
@@ -597,11 +611,11 @@ local function adjoin(literal, tbl)
 end
 """
 def is_member(literal, tbl):
-    id_ = get_id(literal)
+    id_ = get_key(literal)
     return tbl.get(id_)
 
 def adjoin(literal, tbl):
-    tbl[get_id(literal)] = literal
+    tbl[get_key(literal)] = literal
     
 # Clauses
 
@@ -651,7 +665,7 @@ end
 """
 def get_clause_id(clause):
     if not hasattr(clause, 'id'):
-        clause.id = add_size(get_id(clause.head)) + ''.join([add_size(get_id(bodi)) for bodi in clause.body])
+        clause.id = add_size(get_key(clause.head)) + ''.join([add_size(get_key(bodi)) for bodi in clause.body])
     return clause.id
     
 # Clause substitution in which the substitution is applied to each
@@ -785,6 +799,7 @@ def assert_(clause):
     if not is_safe(clause): return None  # An unsafe clause was detected.
     pred = clause.head.pred
     if not pred.prim:                   # Ignore assertions for primitives.
+        retract(clause) # to ensure unicity of functions
         pred.db[get_clause_id(clause)] = clause
         if len(clause.body) == 0: # if it is a fact, update indexes
             for i, term in enumerate(clause.head.terms):
@@ -818,8 +833,10 @@ def retract(clause):
         else:
             pred.clauses.remove(clause)
         del pred.db[id_]  # remove clause from pred.db
+    """ TODO retract last fact removes pred ??  problem with assert function
     if len(pred.db) == 0 and pred.prim == None: # if no definition left
         remove(pred)
+    """
     return clause
 
 def relevant_clauses(literal):

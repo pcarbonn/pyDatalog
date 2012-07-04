@@ -46,11 +46,11 @@ class Employee(Base): # --> Employee inherits from the Base class
     @pyDatalog.program() # --> the following function contains pyDatalog clauses
     def _():
         # the salary class of employee X is computed as a function of his/her salary
-        Employee.salary_class(X,N) <= Employee.salary(X,N1) & (N==N1//1000)
+        (Employee.salary_class[X]==N) <= (Employee.salary[X]==N1) & (N==N1//1000)
         
         # all the indirect managers of employee X are derived from his manager, recursively
-        Employee.indirect_manager(X,Y) <= Employee.manager(X,Y)
-        Employee.indirect_manager(X,Y) <= Employee.manager(X,Z) & Employee.indirect_manager(Z,Y)
+        Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Y)
+        Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Z) & Employee.indirect_manager(Z,Y)
 
 """ 3. create table and rows for 2 employees """
 # create table
@@ -69,15 +69,15 @@ session.commit()
 
 # who has a salary of 6300 ?
 X = pyDatalog.Variable()
-Employee.salary(X, 6300) # notice the similarity to a pyDatalog query
+Employee.salary[X] == 6300 # notice the similarity to a pyDatalog query
 print(X) # prints (Mary,)
 
 # what is the salary class of Mary ?
-Employee.salary_class(Mary, X)
+Employee.salary_class[Mary] == X
 print(X) # prints (6,)
 
 # Who are the employees with a salary class of 6 ?
-Employee.salary_class(X, 6)
+Employee.salary_class[X] == 6
 print(X) # prints (John, Mary)
 
 # who are the indirect managers of Mary ?
