@@ -107,6 +107,11 @@ def test():
         + (f[a]==c)
         assert ask(f[a]==X) == set([('a', 'c')])
 
+        + (f2[a,x]==b)
+        assert ask(f2[a,x]==b) == set([('a', 'x', 'b')])
+    
+        + (f2[a,x]==c)
+        assert ask(f2[a,x]==X) == set([('a', 'x', 'c')])
     """ clauses                                                              """
 
     @pyDatalog.program()

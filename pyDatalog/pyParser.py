@@ -277,7 +277,7 @@ def Datalog_engine(implementation=None):
     
 default_datalog_engine = Datalog_engine()
 
-class Symbol:
+class Symbol(object):
     """
     can be constant, variable or predicate name
     ask() creates a query
@@ -365,9 +365,15 @@ class Symbol:
     def __getattr__(self, name):
         return Symbol(self.name + '.' + name, self.datalog_engine)
     
-    def __getitem__(self, *keys):
-        return Function(self.name, self.datalog_engine, *keys)
-        
+    def __getitem__(self, keys):
+        return Function(self.name, self.datalog_engine, keys)
+    
+    def __iter__(self):
+        # this is used to catch sum(X)
+        # it will create confusion when triggered in other (illegal) use of Symbols as iterators !
+        # but I can't find a way to detect it to give a warning
+        return iter((Aggregate('sum', self),))
+                    
     def lua_expr(self, variables):
         if self.type == 'variable':
             return self.datalog_engine._make_operand('variable', variables.index(self.name))
@@ -383,7 +389,7 @@ class Symbol:
     def __str__(self):
         return str(self.name)
 
-class Expression:
+class Expression(object):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
     def __init__(self, lhs, operator, rhs, datalog_engine=default_datalog_engine):
         self.operator = operator
@@ -412,7 +418,7 @@ class Expression:
     def __str__(self):
         return '(' + str(self.lhs) + self.operator + str(self.rhs) + ')'
 
-class Lambda:
+class Lambda(object):
     """represents a lambda function, used in expressions"""
     def __init__(self, other, datalog_engine=default_datalog_engine):
         self.operator = '<lambda>'
@@ -429,7 +435,7 @@ class Lambda:
     def __str__(self):
         return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(getattr(self.lambda_object,func_code).co_varnames))
         
-class Literal:
+class Literal(object):
     """
     created by source code like 'p(a, b)'
     unary operator '+' means insert it as fact
@@ -481,7 +487,7 @@ class Literal:
         terms = list(map (str, self.terms))
         return str(self.predicate_name) + "(" + string.join(terms,',') + ")"
 
-class Body:
+class Body(object):
     """
     created by p(a,b) + q(c,d)
     operator '+' means 'and', and returns a Body
@@ -493,15 +499,30 @@ class Body:
         self.body.append(literal) 
         return self
 
-class Function:
+class Function(object):
     """ represents predicate[a, b]"""
-    def __init__(self, name, datalog_engine, *keys):
+    def __init__(self, name, datalog_engine, keys):
+        if not isinstance(keys, tuple):
+            keys = (keys,)
         self.name = "%s[%i]" % (name, len(keys))
         self.datalog_engine = datalog_engine
         self.keys = keys
         
     def __eq__(self, other):
         terms = list(self.keys)
+        # TODO aggregates
         terms.append(other)
         l = Literal(self.name, terms, datalog_engine=self.datalog_engine, prearity=len(self.keys))
         return l
+    
+class Aggregate(object):
+    """ represents aggregation_method(X,Y)"""
+    def __init__(self, method, *args):
+        self.method = method
+        self.args = args
+        
+    def __radd__(self, other):
+        # we need this because sum(X) calculates the sum over (Aggregate('sum', X),)
+        # (see Symbol.__iter())
+        assert other==0 # first iteration of sum is with 0
+        return self

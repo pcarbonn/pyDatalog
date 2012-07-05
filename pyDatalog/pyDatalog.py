@@ -147,8 +147,10 @@ class metaMixin(type):
                             arg.extend(result[i])
                 return result
             
-            def __getitem__(self, *keys):
+            def __getitem__(self, keys):
                 """ responds to class.attribute[x,y] by returning another object"""
+                if not isinstance(keys, tuple):
+                    keys = (keys,)
                 class Logic_function(object):
                     def __eq__(self, other):
                         if isinstance(other, Variable) or not getattr(other, '__iter__', False):
