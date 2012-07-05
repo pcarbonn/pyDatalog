@@ -232,19 +232,21 @@ class metaMixin(type):
                             result = Literal(pred_name, (r, Y1))
                             yield result.lua
                     return
-            else:
+            else: # python object with Mixin
                 if not X.is_const() and Y.is_const():
                     # predicate(X, atom)
                     for X in metaMixin.__refs__[cls]:
-                        if getattr(X(), attr_name)==Y.id:
-                            yield Literal(pred_name, (X(), Y.id)).lua 
+                        X=X()
+                        if getattr(X, attr_name)==Y.id:
+                            yield Literal(pred_name, (X, Y.id)).lua 
                     return
                 elif not X.is_const() and not Y.is_const():
                     # predicate(X, Y)
                     for X1 in metaMixin.__refs__[cls]:
-                        Y1 = getattr(X1(), attr_name)
-                        if Y1 and ((X is Y) != (X1()!=Y1)): # xor : either X is Y, or X()!=Y1, but not both
-                            yield Literal(pred_name, (X1(), Y1)).lua
+                        X1=X1()
+                        Y1 = getattr(X1, attr_name)
+                        if Y1 and (X is not Y or ((X is Y) and (X1==Y1))): 
+                            yield Literal(pred_name, (X1, Y1)).lua
                     return
         raise RuntimeError ("%s could not be resolved" % pred_name)
 
