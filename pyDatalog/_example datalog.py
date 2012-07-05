@@ -33,3 +33,7 @@ print(pyDatalog.ask("indirect_manager('Mary', X)")) # prints set([('Mary', 'John
 
 # Who are the employees with a salary class of 6 ?
 print(pyDatalog.ask("salary_class[X] == 6")) # prints set([('Mary', 6), ('John', 6)])
+
+# who is his own direct managers of Mary ?
+print(pyDatalog.ask("manager('X', X)")) # prints set([(,)])
+

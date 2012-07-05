@@ -56,3 +56,12 @@ print(X) # prints (John, Mary)
 # who are the indirect managers of Mary ?
 Employee.indirect_manager(Mary, X)
 print(X) # prints (John,)
+
+assert Employee.manager[Mary]==John
+# who is his own  managers ?
+Employee.manager[X]==X
+print(X) # prints (,)
+
+# who is his own indirect managers ?
+Employee.indirect_manager(X, X)
+print(X) # prints (,)
