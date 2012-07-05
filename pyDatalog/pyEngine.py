@@ -1507,7 +1507,7 @@ function Operand:eval(environment)
     end
 end
 """
-class Operand:
+class Operand(object):
     def __init__(self, type, value):
         self.value = value if type == 'constant' else None
         self.index = value if type != 'constant' else None
@@ -1540,7 +1540,7 @@ function Expression:eval(env)
     end
 end
 """
-class Expression:
+class Expression(object):
     def __init__(self, operator, operand1, operand2):
         self.operator = operator
         self.operand1 = operand1
@@ -1564,7 +1564,7 @@ def make_expression(operator, operand1, operand2):
 """
 lambda
 """
-class Lambda:
+class Lambda(object):
     def __init__(self, lambda_object, operands):
         self.lambda_object = lambda_object
         self.operands = operands
