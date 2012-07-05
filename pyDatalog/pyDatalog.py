@@ -125,12 +125,14 @@ class metaMixin(type):
                 """ responds to class.attribute(x,y)"""
                 predicate_name = "%s.%s" % (cls.__name__, method)
                 
-                terms = []                
+                terms, env = [], {}
                 for i, arg in enumerate(args):
                     if isinstance(arg, Variable):
                         del arg[:] # reset variables
-                        # TODO deal with (X,X)
-                        terms.append(Symbol('X%i' % i))
+                        # deal with (X,X)
+                        variable = env.get(id(arg), Symbol('X%i' % i))
+                        env[id(arg)] = variable
+                        terms.append(variable)
                     elif i==0 and arg.__class__ != cls:
                         raise TypeError("Object is incompatible with the class that is queried.")
                     else:
@@ -153,12 +155,15 @@ class metaMixin(type):
                             other = (other,)
                         predicate_name = "%s.%s[%i]" % (cls.__name__, method, len(keys))
                         
-                        terms = []                
+                        #TODO avoid repetition of loops, by joining keys and other
+                        terms, env = [], {}
                         for i, arg in enumerate(keys):
                             if isinstance(arg, Variable):
                                 del arg[:] # reset variables
-                                # TODO deal with [X,X]
-                                terms.append(Symbol('X%i' % i))
+                                # deal with [X,X]
+                                variable = env.get(id(arg), Symbol('X%i' % i))
+                                env[id(arg)] = variable
+                                terms.append(variable)
                             elif i==0 and arg.__class__ != cls:
                                 raise TypeError("Object is incompatible with the class that is queried.")
                             else:
@@ -166,8 +171,10 @@ class metaMixin(type):
                         for i, arg in enumerate(other):
                             if isinstance(arg, Variable):
                                 del arg[:] # reset variables
-                                # TODO deal with [X,X]
-                                terms.append(Symbol('Y%i' % i))
+                                # deal with [X,X]
+                                variable = env.get(id(arg), Symbol('Y%i' % i))
+                                env[id(arg)] = variable
+                                terms.append(variable)
                             else:
                                 terms.append(arg)
                             
@@ -200,12 +207,14 @@ class metaMixin(type):
                 if X.id.__class__ != cls:
                     raise TypeError("Object is incompatible with the class that is queried.")
                 try:
-                    Y = getattr(X.id, attr_name)
+                    Y1 = getattr(X.id, attr_name)
                 except:
                     pass
                 else:
-                    if Y: # ignore None's
-                        result = Literal(pred_name, (X.id, Y))
+                    if Y.is_const() and Y1 != Y.id:
+                        return
+                    if Y1: # ignore None's
+                        result = Literal(pred_name, (X.id, Y1))
                         yield result.lua
                     return
             if cls.has_SQLAlchemy:
@@ -216,9 +225,11 @@ class metaMixin(type):
                     if Y.is_const():
                         q = q.filter(getattr(cls, attr_name) == Y.id)
                     for r in q:
-                        Y = getattr(r, attr_name)
-                        if Y:
-                            result = Literal(pred_name, (r, Y))
+                        Y1 = getattr(r, attr_name)
+                        if Y.is_const() and Y1 != Y.id:
+                            return
+                        if Y1:
+                            result = Literal(pred_name, (r, Y1))
                             yield result.lua
                     return
             else:
@@ -230,10 +241,10 @@ class metaMixin(type):
                     return
                 elif not X.is_const() and not Y.is_const():
                     # predicate(X, Y)
-                    for X in metaMixin.__refs__[cls]:
-                        Y = getattr(X(), attr_name)
-                        if Y:
-                            yield Literal(pred_name, (X(), Y)).lua
+                    for X1 in metaMixin.__refs__[cls]:
+                        Y1 = getattr(X1(), attr_name)
+                        if Y1 and ((X is Y) != (X1()!=Y1)): # xor : either X is Y, or X()!=Y1, but not both
+                            yield Literal(pred_name, (X1(), Y1)).lua
                     return
         raise RuntimeError ("%s could not be resolved" % pred_name)
 
