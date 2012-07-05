@@ -74,7 +74,7 @@ import pyEngine
 
 """                             ENGINES                                                   """
 
-class Datalog_engine_:
+class Datalog_engine_(object):
     """
     common part for an engine. Subclasses are Python_engine and Lua_engine
     """
@@ -111,7 +111,7 @@ class Datalog_engine_:
         clause = self._make_clause(head.lua, tbl)
         return self._assert(clause)
         
-    class _NoCallFunction:
+    class _NoCallFunction(object):
         """
         This class prevents a call to a datalog program created using the 'program' decorator
         """
