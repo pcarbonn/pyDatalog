@@ -442,23 +442,46 @@ class Literal(object):
     binary operator '&' means 'and', and returns a Body
     operator '<=' means 'is true if', and creates a Clause
     """
-    def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine, prearity=None):
+    def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine, prearity=None, aggregate_method=None):
         self.datalog_engine = datalog_engine # needed to insert facts, clauses
         self.predicate_name = predicate_name
         self.terms = terms
         self.prearity = prearity or len(terms)
+
+        # adjust head literal for aggregate
+        h_terms = list(terms)
+        if isinstance(terms[-1], Aggregate):
+            self.aggregate = terms[-1]
+            h_predicate_name = predicate_name + '!'
+            # compute list of terms
+            del h_terms[-1]
+            base_terms = list(h_terms) # creates a copy
+            h_terms.extend(self.aggregate.args)
+            base_terms.append(Symbol('X')) # OK to use any variable
+            
+            # create the second predicate # TODO use make_pred instead
+            l = Literal(predicate_name, base_terms, self.datalog_engine, prearity, self.aggregate.method)
+            self.datalog_engine.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
+            # TODO check that l.pred.aggregate_method is correct
+        else:
+            self.aggregate = None
+            h_predicate_name = predicate_name
+        
         tbl = []
-        for a in terms:
+        for a in h_terms:
             if isinstance(a, Symbol):
                 tbl.append(a.lua)
             elif isinstance(a, six.string_types):
                 tbl.append(datalog_engine._make_const(a))
             elif isinstance(a, Literal):
                 raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
+            elif isinstance(a, Aggregate):
+                raise TypeError, "Incorrect use of '%s' aggregation." % a.method
             else:
                 tbl.append(datalog_engine._make_const(a))
-        self.lua = datalog_engine._make_literal(predicate_name, tbl, prearity)
-        #print pr(self.lua)
+        # now create the literal for the head of a clause
+        self.lua = datalog_engine._make_literal(h_predicate_name, tbl, prearity, aggregate_method)
+        # TODO check that l.pred.aggregate_method is empty
 
     def __pos__(self):
         " unary + means insert into datalog_engine as fact "
@@ -496,6 +519,7 @@ class Body(object):
         self.body = [literal1, literal2]
 
     def __and__(self, literal):
+        assert not literal.aggregate, "Aggregation cannot appear in the body of a clause"
         self.body.append(literal) 
         return self
 
@@ -510,7 +534,6 @@ class Function(object):
         
     def __eq__(self, other):
         terms = list(self.keys)
-        # TODO aggregates
         terms.append(other)
         l = Literal(self.name, terms, datalog_engine=self.datalog_engine, prearity=len(self.keys))
         return l

@@ -37,6 +37,7 @@ Some differences between python and lua:
 * variable bindings in a closure.  See http://tiny.cc/7837cw, http://tiny.cc/rq47cw
 """
 import copy
+from itertools import groupby
 import six
 import weakref
 
@@ -200,13 +201,14 @@ class Pred(Interned):
             o.index = [{} for i in range(int(o.id.split('/')[-1]))]
             o.prim = None
             o.expression = None
+            o.aggregate_method = args[2]
             cls.registry[_id] = o
         return cls.registry[_id]
-    def __init__(self, pred_name, arity):
+    def __init__(self, pred_name, arity, aggregate_method):
         pass
     def __str__(self): return "%s()" % get_name(self)
-def make_pred(pred_name, arity):
-    return Pred(pred_name, arity)
+def make_pred(pred_name, arity, aggregate_method=None):
+    return Pred(pred_name, arity, aggregate_method)
 
 """
 local function last_slash(s)          # Returns the location of the last slash
@@ -254,6 +256,7 @@ class Fresh_pred(object):
         self.clauses = copy.copy(pred.clauses)
         self.prim = pred.prim
         self.expression = pred.expression
+        self.aggregate_method = pred.aggregate_method
 def dup(pred):
     return Fresh_pred(pred)
 
@@ -274,9 +277,9 @@ local function make_literal(pred_name, terms)
 end
 """
 class Literal(object):
-    def __init__(self, pred, terms, prearity=None):
+    def __init__(self, pred, terms, prearity=None, aggregate_method=None):
         if isinstance(pred, six.string_types):
-            self.pred = make_pred(pred, len(terms))
+            self.pred = make_pred(pred, len(terms), aggregate_method)
             if pred[:1] == '~':
                 self.pred.base_pred = make_pred(pred[1:], len(terms))
         else:
@@ -284,8 +287,8 @@ class Literal(object):
         self.terms = terms
         self.prearity = prearity or len(terms) # TODO save in pred, not in literal
     def __str__(self): return "%s(%s)" % (get_name(self.pred), ','.join([str(term) for term in self.terms])) 
-def make_literal(pred_name, terms, prearity=None):
-    return Literal(pred_name, terms, prearity)
+def make_literal(pred_name, terms, prearity=None, aggregate_method=None):
+    return Literal(pred_name, terms, prearity, aggregate_method)
 
 """
 local function add_size(str)
@@ -1200,6 +1203,24 @@ def search(subgoal):
                 
         sched(lambda base_literal=base_literal, subgoal=subgoal, literal=literal: 
                        _search(base_literal, subgoal, literal))
+    elif literal.pred.aggregate_method:
+        base_pred_name = get_name(literal.pred)+'!' # TODO performance : store in literal.pred
+        post_arity = {'sum': 1} # TODO define it as global constant
+        base_terms = list(literal.terms)
+        del base_terms[-1]
+        base_terms.extend([ make_var('V%i' % i) for i in range(post_arity[literal.pred.aggregate_method])])
+        base_literal = Literal(base_pred_name, base_terms)
+        #TODO thunking
+        result = ask(base_literal)
+        result.answers.sort() # TODO key
+        for k, v in groupby(result.answers, lambda x: list(map(make_const, x[:literal.prearity]))):
+            aggregated = 0
+            for r in v:
+                aggregated += r[-1]
+            k.append(make_const(aggregated))
+            if not literal.terms[-1].is_const() or  aggregated == literal.terms[-1].id:
+                    fact(subgoal, Literal(literal.pred, k))
+                    
     elif literal.pred.db: # has a datalog definition
         #TODO test if there is a conflicting python definition ?
         for clause in relevant_clauses(literal):
