@@ -457,6 +457,7 @@ class Literal(object):
             del h_terms[-1]
             base_terms = list(h_terms) # creates a copy
             h_terms.extend(self.aggregate.args)
+            h_prearity = len(h_terms)
             base_terms.append(Symbol('X')) # OK to use any variable
             
             # create the second predicate # TODO use make_pred instead
@@ -466,6 +467,7 @@ class Literal(object):
         else:
             self.aggregate = None
             h_predicate_name = predicate_name
+            h_prearity = prearity
         
         tbl = []
         for a in h_terms:
@@ -480,7 +482,7 @@ class Literal(object):
             else:
                 tbl.append(datalog_engine._make_const(a))
         # now create the literal for the head of a clause
-        self.lua = datalog_engine._make_literal(h_predicate_name, tbl, prearity, aggregate_method)
+        self.lua = datalog_engine._make_literal(h_predicate_name, tbl, h_prearity, aggregate_method)
         # TODO check that l.pred.aggregate_method is empty
 
     def __pos__(self):
