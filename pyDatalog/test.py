@@ -98,22 +98,6 @@ def test():
         - q(a,c)
         assert ask(q(a, Y)) == set([('a', 'b')])
         
-    """ functions                                                         """
-    @pyDatalog.program()
-    def _(): 
-        + (f[a]==b)
-        assert ask(f[a]==b) == set([('a', 'b')])
-    
-        + (f[a]==c)
-        assert ask(f[a]==X) == set([('a', 'c')])
-
-        + (f2[a,x]==b)
-        assert ask(f2[a,x]==b) == set([('a', 'x', 'b')])
-    
-        + (f2[a,x]==c)
-        assert ask(f2[a,x]==X) == set([('a', 'x', 'c')])
-    """ clauses                                                              """
-
     @pyDatalog.program()
     def _(): 
     
@@ -237,6 +221,32 @@ def test():
     assert datalog_engine.ask('even(5)', _fast=True) == None
     assert datalog_engine.ask('even(5)'            ) == None
     
+    """ functions                                                         """
+    pyDatalog.clear()
+    @pyDatalog.program()
+    def _(): 
+        + (f[a]==b)
+        assert ask(f[a]==b) == set([('a', 'b')])
+    
+        + (f[a]==c)
+        assert ask(f[a]==X) == set([('a', 'c')])
+
+        + (f2[a,x]==b)
+        assert ask(f2[a,x]==b) == set([('a', 'x', 'b')])
+    
+        + (f2[a,x]==c)
+        assert ask(f2[a,x]==X) == set([('a', 'x', 'c')])
+        
+        + p(a, b, 1)
+        + p(a, b, 2)
+        + p(b, b, 4)
+        print ask(p(a,X,Y))
+        (a_sum[X] == sum(Y)) <= p(X, Z, Y)
+        assert ask(a_sum[a]==X) ==set([('a', 3)])
+        assert ask(a_sum[a]==3) ==set([('a', 3)])
+        
+    """ clauses                                                              """
+
     """ can't call a pyDatalog program                             """
     
     error = False

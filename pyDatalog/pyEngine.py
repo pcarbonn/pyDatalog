@@ -1017,7 +1017,9 @@ def complete(thunk, post_thunk):
     Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
     subgoals, tasks = {}, []
     sched(thunk)
-    if Fast: return post_thunk() # don't bother with thunks if Fast
+    if Fast: 
+        #TODO pop to recover memory space
+        return post_thunk() # don't bother with thunks if Fast
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
     Stack[-1][1].insert(0, post_thunk) 
@@ -1208,18 +1210,31 @@ def search(subgoal):
         post_arity = {'sum': 1} # TODO define it as global constant
         base_terms = list(literal.terms)
         del base_terms[-1]
+        # TODO deal with pred[X,Y]=aggregate(X)
         base_terms.extend([ make_var('V%i' % i) for i in range(post_arity[literal.pred.aggregate_method])])
         base_literal = Literal(base_pred_name, base_terms)
+
         #TODO thunking
-        result = ask(base_literal)
-        result.answers.sort() # TODO key
-        for k, v in groupby(result.answers, lambda x: list(map(make_const, x[:literal.prearity]))):
-            aggregated = 0
-            for r in v:
-                aggregated += r[-1]
-            k.append(make_const(aggregated))
-            if not literal.terms[-1].is_const() or  aggregated == literal.terms[-1].id:
-                    fact(subgoal, Literal(literal.pred, k))
+        global Fast, subgoals, tasks, Stack
+        Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
+        subgoals, tasks = {}, []
+        #result = ask(base_literal)
+        base_subgoal = make_subgoal(base_literal)
+        merge(base_subgoal)
+        Fast = True
+        search(base_subgoal)
+        answers = [ tuple([term.id for term in l.terms]) for l in list(base_subgoal.facts.values())]
+        result = answers
+        
+        if result:
+            result.sort() # TODO key
+            for k, v in groupby(result, lambda x: list(map(make_const, x[:literal.prearity]))):
+                aggregated = 0
+                for r in v:
+                    aggregated += r[-1]
+                k.append(make_const(aggregated))
+                if not literal.terms[-1].is_const() or  aggregated == literal.terms[-1].id:
+                        fact(subgoal, Literal(literal.pred, k))
                     
     elif literal.pred.db: # has a datalog definition
         #TODO test if there is a conflicting python definition ?
