@@ -237,13 +237,19 @@ def test():
         + (f2[a,x]==c)
         assert ask(f2[a,x]==X) == set([('a', 'x', 'c')])
         
+    """ aggregates                                                         """
+    pyDatalog.clear()
+    @pyDatalog.program()
+    def _(): 
         + p(a, b, 1)
         + p(a, b, 2)
         + p(b, b, 4)
         print ask(p(a,X,Y))
         (a_sum[X] == sum(Y)) <= p(X, Z, Y)
-        assert ask(a_sum[a]==X) ==set([('a', 3)])
-        assert ask(a_sum[a]==3) ==set([('a', 3)])
+        assert ask(a_sum[a]==X) == set([('a', 3)])
+        assert ask(a_sum[a]==3) == set([('a', 3)])
+        assert ask(a_sum[X]==3) == set([('a', 3)])
+        assert ask(a_sum[c]==X) == None
         
     """ clauses                                                              """
 
