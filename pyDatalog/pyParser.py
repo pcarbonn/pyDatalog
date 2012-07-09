@@ -372,7 +372,7 @@ class Symbol(object):
         # this is used to catch sum(X)
         # it will create confusion when triggered in other (illegal) use of Symbols as iterators !
         # but I can't find a way to detect it to give a warning
-        return iter((Aggregate('sum', self),))
+        return iter((Aggregate.new('sum', self),))
                     
     def lua_expr(self, variables):
         if self.type == 'variable':
@@ -442,7 +442,7 @@ class Literal(object):
     binary operator '&' means 'and', and returns a Body
     operator '<=' means 'is true if', and creates a Clause
     """
-    def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine, prearity=None, aggregate_method=None):
+    def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine, prearity=None, aggregate=None):
         self.datalog_engine = datalog_engine # needed to insert facts, clauses
         self.predicate_name = predicate_name
         self.terms = terms
@@ -461,7 +461,7 @@ class Literal(object):
             base_terms.append(Symbol('X')) # OK to use any variable
             
             # create the second predicate # TODO use make_pred instead
-            l = Literal(predicate_name, base_terms, self.datalog_engine, prearity, self.aggregate.method)
+            l = Literal(predicate_name, base_terms, self.datalog_engine, prearity, self.aggregate)
             self.datalog_engine.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
             # TODO check that l.pred.aggregate_method is correct
         else:
@@ -482,7 +482,7 @@ class Literal(object):
             else:
                 tbl.append(datalog_engine._make_const(a))
         # now create the literal for the head of a clause
-        self.lua = datalog_engine._make_literal(h_predicate_name, tbl, h_prearity, aggregate_method)
+        self.lua = datalog_engine._make_literal(h_predicate_name, tbl, h_prearity, aggregate)
         # TODO check that l.pred.aggregate_method is empty
 
     def __pos__(self):
@@ -545,9 +545,33 @@ class Aggregate(object):
     def __init__(self, method, *args):
         self.method = method
         self.args = args
+    
+    @classmethod    
+    def new(self, method, *args):
+        if method == 'sum':
+            return Sum_aggregate(method, *args)
+        
+class Sum_aggregate(Aggregate):
+    @property
+    def arity(self):
+        return 1
         
     def __radd__(self, other):
         # we need this because sum(X) calculates the sum over (Aggregate('sum', X),)
         # (see Symbol.__iter())
         assert other==0 # first iteration of sum is with 0
         return self
+    
+    def key(self, result):
+        # return the grouping key of a result
+        return list(result[:len(result)-1])
+    
+    def reset(self):
+        self._value = 0
+        
+    def add(self, other):
+        self._value += other
+        
+    @property
+    def value(self):
+        return self._value

@@ -201,14 +201,14 @@ class Pred(Interned):
             o.index = [{} for i in range(int(o.id.split('/')[-1]))]
             o.prim = None
             o.expression = None
-            o.aggregate_method = args[2]
+            o.aggregate = args[2]
             cls.registry[_id] = o
         return cls.registry[_id]
-    def __init__(self, pred_name, arity, aggregate_method):
+    def __init__(self, pred_name, arity, aggregate):
         pass
     def __str__(self): return "%s()" % get_name(self)
-def make_pred(pred_name, arity, aggregate_method=None):
-    return Pred(pred_name, arity, aggregate_method)
+def make_pred(pred_name, arity, aggregate=None):
+    return Pred(pred_name, arity, aggregate)
 
 """
 local function last_slash(s)          # Returns the location of the last slash
@@ -256,7 +256,7 @@ class Fresh_pred(object):
         self.clauses = copy.copy(pred.clauses)
         self.prim = pred.prim
         self.expression = pred.expression
-        self.aggregate_method = pred.aggregate_method
+        self.aggregate = pred.aggregate
 def dup(pred):
     return Fresh_pred(pred)
 
@@ -277,9 +277,9 @@ local function make_literal(pred_name, terms)
 end
 """
 class Literal(object):
-    def __init__(self, pred, terms, prearity=None, aggregate_method=None):
+    def __init__(self, pred, terms, prearity=None, aggregate=None):
         if isinstance(pred, six.string_types):
-            self.pred = make_pred(pred, len(terms), aggregate_method)
+            self.pred = make_pred(pred, len(terms), aggregate)
             if pred[:1] == '~':
                 self.pred.base_pred = make_pred(pred[1:], len(terms))
         else:
@@ -287,8 +287,8 @@ class Literal(object):
         self.terms = terms
         self.prearity = prearity or len(terms) # TODO save in pred, not in literal
     def __str__(self): return "%s(%s)" % (get_name(self.pred), ','.join([str(term) for term in self.terms])) 
-def make_literal(pred_name, terms, prearity=None, aggregate_method=None):
-    return Literal(pred_name, terms, prearity, aggregate_method)
+def make_literal(pred_name, terms, prearity=None, aggregate=None):
+    return Literal(pred_name, terms, prearity, aggregate)
 
 """
 local function add_size(str)
@@ -1205,13 +1205,13 @@ def search(subgoal):
                 
         sched(lambda base_literal=base_literal, subgoal=subgoal, literal=literal: 
                        _search(base_literal, subgoal, literal))
-    elif literal.pred.aggregate_method:
+    elif literal.pred.aggregate:
+        aggregate = literal.pred.aggregate
         base_pred_name = get_name(literal.pred)+'!' # TODO performance : store in literal.pred
-        post_arity = {'sum': 1} # TODO define it as global constant
         base_terms = list(literal.terms)
         del base_terms[-1]
         # TODO deal with pred[X,Y]=aggregate(X)
-        base_terms.extend([ make_var('V%i' % i) for i in range(post_arity[literal.pred.aggregate_method])])
+        base_terms.extend([ make_var('V%i' % i) for i in range(aggregate.arity)])
         base_literal = Literal(base_pred_name, base_terms)
 
         #TODO thunking
@@ -1223,18 +1223,18 @@ def search(subgoal):
         merge(base_subgoal)
         Fast = True
         search(base_subgoal)
-        answers = [ tuple([term.id for term in l.terms]) for l in list(base_subgoal.facts.values())]
-        result = answers
+        result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
         
         if result:
             result.sort() # TODO key
-            for k, v in groupby(result, lambda x: list(map(make_const, x[:literal.prearity]))):
-                aggregated = 0
+            for k, v in groupby(result, aggregate.key):
+                aggregate.reset()
                 for r in v:
-                    aggregated += r[-1]
-                k.append(make_const(aggregated))
-                if not literal.terms[-1].is_const() or  aggregated == literal.terms[-1].id:
-                        fact(subgoal, Literal(literal.pred, k))
+                    aggregate.add(r[-1].id)
+                k.append(make_const(aggregate.value))
+                if not literal.terms[-1].is_const() or  aggregate.value == literal.terms[-1].id:
+                    # TODO k1 = list(map(make_const, k))
+                    fact(subgoal, Literal(literal.pred, k))
                     
     elif literal.pred.db: # has a datalog definition
         #TODO test if there is a conflicting python definition ?
@@ -1696,7 +1696,7 @@ end
     insert(pred)
 
 def clear():
-    global binary_equals_pred
+    global binary_equals_pred, db
     db = {}
     Pred.registry = weakref.WeakValueDictionary()
     binary_equals_pred = make_pred("=", 2)
