@@ -162,6 +162,7 @@ class Datalog_engine_(object):
             if hasattr(node.func, 'id'):
                 node.func.id = '__len__' if node.func.id == 'len' else node.func.id
                 node.func.id = '__min__' if node.func.id == 'min' else node.func.id
+                node.func.id = '__max__' if node.func.id == 'max' else node.func.id
             return node
     
     def load(self, code, newglobals={}, defined=set([])):
@@ -328,6 +329,7 @@ class Symbol(object):
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             return self.datalog_engine._ask_literal(args[0], fast)
         elif self.name == 'sum_foreach':
+            args = (args[0], kwargs['key'])
             return Sum_aggregate(args)
         elif self.name == 'concat':
             args = (args[0], kwargs['key'], kwargs['sep'])
@@ -338,6 +340,12 @@ class Symbol(object):
                 return Min_aggregate(args)
             else:
                 return min(args)
+        elif self.name == '__max__':
+            if isinstance(args[0], Symbol):
+                args = (args[0], kwargs['key'],)
+                return Max_aggregate(args)
+            else:
+                return max(args)
         elif self.name == 'rank':
             args = (kwargs['key'],)
             return Rank_aggregate(args)
@@ -615,7 +623,7 @@ class Aggregate(object):
         return self._value
 
 class Sum_aggregate(Aggregate):
-    """ represents sum_foreach(X, (Y,Z))"""
+    """ represents sum_foreach(X, key=(Y,Z))"""
     def add(self, other):
         self._value += other[-self.arity].id
         
@@ -656,6 +664,21 @@ class Min_aggregate(Aggregate):
         for i in reversed(range(len(self.args[1]))):
             result.sort(key=lambda literal, i=i: literal[-i-1].id,
                 reverse = self.args[1][i].negated)
+        result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
+        pass
+    
+    def reset(self):
+        self._value = None
+        
+    def add(self, other):
+        self._value = other[-self.arity].id if self._value is None else self._value
+
+class Max_aggregate(Aggregate):
+    """ represents max(X, key=(Y,Z))"""
+    def sort_result(self, result):
+        for i in reversed(range(len(self.args[1]))):
+            result.sort(key=lambda literal, i=i: literal[-i-1].id,
+                reverse = not self.args[1][i].negated)
         result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
         pass
     
