@@ -42,7 +42,9 @@ Classes contained in this file:
 * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
 """
 
+import ast
 from collections import defaultdict
+import inspect
 import os
 import re
 import string
@@ -122,35 +124,52 @@ class Datalog_engine_(object):
         """
         A helper for decorator implementation
         """
+        source_code = inspect.getsource(func)
+        lines = source_code.splitlines()
+        # drop the first 2 lines (@pydatalog and def _() )
+        if '@' in lines[0]: del lines[0]
+        if 'def' in lines[0]: del lines[0]
+        source_code = lines
+
         try:
             code = func.__code__
         except:
             raise TypeError("function or method argument expected")
-        names = set(code.co_names)
         if PY3:
-            func_globals = func.__globals__
+            newglobals = func.__globals__.copy()
         else:
-            func_globals = func.func_globals
-        defined = set(code.co_varnames).union(set(func_globals.keys())) # local variables and global variables
+            newglobals = func.func_globals.copy()
+            
+        defined = set(code.co_varnames).union(set(newglobals.keys())) # local variables and global variables
         defined = defined.union(dir(builtins))
         defined.add('None')
-        newglobals = func_globals.copy()
-        i = None
-        for name in names.difference(defined): # for names that are not defined
-            self.add_symbols((name,), newglobals)
-        six.exec_(code, newglobals)
+
+        self.load(source_code, newglobals, defined)
         return self._NoCallFunction()
     
     def ask(self, code, _fast=None):
-        ast = compile(code, '<string>', 'eval')
+        tree = ast.parse(code, '<string>', 'eval')
+        #TODO transform tree ?
+        code = compile(tree, '<string>', 'eval')
         newglobals = {}
-        self.add_symbols(ast.co_names, newglobals)
+        self.add_symbols(code.co_names, newglobals)
         lua_code = eval(code, newglobals)
         return self._ask_literal(lua_code, _fast)
 
-    def load(self, code):
+    class _transform_ast(ast.NodeTransformer):
+        def visit_Call(self, node):
+            """len() --> __len__()"""
+            if hasattr(node.func, 'id'):
+                node.func.id = node.func.id if node.func.id != 'len' else '__len__'
+            return node
+    
+    def load(self, code, newglobals={}, defined=set([])):
+        """ code : a string or list of string 
+            newglobals : global variables for executing the code
+            defined : reserved symbols
+        """
         # remove indentation based on first non-blank line
-        lines = code.splitlines()
+        lines = code.splitlines() if isinstance(code, six.string_types) else code
         r = re.compile('^\s*')
         for line in lines:
             spaces = r.match(line).group()
@@ -158,10 +177,12 @@ class Datalog_engine_(object):
                 break
         code = '\n'.join([line.replace(spaces,'') for line in lines])
         
-        ast = compile(code, '<string>', 'exec')
-        newglobals = {}
-        self.add_symbols(ast.co_names, newglobals)
-        six.exec_(ast, newglobals)
+        tree = ast.parse(code, '<string>', 'exec')
+        tree = Datalog_engine_._transform_ast().visit(tree)
+        code = compile(tree, '<string>', 'exec')
+        for name in set(code.co_names).difference(defined): # for names that are not defined
+            self.add_symbols((name,), newglobals)
+        six.exec_(code, newglobals)
 
 class Python_engine(Datalog_engine_):
     def __init__(self):
@@ -304,6 +325,13 @@ class Symbol(object):
                 raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             return self.datalog_engine._ask_literal(args[0], fast)
+        elif self.name == 'sum_foreach':
+            return Sum_aggregate('sum', args)
+        elif self.name == '__len__':
+            if isinstance(args[0], Symbol):
+                return Len_aggregate('len', args[0])
+            else: 
+                return len(args[0]) 
         else:
             return Literal(self.name, args, self.datalog_engine)
 
@@ -368,12 +396,6 @@ class Symbol(object):
     def __getitem__(self, keys):
         return Function(self.name, self.datalog_engine, keys)
     
-    def __iter__(self):
-        # this is used to catch sum(X)
-        # it will create confusion when triggered in other (illegal) use of Symbols as iterators !
-        # but I can't find a way to detect it to give a warning
-        return iter((Aggregate.new('sum', self),))
-                    
     def lua_expr(self, variables):
         if self.type == 'variable':
             return self.datalog_engine._make_operand('variable', variables.index(self.name))
@@ -456,7 +478,11 @@ class Literal(object):
             # compute list of terms
             del h_terms[-1]
             base_terms = list(h_terms) # creates a copy
-            h_terms.extend(self.aggregate.args)
+            for arg in self.aggregate.args:
+                if isinstance(arg, Symbol):
+                    h_terms.append(arg)
+                else:
+                    h_terms.extend(arg)
             h_prearity = len(h_terms)
             base_terms.append(Symbol('X')) # OK to use any variable
             
@@ -478,7 +504,7 @@ class Literal(object):
             elif isinstance(a, Literal):
                 raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
             elif isinstance(a, Aggregate):
-                raise TypeError, "Incorrect use of '%s' aggregation." % a.method
+                raise TypeError("Incorrect use of '%s' aggregation." % a.method)
             else:
                 tbl.append(datalog_engine._make_const(a))
         # now create the literal for the head of a clause
@@ -542,36 +568,40 @@ class Function(object):
     
 class Aggregate(object):
     """ represents aggregation_method(X,Y)"""
-    def __init__(self, method, *args):
+    def __init__(self, method, args):
         self.method = method
+        if isinstance(args, Symbol):
+            args = (args,)
+        # make sure that 2nd argument is iterable
+        if 1 < len(args) and isinstance(args[1], Symbol):
+            args = list(args)
+            args[1] = (args[1],)
         self.args = args
     
-    @classmethod    
-    def new(self, method, *args):
-        if method == 'sum':
-            return Sum_aggregate(method, *args)
-        
-class Sum_aggregate(Aggregate):
     @property
     def arity(self):
-        return 1
+        return 1 + len(self.args[1])
         
-    def __radd__(self, other):
-        # we need this because sum(X) calculates the sum over (Aggregate('sum', X),)
-        # (see Symbol.__iter())
-        assert other==0 # first iteration of sum is with 0
-        return self
-    
     def key(self, result):
         # return the grouping key of a result
-        return list(result[:len(result)-1])
+        return list(result[:len(result)-self.arity])
     
     def reset(self):
         self._value = 0
         
-    def add(self, other):
-        self._value += other
-        
     @property
     def value(self):
         return self._value
+
+class Sum_aggregate(Aggregate):
+    def add(self, other):
+        self._value += other[-self.arity].id
+        
+class Len_aggregate(Aggregate):
+    @property
+    def arity(self):
+        return 1
+        
+    def add(self, other):
+        self._value += 1
+        

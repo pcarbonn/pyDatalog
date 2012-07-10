@@ -1226,11 +1226,11 @@ def search(subgoal):
         result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
         
         if result:
-            result.sort() # TODO key
+            result.sort(key=lambda x: [id(o) for o in x])
             for k, v in groupby(result, aggregate.key):
                 aggregate.reset()
                 for r in v:
-                    aggregate.add(r[-1].id)
+                    aggregate.add(r)
                 k.append(make_const(aggregate.value))
                 if not literal.terms[-1].is_const() or  aggregate.value == literal.terms[-1].id:
                     # TODO k1 = list(map(make_const, k))
