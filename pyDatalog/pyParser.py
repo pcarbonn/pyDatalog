@@ -328,22 +328,22 @@ class Symbol(object):
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             return self.datalog_engine._ask_literal(args[0], fast)
         elif self.name == 'sum_foreach':
-            return Sum_aggregate('sum', args)
+            return Sum_aggregate(args)
         elif self.name == 'concat':
             args = (args[0], kwargs['key'], kwargs['sep'])
-            return Concat_aggregate('concat', args)
+            return Concat_aggregate(args)
         elif self.name == '__min__':
             if isinstance(args[0], Symbol):
                 args = (args[0], kwargs['key'],)
-                return Min_aggregate('min', args)
+                return Min_aggregate(args)
             else:
                 return min(args)
         elif self.name == 'rank':
             args = (kwargs['key'],)
-            return Rank_aggregate('rank', args)
+            return Rank_aggregate(args)
         elif self.name == '__len__':
             if isinstance(args[0], Symbol):
-                return Len_aggregate('len', args[0])
+                return Len_aggregate(args[0])
             else: 
                 return len(args[0]) 
         else:
@@ -528,7 +528,7 @@ class Literal(object):
                 tbl.append(datalog_engine._make_const(a))
         # now create the literal for the head of a clause
         self.lua = datalog_engine._make_literal(h_predicate_name, tbl, h_prearity, aggregate)
-        # TODO check that l.pred.aggregate_method is empty
+        # TODO check that l.pred.aggregate is empty
 
     def __pos__(self):
         " unary + means insert into datalog_engine as fact "
@@ -587,8 +587,7 @@ class Function(object):
     
 class Aggregate(object):
     """ represents aggregation_method(X,Y)"""
-    def __init__(self, method, args):
-        self.method = method
+    def __init__(self, args):
         if isinstance(args, Symbol):
             args = (args,)
         # make sure that 2nd argument is iterable
