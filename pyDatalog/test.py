@@ -247,16 +247,16 @@ def test():
 
         # sum
         assert(sum((1,2))) == 3
-        (a_sum[X] == sum_foreach(Y, Z)) <= p(X, Z, Y)
+        (a_sum[X] == sum_foreach(Y, key=Z)) <= p(X, Z, Y)
         assert ask(a_sum[a]==X) == set([('a', 2)])
         assert ask(a_sum[a]==2) == set([('a', 2)])
         assert ask(a_sum[X]==4) == set([('b', 4)])
         assert ask(a_sum[c]==X) == None
 
-        (a_sum2[X] == sum_foreach(Y, X)) <= p(X, Z, Y)
+        (a_sum2[X] == sum_foreach(Y, key=X)) <= p(X, Z, Y)
         assert ask(a_sum2[a]==X) == set([('a', 1)])
 
-        (a_sum3[X] == sum_foreach(Y, (X,Z))) <= p(X, Z, Y)
+        (a_sum3[X] == sum_foreach(Y, key=(X,Z))) <= p(X, Z, Y)
         assert ask(a_sum3[a]==X) == set([('a', 2)])
 
         # len
@@ -300,6 +300,14 @@ def test():
         (a_min3[X, Y] == min(Z, key=(X,Y))) <= q(X, Y, Z)
         assert ask(a_min3[Y, Y]==X) == set([('b', 'b', '4')])
         
+        #max
+        assert max(1,2) == 2
+        (a_max[X] == max(Y, key=-Z)) <= q(X, Y, Z)
+        assert ask(a_max[a]==X) == set([('a', 'c')])
+        
+        (a_maxD[X] == max(Y, key=Z)) <= q(X, Y, Z)
+        assert ask(a_maxD[a]==X) == set([('a', 'b')])
+
         # rank
         #(a_rank[X, Y] == rank(group_by=X, key=-Z)) <= q(X, Y, Z)
         #assert ask(rank[a,b]==Y) == set([('a', 'b', 1)])
