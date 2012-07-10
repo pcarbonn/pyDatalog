@@ -242,17 +242,31 @@ def test():
     @pyDatalog.program()
     def _(): 
         + p(a, b, 1)
-        + p(a, b, 2)
+        + p(a, c, 1)
         + p(b, b, 4)
-        print ask(p(a,X,Y))
-        (a_sum[X] == sum(Y)) <= p(X, Z, Y)
-        assert ask(a_sum[a]==X) == set([('a', 3)])
-        assert ask(a_sum[a]==3) == set([('a', 3)])
-        assert ask(a_sum[X]==3) == set([('a', 3)])
-        assert ask(a_sum[c]==X) == None
-        
-    """ clauses                                                              """
 
+        # sum
+        assert(sum((1,2))) == 3
+        (a_sum[X] == sum_foreach(Y, Z)) <= p(X, Z, Y)
+        assert ask(a_sum[a]==X) == set([('a', 2)])
+        assert ask(a_sum[a]==2) == set([('a', 2)])
+        assert ask(a_sum[X]==4) == set([('b', 4)])
+        assert ask(a_sum[c]==X) == None
+
+        (a_sum2[X] == sum_foreach(Y, X)) <= p(X, Z, Y)
+        assert ask(a_sum2[a]==X) == set([('a', 1)])
+
+        (a_sum3[X] == sum_foreach(Y, (X,Z))) <= p(X, Z, Y)
+        assert ask(a_sum3[a]==X) == set([('a', 2)])
+
+        # len
+        assert(len((1,2))) == 2
+        (a_len[X] == len(Z)) <= p(X, Z, Y)
+        assert ask(a_len[a]==X) == set([('a', 2)])
+        (a_lenY[X] == len(Y)) <= p(X, Z, Y)
+        assert ask(a_lenY[a]==X) == set([('a', 1)])
+        assert ask(a_lenY[c]==X) == None
+        
     """ can't call a pyDatalog program                             """
     
     error = False
