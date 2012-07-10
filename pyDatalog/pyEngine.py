@@ -1226,7 +1226,7 @@ def search(subgoal):
         result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
         
         if result:
-            result.sort(key=lambda x: [id(o) for o in x])
+            aggregate.sort_result(result)
             for k, v in groupby(result, aggregate.key):
                 aggregate.reset()
                 for r in v:
