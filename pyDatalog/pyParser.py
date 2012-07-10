@@ -160,7 +160,8 @@ class Datalog_engine_(object):
         def visit_Call(self, node):
             """len() --> __len__()"""
             if hasattr(node.func, 'id'):
-                node.func.id = node.func.id if node.func.id != 'len' else '__len__'
+                node.func.id = '__len__' if node.func.id == 'len' else node.func.id
+                node.func.id = '__min__' if node.func.id == 'min' else node.func.id
             return node
     
     def load(self, code, newglobals={}, defined=set([])):
@@ -329,8 +330,17 @@ class Symbol(object):
         elif self.name == 'sum_foreach':
             return Sum_aggregate('sum', args)
         elif self.name == 'concat':
-            args = (args[0], kwargs['order_by'], kwargs['sep'])
+            args = (args[0], kwargs['key'], kwargs['sep'])
             return Concat_aggregate('concat', args)
+        elif self.name == '__min__':
+            if isinstance(args[0], Symbol):
+                args = (args[0], kwargs['key'],)
+                return Min_aggregate('min', args)
+            else:
+                return min(args)
+        elif self.name == 'rank':
+            args = (kwargs['key'],)
+            return Rank_aggregate('rank', args)
         elif self.name == '__len__':
             if isinstance(args[0], Symbol):
                 return Len_aggregate('len', args[0])
@@ -392,8 +402,9 @@ class Symbol(object):
         return Expression(other, '/', self, self.datalog_engine)
 
     def __neg__(self):
-        self.negated = True
-        return self
+        neg = Symbol(self.name, self.datalog_engine)
+        neg.negated = True
+        return neg
     
     def __coerce__(self, other):
         return None
@@ -605,10 +616,12 @@ class Aggregate(object):
         return self._value
 
 class Sum_aggregate(Aggregate):
+    """ represents sum_foreach(X, (Y,Z))"""
     def add(self, other):
         self._value += other[-self.arity].id
         
 class Len_aggregate(Aggregate):
+    """ represents len(X)"""
     @property
     def arity(self):
         return 1
@@ -617,6 +630,7 @@ class Len_aggregate(Aggregate):
         self._value += 1
 
 class Concat_aggregate(Aggregate):
+    """ represents concat(X, key=(Y,Z), sep=sep)"""
     @property
     def arity(self):
         return 2 + len(self.args[1])
@@ -625,6 +639,7 @@ class Concat_aggregate(Aggregate):
         for i in reversed(range(len(self.args[1]))):
             result.sort(key=lambda literal, i=i: literal[-i-2].id, # -1 for separator
                 reverse = self.args[1][i].negated)
+        result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
     
     def reset(self):
         self._value = []
@@ -635,4 +650,30 @@ class Concat_aggregate(Aggregate):
     @property
     def value(self):
         return self.args[2].join(self._value)
+
+class Min_aggregate(Aggregate):
+    """ represents min(X, key=(Y,Z))"""
+    def sort_result(self, result):
+        for i in reversed(range(len(self.args[1]))):
+            result.sort(key=lambda literal, i=i: literal[-i-1].id,
+                reverse = self.args[1][i].negated)
+        result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
+        pass
+    
+    def reset(self):
+        self._value = None
         
+    def add(self, other):
+        self._value = other[-self.arity].id if self._value is None else self._value
+
+class Rank_aggregate(Aggregate):
+    """ TODO represents rank(group_by=(X), key(Y)"""
+    @property
+    def arity(self):
+        return len(self.args[0])
+
+    def sort_result(self, result):
+        key = self.args[0]
+        for i in reversed(range(len(key))):
+            result.sort(key=lambda literal, i=i: literal[-i-1].id,
+                reverse = key[i].negated)
