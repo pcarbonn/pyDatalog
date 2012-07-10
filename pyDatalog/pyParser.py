@@ -306,6 +306,7 @@ class Symbol(object):
     """
     def __init__ (self, name, datalog_engine=default_datalog_engine):
         self.name = name
+        self.negated = False # for aggregate with sort in descending order
         self.datalog_engine = datalog_engine # needed to create Literal
         if isinstance(name, int):
             self.type = 'constant'
@@ -327,6 +328,9 @@ class Symbol(object):
             return self.datalog_engine._ask_literal(args[0], fast)
         elif self.name == 'sum_foreach':
             return Sum_aggregate('sum', args)
+        elif self.name == 'concat':
+            args = (args[0], kwargs['order_by'], kwargs['sep'])
+            return Concat_aggregate('concat', args)
         elif self.name == '__len__':
             if isinstance(args[0], Symbol):
                 return Len_aggregate('len', args[0])
@@ -386,6 +390,10 @@ class Symbol(object):
         return Expression(other, '*', self, self.datalog_engine)
     def __rdiv__(self, other):
         return Expression(other, '/', self, self.datalog_engine)
+
+    def __neg__(self):
+        self.negated = True
+        return self
     
     def __coerce__(self, other):
         return None
@@ -582,6 +590,9 @@ class Aggregate(object):
     def arity(self):
         return 1 + len(self.args[1])
         
+    def sort_result(self, result):
+        result.sort(key=lambda literal: [id(term) for term in literal])
+    
     def key(self, result):
         # return the grouping key of a result
         return list(result[:len(result)-self.arity])
@@ -604,4 +615,24 @@ class Len_aggregate(Aggregate):
         
     def add(self, other):
         self._value += 1
+
+class Concat_aggregate(Aggregate):
+    @property
+    def arity(self):
+        return 2 + len(self.args[1])
+        
+    def sort_result(self, result):
+        for i in reversed(range(len(self.args[1]))):
+            result.sort(key=lambda literal, i=i: literal[-i-2].id, # -1 for separator
+                reverse = self.args[1][i].negated)
+    
+    def reset(self):
+        self._value = []
+        
+    def add(self, other):
+        self._value.append(other[-self.arity].id)
+        
+    @property
+    def value(self):
+        return self.args[2].join(self._value)
         

@@ -241,9 +241,9 @@ def test():
     pyDatalog.clear()
     @pyDatalog.program()
     def _(): 
-        + p(a, b, 1)
         + p(a, c, 1)
         + p(b, b, 4)
+        + p(a, b, 1)
 
         # sum
         assert(sum((1,2))) == 3
@@ -263,10 +263,25 @@ def test():
         assert(len((1,2))) == 2
         (a_len[X] == len(Z)) <= p(X, Z, Y)
         assert ask(a_len[a]==X) == set([('a', 2)])
+        
         (a_lenY[X] == len(Y)) <= p(X, Z, Y)
         assert ask(a_lenY[a]==X) == set([('a', 1)])
         assert ask(a_lenY[c]==X) == None
         
+        + q(a, c, '1')
+        + q(a, b, '2')
+        + q(b, b, '4')
+
+        # concat
+        (a_concat[X] == concat(Y, order_by=Z, sep='+')) <= q(X, Y, Z)
+        assert ask(a_concat[a]==X) == set([('a', 'c+b')])
+
+        (a_concat2[X] == concat(Y, order_by=(Z,), sep='+')) <= q(X, Y, Z)
+        assert ask(a_concat2[a]==X) == set([('a', 'c+b')])
+
+        (a_concat3[X] == concat(Y, order_by=(-Z,), sep='-')) <= q(X, Y, Z)
+        assert ask(a_concat3[a]==X) == set([('a', 'b-c')])
+
     """ can't call a pyDatalog program                             """
     
     error = False
