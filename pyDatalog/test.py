@@ -268,19 +268,41 @@ def test():
         assert ask(a_lenY[a]==X) == set([('a', 1)])
         assert ask(a_lenY[c]==X) == None
         
+        (a_len2[X,Y] == len(Z)) <= p(X, Y, Z)
+        assert ask(a_len2[a,b]==X) == set([('a', 'b', 1)])
+        assert ask(a_len2[a,X]==Y) == set([('a', 'b', 1), ('a', 'c', 1)])
+
         + q(a, c, '1')
         + q(a, b, '2')
         + q(b, b, '4')
 
         # concat
-        (a_concat[X] == concat(Y, order_by=Z, sep='+')) <= q(X, Y, Z)
+        (a_concat[X] == concat(Y, key=Z, sep='+')) <= q(X, Y, Z)
         assert ask(a_concat[a]==X) == set([('a', 'c+b')])
 
-        (a_concat2[X] == concat(Y, order_by=(Z,), sep='+')) <= q(X, Y, Z)
+        (a_concat2[X] == concat(Y, key=(Z,), sep='+')) <= q(X, Y, Z)
         assert ask(a_concat2[a]==X) == set([('a', 'c+b')])
 
-        (a_concat3[X] == concat(Y, order_by=(-Z,), sep='-')) <= q(X, Y, Z)
+        (a_concat3[X] == concat(Y, key=(-Z,), sep='-')) <= q(X, Y, Z)
         assert ask(a_concat3[a]==X) == set([('a', 'b-c')])
+
+        #min
+        assert min(1,2) == 1
+        (a_min[X] == min(Y, key=Z)) <= q(X, Y, Z)
+        assert ask(a_min[a]==X) == set([('a', 'c')])
+        
+        (a_minD[X] == min(Y, key=-Z)) <= q(X, Y, Z)
+        assert ask(a_minD[a]==X) == set([('a', 'b')])
+        
+        (a_min2[X, Y] == min(Z, key=(X,Y))) <= q(X, Y, Z)
+        assert ask(a_min2[Y, b]==X) == set([('a', 'b', '2'),('b', 'b', '4')])
+        
+        (a_min3[X, Y] == min(Z, key=(X,Y))) <= q(X, Y, Z)
+        assert ask(a_min3[Y, Y]==X) == set([('b', 'b', '4')])
+        
+        # rank
+        #(a_rank[X, Y] == rank(group_by=X, key=-Z)) <= q(X, Y, Z)
+        #assert ask(rank[a,b]==Y) == set([('a', 'b', 1)])
 
     """ can't call a pyDatalog program                             """
     
