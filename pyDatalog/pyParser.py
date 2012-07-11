@@ -142,8 +142,6 @@ class Datalog_engine_(object):
             newglobals = func.func_globals.copy()
             func_name = func.func_name
         defined = set(code.co_varnames).union(set(newglobals.keys())) # local variables and global variables
-        defined = defined.union(dir(builtins))
-        defined.add('None')
 
         self.load(source_code, newglobals, defined, function=func_name)
         return self._NoCallFunction()
@@ -184,6 +182,9 @@ class Datalog_engine_(object):
         tree = ast.parse(code, function, 'exec')
         tree = Datalog_engine_._transform_ast().visit(tree)
         code = compile(tree, function, 'exec')
+
+        defined = defined.union(dir(builtins))
+        defined.add('None')
         for name in set(code.co_names).difference(defined): # for names that are not defined
             self.add_symbols((name,), newglobals)
         six.exec_(code, newglobals)
