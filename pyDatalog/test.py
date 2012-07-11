@@ -240,23 +240,23 @@ def test():
     """ aggregates                                                         """
     pyDatalog.clear()
     @pyDatalog.program()
-    def _(): 
+    def aggregate(): 
         + p(a, c, 1)
         + p(b, b, 4)
         + p(a, b, 1)
 
         # sum
-        assert(sum((1,2))) == 3
-        (a_sum[X] == sum_foreach(Y, key=Z)) <= p(X, Z, Y)
+        assert(sum(1,2)) == 3
+        (a_sum[X] == sum(Y, key=Z)) <= p(X, Z, Y)
         assert ask(a_sum[a]==X) == set([('a', 2)])
         assert ask(a_sum[a]==2) == set([('a', 2)])
         assert ask(a_sum[X]==4) == set([('b', 4)])
         assert ask(a_sum[c]==X) == None
 
-        (a_sum2[X] == sum_foreach(Y, key=X)) <= p(X, Z, Y)
+        (a_sum2[X] == sum(Y, key=X)) <= p(X, Z, Y)
         assert ask(a_sum2[a]==X) == set([('a', 1)])
 
-        (a_sum3[X] == sum_foreach(Y, key=(X,Z))) <= p(X, Z, Y)
+        (a_sum3[X] == sum(Y, key=(X,Z))) <= p(X, Z, Y)
         assert ask(a_sum3[a]==X) == set([('a', 2)])
 
         # len
