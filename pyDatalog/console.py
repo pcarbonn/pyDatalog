@@ -25,8 +25,8 @@ and query the datalog database directly.  (To experiment with the python API,
 please use the python console/IDLE instead)
 
 Sample session:
-    pyDatalog>+p(a)
-    pyDatalog>print(ask(p(X)))
+    pyDatalog> +p(a)
+    pyDatalog> print(ask(p(X)))
     {('a',)}
     pyDatalog>
 
@@ -44,6 +44,6 @@ pyDatalog.load('''
 """ % source
         code.InteractiveConsole.runsource(self, pySource, filename, symbol)
 
-sys.ps1 = 'pyDatalog>'
+sys.ps1 = 'pyDatalog> '
 console = datalogConsole(locals=locals())
 console.interact('')
