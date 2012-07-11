@@ -6,13 +6,16 @@ datalog_statement ::= ('+' | '-') fact
 
 fact ::= simple_predicate '(' (constant | python_variable) (',' (constant | python_variable))* ')'
 
-head ::= literal
+head ::= literal | function '==' ('len' | 'sum' | 'concat' | 'min' | 'max') '(' arguments ')'
 body ::= ( '~' ? literal 
   | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')') 
     ( '&' ( '~' ? literal | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')' ))*
 
 literal ::= predicate '(' (variable | constant | python_variable) (',' (variable | constant | python_variable))* ')'
+  | function '==' (variable | constant | python_variable)
 predicate ::= simple_predicate | simple_predicate '.' simple_predicate
+
+function ::= predicate '[' (variable | constant | python_variable) (',' (variable | constant | python_variable))*  ']'
 
 expression ::= (constant 
   | python_variable

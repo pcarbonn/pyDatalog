@@ -137,20 +137,21 @@ class Datalog_engine_(object):
             raise TypeError("function or method argument expected")
         if PY3:
             newglobals = func.__globals__.copy()
+            func_name = func.__name__
         else:
             newglobals = func.func_globals.copy()
-            
+            func_name = func.func_name
         defined = set(code.co_varnames).union(set(newglobals.keys())) # local variables and global variables
         defined = defined.union(dir(builtins))
         defined.add('None')
 
-        self.load(source_code, newglobals, defined)
+        self.load(source_code, newglobals, defined, function=func_name)
         return self._NoCallFunction()
     
     def ask(self, code, _fast=None):
-        tree = ast.parse(code, '<string>', 'eval')
+        tree = ast.parse(code, 'ask', 'eval')
         #TODO transform tree ?
-        code = compile(tree, '<string>', 'eval')
+        code = compile(tree, 'ask', 'eval')
         newglobals = {}
         self.add_symbols(code.co_names, newglobals)
         lua_code = eval(code, newglobals)
@@ -160,12 +161,13 @@ class Datalog_engine_(object):
         def visit_Call(self, node):
             """len() --> __len__()"""
             if hasattr(node.func, 'id'):
+                node.func.id = '__sum__' if node.func.id == 'sum' else node.func.id
                 node.func.id = '__len__' if node.func.id == 'len' else node.func.id
                 node.func.id = '__min__' if node.func.id == 'min' else node.func.id
                 node.func.id = '__max__' if node.func.id == 'max' else node.func.id
             return node
     
-    def load(self, code, newglobals={}, defined=set([])):
+    def load(self, code, newglobals={}, defined=set([]), function='load'):
         """ code : a string or list of string 
             newglobals : global variables for executing the code
             defined : reserved symbols
@@ -179,9 +181,9 @@ class Datalog_engine_(object):
                 break
         code = '\n'.join([line.replace(spaces,'') for line in lines])
         
-        tree = ast.parse(code, '<string>', 'exec')
+        tree = ast.parse(code, function, 'exec')
         tree = Datalog_engine_._transform_ast().visit(tree)
-        code = compile(tree, '<string>', 'exec')
+        code = compile(tree, function, 'exec')
         for name in set(code.co_names).difference(defined): # for names that are not defined
             self.add_symbols((name,), newglobals)
         six.exec_(code, newglobals)
@@ -328,9 +330,15 @@ class Symbol(object):
                 raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             return self.datalog_engine._ask_literal(args[0], fast)
-        elif self.name == 'sum_foreach':
+        elif self.name == 'sum_foreach': # TODO remove
             args = (args[0], kwargs['key'])
             return Sum_aggregate(args)
+        elif self.name == '__sum__':
+            if isinstance(args[0], Symbol):
+                args = (args[0], kwargs['key'])
+                return Sum_aggregate(args)
+            else:
+                return sum(args)
         elif self.name == 'concat':
             args = (args[0], kwargs['key'], kwargs['sep'])
             return Concat_aggregate(args)
