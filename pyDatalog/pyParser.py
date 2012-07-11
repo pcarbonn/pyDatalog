@@ -35,8 +35,9 @@ Classes contained in this file:
 * Datalog_engine_ : common part for an engine. Subclasses are Python_engine and Lua_engine
 * Python_engine :implements the interface to the datalog engine written in python.  Instantiated by the calling module
 * Lua_engine :implements the interface to the lua datalog engine written in Lua.  Instantiated by the calling module
+* Expression : base class for objects that can be part of an inequality or operation
 * Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
-* Expression : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
+* Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
 * Lambda : represents a lambda function, used in expressions
 * Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
 * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
@@ -303,7 +304,48 @@ def Datalog_engine(implementation=None):
     
 default_datalog_engine = Datalog_engine()
 
-class Symbol(object):
+class Expression(object):
+    def __eq__(self, other):
+        if self.type == 'variable' and (isinstance(other, Operation) or isinstance(other, type(lambda: None))):
+            return self._make_expression_literal('=', other)
+        else:
+            return Literal("=", (self, other), self.datalog_engine)
+    def __ne__(self, other):
+        return self._make_expression_literal('~=', other)
+    def __le__(self, other):
+        return self._make_expression_literal('<=', other)
+    def __lt__(self, other):
+        return self._make_expression_literal('<', other)
+    def __ge__(self, other):
+        return self._make_expression_literal('>=', other)
+    def __gt__(self, other):
+        return self._make_expression_literal('>', other)
+    
+    def __add__(self, other):
+        return Operation(self, '+', other, self.datalog_engine)
+    def __sub__(self, other):
+        return Operation(self, '-', other, self.datalog_engine)
+    def __mul__(self, other):
+        return Operation(self, '*', other, self.datalog_engine)
+    def __div__(self, other):
+        return Operation(self, '/', other, self.datalog_engine)
+    def __truediv__(self, other):
+        return Operation(self, '/', other, self.datalog_engine)
+    def __floordiv__(self, other):
+        return Operation(self, '//', other, self.datalog_engine)
+    
+    def __radd__(self, other):
+        return Operation(other, '+', self, self.datalog_engine)
+    def __rsub__(self, other):
+        return Operation(other, '-', self, self.datalog_engine)
+    def __rmul__(self, other):
+        return Operation(other, '*', self, self.datalog_engine)
+    def __rdiv__(self, other):
+        return Operation(other, '/', self, self.datalog_engine)
+    def __rfloordiv__(self, other):
+        return Operation(other, '//', self, self.datalog_engine)
+    
+class Symbol(Expression):
     """
     can be constant, variable or predicate name
     ask() creates a query
@@ -380,44 +422,6 @@ class Symbol(object):
         self.datalog_engine._add_expr_to_predicate(literal.lua.pred, operator, expr)
         return literal
 
-    def __eq__(self, other):
-        if self.type == 'variable' and (isinstance(other, Expression) or isinstance(other, type(lambda: None))):
-            return self._make_expression_literal('=', other)
-        else:
-            return Literal("=", (self, other), self.datalog_engine)
-    def __ne__(self, other):
-        return self._make_expression_literal('~=', other)
-    def __le__(self, other):
-        return self._make_expression_literal('<=', other)
-    def __lt__(self, other):
-        return self._make_expression_literal('<', other)
-    def __ge__(self, other):
-        return self._make_expression_literal('>=', other)
-    def __gt__(self, other):
-        return self._make_expression_literal('>', other)
-    
-    def __add__(self, other):
-        return Expression(self, '+', other, self.datalog_engine)
-    def __sub__(self, other):
-        return Expression(self, '-', other, self.datalog_engine)
-    def __mul__(self, other):
-        return Expression(self, '*', other, self.datalog_engine)
-    def __div__(self, other):
-        return Expression(self, '/', other, self.datalog_engine)
-    def __truediv__(self, other):
-        return Expression(self, '/', other, self.datalog_engine)
-    def __floordiv__(self, other):
-        return Expression(self, '//', other, self.datalog_engine)
-    
-    def __radd__(self, other):
-        return Expression(other, '+', self, self.datalog_engine)
-    def __rsub__(self, other):
-        return Expression(other, '-', self, self.datalog_engine)
-    def __rmul__(self, other):
-        return Expression(other, '*', self, self.datalog_engine)
-    def __rdiv__(self, other):
-        return Expression(other, '/', self, self.datalog_engine)
-
     def __neg__(self):
         neg = Symbol(self.name, self.datalog_engine)
         neg.negated = True
@@ -447,7 +451,7 @@ class Symbol(object):
     def __str__(self):
         return str(self.name)
 
-class Expression(object):
+class Operation(Expression):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
     def __init__(self, lhs, operator, rhs, datalog_engine=default_datalog_engine):
         self.operator = operator
@@ -456,7 +460,7 @@ class Expression(object):
         if isinstance(lhs, six.string_types) or isinstance(lhs, int):
             self.lhs = Symbol(lhs, datalog_engine)
         elif isinstance(lhs, type(lambda: None)):
-            self.lhs = Lambda(rhs, datalog_engine)
+            self.lhs = Lambda(lhs, datalog_engine)
             
         self.rhs = rhs
         if isinstance(rhs, six.string_types) or isinstance(rhs, int):
@@ -476,7 +480,7 @@ class Expression(object):
     def __str__(self):
         return '(' + str(self.lhs) + self.operator + str(self.rhs) + ')'
 
-class Lambda(object):
+class Lambda(Expression):
     """represents a lambda function, used in expressions"""
     def __init__(self, other, datalog_engine=default_datalog_engine):
         self.operator = '<lambda>'
