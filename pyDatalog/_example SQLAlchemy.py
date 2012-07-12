@@ -10,6 +10,7 @@ It has 4 parts :
 """
 
 import pyDatalog # or: from pyDatalog import pyDatalog
+import console # or: from pyDatalog import console
 
 """ 1.initialize the ORM  """
 from sqlalchemy import create_engine
@@ -83,3 +84,7 @@ print(X) # prints (John, Mary)
 # who are the indirect managers of Mary ?
 Employee.indirect_manager(Mary, X)
 print(X) # prints (John,)
+
+# start the datalog console, for interactive querying of employee
+console = console.datalogConsole(locals=locals())
+console.interact('')

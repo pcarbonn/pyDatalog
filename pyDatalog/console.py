@@ -26,14 +26,17 @@ please use the python console/IDLE instead)
 
 Sample session:
     pyDatalog> +p(a)
-    pyDatalog> print(ask(p(X)))
-    {('a',)}
+    pyDatalog> ask(p(X))
+    [('a',)]
     pyDatalog>
 
 """
 import code
 import sys
 import pyDatalog # or from pyDatalog import pyDatalog
+import pyEngine # or from pyDatalog import pyEngine
+
+pyEngine.Auto_print = True
 
 class datalogConsole(code.InteractiveConsole):
     def runsource(self, source, filename='console', symbol='single'):
@@ -45,5 +48,6 @@ pyDatalog.load('''
         code.InteractiveConsole.runsource(self, pySource, filename, symbol)
 
 sys.ps1 = 'pyDatalog> '
-console = datalogConsole(locals=locals())
-console.interact('')
+if __name__ == "__main__":
+    console = datalogConsole(locals=locals())
+    console.interact('')
