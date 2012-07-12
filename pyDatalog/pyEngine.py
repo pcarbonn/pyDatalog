@@ -43,6 +43,7 @@ import weakref
 
 Trace = False # True --> show new facts when they are established
 Debug = False # for deeper traces
+Auto_print = False # True => automatically prints the result of a query
 
 # DATA TYPES
 
@@ -1301,8 +1302,11 @@ def ask2(literal, fast):
     answers = [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]
     if 0 < len(answers):
         answer = Answer(get_name(literal.pred), get_arity(literal.pred), answers)
-        return answer
-    return None
+    else:
+        answer = None
+    if Auto_print: 
+        print(answers)
+    return answer
     
 """
 local function ask(query)

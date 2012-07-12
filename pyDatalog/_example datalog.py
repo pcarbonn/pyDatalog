@@ -8,6 +8,7 @@ It has 3 parts:
 """
 
 import pyDatalog # or: from pyDatalog import pyDatalog
+import console # or: from pyDatalog import console
 
 """ 1. create facts for 2 employees in the datalog engine """
 pyDatalog.load("+ (salary['John'] == 6800)")
@@ -37,3 +38,6 @@ print(pyDatalog.ask("salary_class[X] == 6")) # prints set([('Mary', 6), ('John',
 # who is his own direct managers of Mary ?
 print(pyDatalog.ask("manager('X', X)")) # prints set([(,)])
 
+# start the datalog console, for interactive querying 
+console = console.datalogConsole(locals=locals())
+console.interact('')
