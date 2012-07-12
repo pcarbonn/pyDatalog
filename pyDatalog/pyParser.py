@@ -413,7 +413,7 @@ class Symbol(Expression):
         if isinstance(other, type(lambda: None)):
             other = Lambda(other, self.datalog_engine)
         name = '=' + str(self) + operator + str(other)
-        if isinstance(other, int):
+        if isinstance(other, (int, six.string_types)):
             literal = Literal(name, [self], self.datalog_engine)
             expr = self.datalog_engine._make_operand('constant', other)
         else: # other is a symbol or an expression
@@ -591,7 +591,7 @@ class Body(object):
         self.body.append(literal) 
         return self
 
-class Function(object):
+class Function(Expression):
     """ represents predicate[a, b]"""
     def __init__(self, name, datalog_engine, keys):
         if not isinstance(keys, tuple):
@@ -600,11 +600,33 @@ class Function(object):
         self.datalog_engine = datalog_engine
         self.keys = keys
         
+    def _variables(self):
+        return dict([ [var.name, var] for var in self.keys])
+
+    def lua_expr(self, variables):
+        self.operands = [self.datalog_engine._make_operand('variable', variables.index(var.name)) if isinstance(var, Symbol) and var.type == 'variable'
+                    else self.datalog_engine._make_operand('constant', var.name) if isinstance(var, Symbol) and var.type == 'constant'
+                    else self.datalog_engine._make_operand('constant', var)
+                     for var in self.keys] 
+        return self
+
     def __eq__(self, other):
+        assert isinstance(other, (six.string_types, int, Symbol, Aggregate)), "The left hand side of a function literal must be a constant, variable"
         terms = list(self.keys)
         terms.append(other)
         l = Literal(self.name, terms, datalog_engine=self.datalog_engine, prearity=len(self.keys))
         return l
+    
+    def eval(self, env):
+        operands = [operand.eval(env) for operand in self.operands]
+        operands.append(Symbol('X', self.datalog_engine))
+        l = Literal(self.name, operands,datalog_engine=self.datalog_engine, prearity=len(self.keys))
+        _class = l.lua.pred._class()
+        assert _class, "Could not find class to evaluate %s" % self.name
+        #TODO use sched() too ?
+        for result in _class.pyDatalog_search(l.lua):
+            return result.terms[-1].id
+        return None
     
 class Aggregate(object):
     """ represents aggregation_method(X,Y)"""
