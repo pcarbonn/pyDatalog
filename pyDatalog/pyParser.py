@@ -105,8 +105,8 @@ class Datalog_engine_(object):
     
     def add_clause(self,head,body):
         if isinstance(body, Body):
-            tbl = [a.lua for a in body.body]
-            self.clauses.append((head, body.body))
+            tbl = [a.lua for a in body.literals]
+            self.clauses.append((head, body.literals))
         else: # body is a literal
             #print(body)
             tbl = (body.lua,)
@@ -305,8 +305,11 @@ def Datalog_engine(implementation=None):
 default_datalog_engine = Datalog_engine()
 
 class Expression(object):
+    def _precalculation(self):
+        return Body()
+    
     def __eq__(self, other):
-        if self.type == 'variable' and (isinstance(other, Operation) or isinstance(other, type(lambda: None))):
+        if self.type == 'variable' and not isinstance(other, Symbol):
             return self._make_expression_literal('=', other)
         else:
             return Literal("=", (self, other), self.datalog_engine)
@@ -419,6 +422,7 @@ class Symbol(Expression):
         else: # other is a symbol or an expression
             literal = Literal(name, [self] + list(other._variables().values()), self.datalog_engine)
             expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
+            literal.pre_calculations = other._precalculation()
         self.datalog_engine._add_expr_to_predicate(literal.lua.pred, operator, expr)
         return literal
 
@@ -474,6 +478,9 @@ class Operation(Expression):
         temp.update(self.rhs._variables())
         return temp
     
+    def _precalculation(self):
+        return self.lhs._precalculation() & self.rhs._precalculation()
+    
     def lua_expr(self, variables):
         return self.datalog_engine._make_expression(self.operator, self.lhs.lua_expr(variables), self.rhs.lua_expr(variables))
     
@@ -509,6 +516,7 @@ class Literal(object):
         self.predicate_name = predicate_name
         self.terms = terms
         self.prearity = prearity or len(terms)
+        self.pre_calculations = Body()
 
         # adjust head literal for aggregate
         h_terms = list(terms)
@@ -566,49 +574,65 @@ class Literal(object):
 
     def __le__(self, body):
         " head <= body"
-        result = self.datalog_engine.add_clause(self, body)
+        if isinstance(body, Literal):
+            pre_calculations = body.pre_calculations
+        else:
+            assert isinstance(body, Body), "Invalid body for clause"
+            pre_calculations = Body()
+            for literal in body.literals:
+                pre_calculations = pre_calculations & literal.pre_calculations
+        newBody = pre_calculations & body
+        result = self.datalog_engine.add_clause(self, newBody)
         if not result: 
-            raise TypeError("Can't create clause %s <= %s" % (str(self), str(body)))
+            raise TypeError("Can't create clause %s <= %s" % (str(self), str(newBody)))
 
-    def __and__(self, literal):
+    def __and__(self, other):
         " literal & literal" 
-        return Body(self, literal)
+        return Body(self, other)
 
     def __str__(self):
         terms = list(map (str, self.terms))
-        return str(self.predicate_name) + "(" + string.join(terms,',') + ")"
+        return str(self.predicate_name) + "(" + ','.join(terms) + ")"
 
 class Body(object):
     """
-    created by p(a,b) + q(c,d)
-    operator '+' means 'and', and returns a Body
+    created by p(a,b) & q(c,d)
+    operator '&' means 'and', and returns a Body
     """
-    def __init__(self, literal1, literal2):
-        self.body = [literal1, literal2]
+    def __init__(self, *args):
+        self.literals = []
+        for arg in args:
+            self.literals += [arg] if isinstance(arg, Literal) else arg.literals
 
-    def __and__(self, literal):
-        assert not literal.aggregate, "Aggregation cannot appear in the body of a clause"
-        self.body.append(literal) 
-        return self
+    def __and__(self, body2):
+        assert isinstance(body2, Body) or not body2.aggregate, "Aggregation cannot appear in the body of a clause"
+        return Body(self, body2)
+    
+    def __str__(self):
+        literals = list(map (str, self.literals))
+        return ' & '.join(literals)
 
 class Function(Expression):
     """ represents predicate[a, b]"""
+    Counter = 0
     def __init__(self, name, datalog_engine, keys):
         if not isinstance(keys, tuple):
             keys = (keys,)
         self.name = "%s[%i]" % (name, len(keys))
         self.datalog_engine = datalog_engine
         self.keys = keys
+        self.dummy_variable_name = '_X%i' % Function.Counter
+        Function.Counter += 1
+        
+        self.symbol = Symbol(self.dummy_variable_name)
+        self.symbol.type = 'variable'
+        self.symbol.lua = self.datalog_engine._make_var(self.dummy_variable_name)
         
     def _variables(self):
-        return dict([ [var.name, var] for var in self.keys])
+        return {self.dummy_variable_name : self.symbol}
 
     def lua_expr(self, variables):
-        self.operands = [self.datalog_engine._make_operand('variable', variables.index(var.name)) if isinstance(var, Symbol) and var.type == 'variable'
-                    else self.datalog_engine._make_operand('constant', var.name) if isinstance(var, Symbol) and var.type == 'constant'
-                    else self.datalog_engine._make_operand('constant', var)
-                     for var in self.keys] 
-        return self
+        return self.datalog_engine._make_operand('variable', variables.index(self.dummy_variable_name))
 
     def __eq__(self, other):
         assert isinstance(other, (six.string_types, int, Symbol, Aggregate)), "The left hand side of a function literal must be a constant, variable"
@@ -617,17 +641,10 @@ class Function(Expression):
         l = Literal(self.name, terms, datalog_engine=self.datalog_engine, prearity=len(self.keys))
         return l
     
-    def eval(self, env):
-        operands = [operand.eval(env) for operand in self.operands]
-        operands.append(Symbol('X', self.datalog_engine))
-        l = Literal(self.name, operands,datalog_engine=self.datalog_engine, prearity=len(self.keys))
-        _class = l.lua.pred._class()
-        assert _class, "Could not find class to evaluate %s" % self.name
-        #TODO use sched() too ?
-        for result in _class.pyDatalog_search(l.lua):
-            return result.terms[-1].id
-        return None
-    
+    def _precalculation(self):
+        literal = (self == self.symbol)
+        return Body(literal)
+        
 class Aggregate(object):
     """ represents aggregation_method(X,Y)"""
     def __init__(self, args):
