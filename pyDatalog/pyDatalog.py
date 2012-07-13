@@ -263,6 +263,8 @@ def __init__(self):
         metaMixin.__refs__[self.__class__].append(weakref.ref(self))
 Mixin.__init__ = __init__
 
+""" ****************** support for SQLAlchemy ***************** """
+
 class sqlMetaMixin(metaMixin, DeclarativeMeta): 
     """ metaclass to be used with Mixin for SQLAlchemy"""
     pass
