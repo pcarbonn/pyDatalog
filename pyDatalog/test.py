@@ -47,7 +47,7 @@ def test():
     """unary facts                                                            """
     
     @pyDatalog.program()
-    def _(): 
+    def unary(): 
         
         + p(a) 
         # check that unary queries work
@@ -81,10 +81,10 @@ def test():
     moshe_is_a_farmer = datalog_engine.ask("farmer('Moshe dayan')")
     assert moshe_is_a_farmer == set([('Moshe dayan',)])
 
-    """ secondary facts                                                         """
+    """ binary facts                                                         """
     
     @pyDatalog.program()
-    def _(): 
+    def binary(): 
         + q(a, b)
         assert ask(q(a, b)) == set([('a', 'b')])
         assert ask(q(X, b)) == set([('a', 'b')])
@@ -98,8 +98,10 @@ def test():
         - q(a,c)
         assert ask(q(a, Y)) == set([('a', 'b')])
         
+    """ clauses                                                         """
+    
     @pyDatalog.program()
-    def _(): 
+    def clauses(): 
     
         p2(X) <= p(X)
         assert ask(p2(a)) == set([('a',)])
@@ -120,10 +122,19 @@ def test():
         assert abs(-3)==3
         assert math.sin(3)==math.sin(3)
         
+    """ in                                                         """
+    
+    @pyDatalog.program()
+    def _in(): 
+        _in(X) <= (X in [1,2])
+        assert ask(_in(1)) == set([(1,)])
+        assert ask(_in(X)) == set([(1,), (2,)])
+        
+                
     """ recursion                                                         """
     
     @pyDatalog.program()
-    def _(): 
+    def recursion(): 
         + even(0)
         even(N) <= successor(N, N1) & odd(N1)
         odd(N) <= ~ even(N)
@@ -157,7 +168,7 @@ def test():
     # reset the engine
     datalog_engine = pyDatalog.Datalog_engine()
     @pyDatalog.program(datalog_engine)
-    def _(): 
+    def recursive_expression(): 
         
         predecessor(X,Y) <= (X==Y-1)
         assert ask(predecessor(X,11)) == set([(10, 11)])
@@ -197,7 +208,7 @@ def test():
 
     # string manipulation
     @pyDatalog.program(datalog_engine)
-    def _(): 
+    def _lambda(): 
         split(X, Y,Z) <= (X == Y+'-'+Z)
         assert ask(split(X, 'a', 'b')) == set([('a-b', 'a', 'b')])
         split(X, Y,Z) <= (Y == (lambda X: X.split('-')[0])) & (Z == (lambda X: X.split('-')[1]))

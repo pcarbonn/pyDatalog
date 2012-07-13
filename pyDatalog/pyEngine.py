@@ -1668,9 +1668,15 @@ def add_expr_to_predicate(pred, operator, expression):
           or  (literal.pred.operator == ">" and x.is_const() and x.id > X)
           or  (literal.pred.operator == "<=" and x.is_const() and x.id <= X)
           or  (literal.pred.operator == ">=" and x.is_const() and x.id >= X)
-          or  (literal.pred.operator == "~=" and x.is_const() and x.id != X)):
+          or  (literal.pred.operator == "~=" and x.is_const() and x.id != X)
+          or  (literal.pred.operator == "in" and x.is_const() and x.id in X)):
             args.insert(0,x.id)
             yield args
+        elif (literal.pred.operator == "in" and not x.is_const()):
+            for v in X:
+                values = list(args) # makes a copy
+                values.insert(0,v)
+                yield values
 
 
     """

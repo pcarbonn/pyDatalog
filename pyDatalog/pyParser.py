@@ -158,13 +158,29 @@ class Datalog_engine_(object):
 
     class _transform_ast(ast.NodeTransformer):
         def visit_Call(self, node):
-            """len() --> __len__()"""
+            """rename builtins to allow customization"""
             if hasattr(node.func, 'id'):
                 node.func.id = '__sum__' if node.func.id == 'sum' else node.func.id
                 node.func.id = '__len__' if node.func.id == 'len' else node.func.id
                 node.func.id = '__min__' if node.func.id == 'min' else node.func.id
                 node.func.id = '__max__' if node.func.id == 'max' else node.func.id
             return node
+        
+        def visit_Compare(self, node):
+            """ rename 'in' to allow customization of (X in (1,2))"""
+            self.generic_visit(node)
+            if not isinstance(node.ops[0], ast.In): return node
+            var = node.left # X, an _ast.Name object
+            comparators = node.comparators[0] # (1,2), an _ast.Tuple object
+            newNode = ast.Call(
+                    ast.Attribute(var, '_in', var.ctx), # func
+                    [comparators], # args
+                    [], # keywords
+                    None, # starargs
+                    None # kwargs
+                    )
+            newNode = ast.fix_missing_locations(newNode)
+            return newNode
     
     def load(self, code, newglobals={}, defined=set([]), function='load'):
         """ code : a string or list of string 
@@ -370,6 +386,7 @@ class Symbol(Expression):
             self.lua = datalog_engine._make_const(name)
         
     def __call__ (self, *args, **kwargs):
+        """ called when compiling p(args) """
         "time to create a literal !"
         if self.name == 'ask':
             if 1<len(args):
@@ -416,7 +433,7 @@ class Symbol(Expression):
         if isinstance(other, type(lambda: None)):
             other = Lambda(other, self.datalog_engine)
         name = '=' + str(self) + operator + str(other)
-        if isinstance(other, (int, six.string_types)):
+        if isinstance(other, (int, six.string_types, list, tuple)):
             literal = Literal(name, [self], self.datalog_engine)
             expr = self.datalog_engine._make_operand('constant', other)
         else: # other is a symbol or an expression
@@ -427,17 +444,24 @@ class Symbol(Expression):
         return literal
 
     def __neg__(self):
+        """ called when compiling -X """
         neg = Symbol(self.name, self.datalog_engine)
         neg.negated = True
         return neg
+    
+    def _in(self, values):
+        """ called when compiling (X in (1,2)) """
+        return self._make_expression_literal('in', values)
     
     def __coerce__(self, other):
         return None
     
     def __getattr__(self, name):
+        """ called when compiling class.attribute """
         return Symbol(self.name + '.' + name, self.datalog_engine)
     
     def __getitem__(self, keys):
+        """ called when compiling name[keys] """
         return Function(self.name, self.datalog_engine, keys)
     
     def lua_expr(self, variables):
@@ -456,7 +480,7 @@ class Symbol(Expression):
         return str(self.name)
     
     def __setitem__(self, keys, value):
-        """  formula : f[X] = expression """
+        """  called when compiling f[X] = expression """
         function = Function(self.name, self.datalog_engine, keys)
         # following statement translates it into (f[X]==V) <= (V==expression)
         (function == function.symbol) <= (function.symbol == value)
