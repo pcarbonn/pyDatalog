@@ -68,10 +68,41 @@ except ValueError:
 
 """                             ENGINES                                                   """
 
-class Datalog_engine_(object):
+class Datalog_engine(object):
     """
-    common part for an engine. Subclasses are Python_engine and Lua_engine
+    
     """
+
+    def __init__(self):
+        self.clauses = []
+        self.clear()
+        
+        self._make_const = pyEngine.make_const       # make_const(id) --> { id: } unique, inherits from Const
+        self._make_var = pyEngine.make_var           # make_var(id) --> { id: ) unique, inherits from Var
+        self._make_literal = pyEngine.make_literal   # make_literal(pred_name, terms) --> { pred: , id: , <i>: , tag: } 
+                                            #    where id represents name, terms; 
+                                            #    where tag is used as a key to literal by the subgoal table
+        
+        self._make_clause = pyEngine.make_clause  # make_clause(head, body) = { head: , <i>: }
+        
+        self._assert = pyEngine.assert_              # assert(clause) --> clause or nil
+        self._retract = pyEngine.retract             # retract(clause) --> clause
+        self._ask = pyEngine.ask                    # ask(literal) = nil or {name: , arity: , <i>: {i: }}
+        self._ask2 = pyEngine.ask2                  # ask2(literal, _fast) = nil or {name: , arity: , <i>: {i: }}
+        self._db = pyEngine.db
+        self._add_iter_prim = pyEngine.add_iter_prim # add_iter_prim(name, arity, iter) = 
+        self._make_operand = pyEngine.make_operand
+        self._make_expression = pyEngine.make_expression
+        self._make_lambda = pyEngine.make_lambda
+        self._add_expr_to_predicate = pyEngine.add_expr_to_predicate
+
+    def clear(self):
+        pyEngine.clear()
+        
+    def _ask_literal(self, literal, _fast=None): # called by Literal
+        # print("asking : %s" % str(literal))
+        result = self._ask2(literal.lua, _fast)
+        return None if not result else set(result.answers)
 
     def add_symbols(self, names, variables):
         for name in names:
@@ -188,7 +219,7 @@ class Datalog_engine_(object):
         code = '\n'.join([line.replace(spaces,'') for line in lines])
         
         tree = ast.parse(code, function, 'exec')
-        tree = Datalog_engine_._transform_ast().visit(tree)
+        tree = Datalog_engine._transform_ast().visit(tree)
         code = compile(tree, function, 'exec')
 
         defined = defined.union(dir(builtins))
@@ -196,55 +227,7 @@ class Datalog_engine_(object):
         for name in set(code.co_names).difference(defined): # for names that are not defined
             self.add_symbols((name,), newglobals)
         six.exec_(code, newglobals)
-
-class Python_engine(Datalog_engine_):
-    def __init__(self):
-        self.clauses = []
-        self.clear()
-        
-        self._make_const = pyEngine.make_const       # make_const(id) --> { id: } unique, inherits from Const
-        self._make_var = pyEngine.make_var           # make_var(id) --> { id: ) unique, inherits from Var
-        self._make_literal = pyEngine.make_literal   # make_literal(pred_name, terms) --> { pred: , id: , <i>: , tag: } 
-                                            #    where id represents name, terms; 
-                                            #    where tag is used as a key to literal by the subgoal table
-        
-        self._make_clause = pyEngine.make_clause  # make_clause(head, body) = { head: , <i>: }
-        
-        self._assert = pyEngine.assert_              # assert(clause) --> clause or nil
-        self._retract = pyEngine.retract             # retract(clause) --> clause
-        self._ask = pyEngine.ask                    # ask(literal) = nil or {name: , arity: , <i>: {i: }}
-        self._ask2 = pyEngine.ask2                  # ask2(literal, _fast) = nil or {name: , arity: , <i>: {i: }}
-        self._db = pyEngine.db
-        self._add_iter_prim = pyEngine.add_iter_prim # add_iter_prim(name, arity, iter) = 
-        self._make_operand = pyEngine.make_operand
-        self._make_expression = pyEngine.make_expression
-        self._make_lambda = pyEngine.make_lambda
-        self._add_expr_to_predicate = pyEngine.add_expr_to_predicate
-        """ other functions available in datalog.lua
-            # make_pred(name, arity) -->  { id: , db: { <clause ID>: }} unique, where id = name/arity.  (Called by make_pred)
-            # get_name(pred) = 
-            # get_arity(pred) = 
-            # insert(pred) =
-            # remove(pred) = 
-            # save() = 
-            # restore() = 
-            # copy(src=None) = 
-            # revert(clone) = 
-        """
-
-    def clear(self):
-        pyEngine.clear()
-        
-    def _ask_literal(self, literal, _fast=None): # called by Literal
-        # print("asking : %s" % str(literal))
-        result = self._ask2(literal.lua, _fast)
-        return None if not result else set(result.answers)
-    
-        
-def Datalog_engine(implementation=None): 
-    """ a factory for Datalog_engine_ """
-    return Python_engine()
-    
+            
 default_datalog_engine = Datalog_engine()
 
 class Expression(object):

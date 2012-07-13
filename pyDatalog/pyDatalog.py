@@ -29,7 +29,7 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 Objects exposed by this file:
 for direct access to datalog knowledge base:
-  * Datalog_engine(implementation=None) : a factory for Datalog_engine_. Returns a python or lua engine, depending on parameter
+  * Datalog_engine(implementation=None) : a factory for Datalog_engine.
   * program(datalog_engine=None) : decorator function to create datalog programs
   * ask(code) : returns the result of the query contained in the code string, and run in the default datalog engine
   * load(code) : loads the clauses contained in the code string into the default datalog engine
@@ -51,11 +51,11 @@ except ValueError:
 
 try:
     from . import pyParser
-    from .pyParser import Datalog_engine_, Python_engine
+    from .pyParser import Datalog_engine
     from .pyParser import Symbol, Expression, Lambda, Literal, Body
 except ValueError:
     import pyParser
-    from pyParser import Datalog_engine_, Python_engine
+    from pyParser import Datalog_engine
     from pyParser import Symbol, Expression, Lambda, Literal, Body
 
 default_datalog_engine = pyParser.default_datalog_engine
