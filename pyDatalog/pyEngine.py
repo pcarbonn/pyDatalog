@@ -26,7 +26,7 @@ from lua to python, with some enhancements:
 * indexing of facts,
 * support for lambda.
 
-The original code of the lua engine in included in the comments, 
+The original code of the lua engine is included in the comments, 
 for reference.
 
 Some differences between python and lua:

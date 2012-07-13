@@ -41,6 +41,9 @@ Classes contained in this file:
 * Lambda : represents a lambda function, used in expressions
 * Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
 * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
+* Function : represents f[X]
+* Aggregate : represents calls to aggregation method, e.g. min(X)
+
 """
 
 import ast
@@ -66,75 +69,50 @@ except ValueError:
     import pyEngine
 
 
-"""                             ENGINES                                                   """
+"""                             ENGINE                                                   """
 
 class Datalog_engine(object):
     """
-    
     """
 
     def __init__(self):
-        self.clauses = []
         self.clear()
         
-        self._make_const = pyEngine.make_const       # make_const(id) --> { id: } unique, inherits from Const
-        self._make_var = pyEngine.make_var           # make_var(id) --> { id: ) unique, inherits from Var
-        self._make_literal = pyEngine.make_literal   # make_literal(pred_name, terms) --> { pred: , id: , <i>: , tag: } 
-                                            #    where id represents name, terms; 
-                                            #    where tag is used as a key to literal by the subgoal table
-        
-        self._make_clause = pyEngine.make_clause  # make_clause(head, body) = { head: , <i>: }
-        
-        self._assert = pyEngine.assert_              # assert(clause) --> clause or nil
-        self._retract = pyEngine.retract             # retract(clause) --> clause
-        self._ask = pyEngine.ask                    # ask(literal) = nil or {name: , arity: , <i>: {i: }}
-        self._ask2 = pyEngine.ask2                  # ask2(literal, _fast) = nil or {name: , arity: , <i>: {i: }}
-        self._db = pyEngine.db
-        self._add_iter_prim = pyEngine.add_iter_prim # add_iter_prim(name, arity, iter) = 
-        self._make_operand = pyEngine.make_operand
-        self._make_expression = pyEngine.make_expression
-        self._make_lambda = pyEngine.make_lambda
-        self._add_expr_to_predicate = pyEngine.add_expr_to_predicate
-
     def clear(self):
         pyEngine.clear()
         
     def _ask_literal(self, literal, _fast=None): # called by Literal
         # print("asking : %s" % str(literal))
-        result = self._ask2(literal.lua, _fast)
+        result = pyEngine.ask2(literal.lua, _fast)
         return None if not result else set(result.answers)
 
     def add_symbols(self, names, variables):
         for name in names:
-            variables[name] = Symbol(name, self)            
+            variables[name] = Symbol(name)            
         
     def _assert_fact(self, literal):
-        clause = self._make_clause(literal.lua, [])
-        self._assert(clause)
-        #print pr(self._db)
+        clause = pyEngine.make_clause(literal.lua, [])
+        pyEngine.assert_(clause)
         
     def assert_fact(self, predicate_name, *args):
-        literal = Literal(predicate_name, args, datalog_engine=self)
+        literal = Literal(predicate_name, args)
         self._assert_fact(literal)
     
     def _retract_fact(self, literal):
-        clause = self._make_clause(literal.lua, [])
-        self._retract(clause)
+        clause = pyEngine.make_clause(literal.lua, [])
+        pyEngine.retract(clause)
 
     def retract_fact(self, predicate_name, *args):
-        literal = Literal(predicate_name, args, datalog_engine=self)
+        literal = Literal(predicate_name, args)
         self._retract_fact(literal)
     
     def add_clause(self,head,body):
         if isinstance(body, Body):
             tbl = [a.lua for a in body.literals]
-            self.clauses.append((head, body.literals))
         else: # body is a literal
-            #print(body)
             tbl = (body.lua,)
-            self.clauses.append((head,[body]))
-        clause = self._make_clause(head.lua, tbl)
-        return self._assert(clause)
+        clause = pyEngine.make_clause(head.lua, tbl)
+        return pyEngine.assert_(clause)
         
     class _NoCallFunction(object):
         """
@@ -232,13 +210,14 @@ default_datalog_engine = Datalog_engine()
 
 class Expression(object):
     def _precalculation(self):
+        # by default, there is no precalculation needed to evaluate an expression
         return Body()
     
     def __eq__(self, other):
         if self.type == 'variable' and not isinstance(other, Symbol):
             return self._make_expression_literal('=', other)
         else:
-            return Literal("=", (self, other), self.datalog_engine)
+            return Literal("=", (self, other))
     def __ne__(self, other):
         return self._make_expression_literal('~=', other)
     def __le__(self, other):
@@ -251,28 +230,28 @@ class Expression(object):
         return self._make_expression_literal('>', other)
     
     def __add__(self, other):
-        return Operation(self, '+', other, self.datalog_engine)
+        return Operation(self, '+', other)
     def __sub__(self, other):
-        return Operation(self, '-', other, self.datalog_engine)
+        return Operation(self, '-', other)
     def __mul__(self, other):
-        return Operation(self, '*', other, self.datalog_engine)
+        return Operation(self, '*', other)
     def __div__(self, other):
-        return Operation(self, '/', other, self.datalog_engine)
+        return Operation(self, '/', other)
     def __truediv__(self, other):
-        return Operation(self, '/', other, self.datalog_engine)
+        return Operation(self, '/', other)
     def __floordiv__(self, other):
-        return Operation(self, '//', other, self.datalog_engine)
+        return Operation(self, '//', other)
     
     def __radd__(self, other):
-        return Operation(other, '+', self, self.datalog_engine)
+        return Operation(other, '+', self)
     def __rsub__(self, other):
-        return Operation(other, '-', self, self.datalog_engine)
+        return Operation(other, '-', self)
     def __rmul__(self, other):
-        return Operation(other, '*', self, self.datalog_engine)
+        return Operation(other, '*', self)
     def __rdiv__(self, other):
-        return Operation(other, '/', self, self.datalog_engine)
+        return Operation(other, '/', self)
     def __rfloordiv__(self, other):
-        return Operation(other, '//', self, self.datalog_engine)
+        return Operation(other, '//', self)
     
 class Symbol(Expression):
     """
@@ -280,10 +259,9 @@ class Symbol(Expression):
     ask() creates a query
     created when analysing the datalog program
     """
-    def __init__ (self, name, datalog_engine=default_datalog_engine):
+    def __init__ (self, name):
         self.name = name
         self.negated = False # for aggregate with sort in descending order
-        self.datalog_engine = datalog_engine # needed to create Literal
         if isinstance(name, int):
             self.type = 'constant'
         elif (name[0] in string.ascii_uppercase):
@@ -291,9 +269,9 @@ class Symbol(Expression):
         else:
             self.type = 'constant'
         if self.type == 'variable':
-            self.lua = datalog_engine._make_var(name)
+            self.lua = pyEngine.make_var(name)
         else:
-            self.lua = datalog_engine._make_const(name)
+            self.lua = pyEngine.make_const(name)
         
     def __call__ (self, *args, **kwargs):
         """ called when compiling p(args) """
@@ -302,7 +280,7 @@ class Symbol(Expression):
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
-            return self.datalog_engine._ask_literal(args[0], fast)
+            return default_datalog_engine._ask_literal(args[0], fast)
         elif self.name == 'sum_foreach': # TODO remove
             args = (args[0], kwargs['key'])
             return Sum_aggregate(args)
@@ -336,26 +314,26 @@ class Symbol(Expression):
             else: 
                 return len(args[0]) 
         else:
-            return Literal(self.name, args, self.datalog_engine)
+            return Literal(self.name, args)
 
     def _make_expression_literal(self, operator, other):
         """private function to create a literal for comparisons"""
         if isinstance(other, type(lambda: None)):
-            other = Lambda(other, self.datalog_engine)
+            other = Lambda(other)
         name = '=' + str(self) + operator + str(other)
         if isinstance(other, (int, six.string_types, list, tuple)):
-            literal = Literal(name, [self], self.datalog_engine)
-            expr = self.datalog_engine._make_operand('constant', other)
+            literal = Literal(name, [self])
+            expr = pyEngine.make_operand('constant', other)
         else: # other is a symbol or an expression
-            literal = Literal(name, [self] + list(other._variables().values()), self.datalog_engine)
+            literal = Literal(name, [self] + list(other._variables().values()))
             expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
             literal.pre_calculations = other._precalculation()
-        self.datalog_engine._add_expr_to_predicate(literal.lua.pred, operator, expr)
+        pyEngine.add_expr_to_predicate(literal.lua.pred, operator, expr)
         return literal
 
     def __neg__(self):
         """ called when compiling -X """
-        neg = Symbol(self.name, self.datalog_engine)
+        neg = Symbol(self.name)
         neg.negated = True
         return neg
     
@@ -368,17 +346,17 @@ class Symbol(Expression):
     
     def __getattr__(self, name):
         """ called when compiling class.attribute """
-        return Symbol(self.name + '.' + name, self.datalog_engine)
+        return Symbol(self.name + '.' + name)
     
     def __getitem__(self, keys):
         """ called when compiling name[keys] """
-        return Function(self.name, self.datalog_engine, keys)
+        return Function(self.name, keys)
     
     def lua_expr(self, variables):
         if self.type == 'variable':
-            return self.datalog_engine._make_operand('variable', variables.index(self.name))
+            return pyEngine.make_operand('variable', variables.index(self.name))
         else:
-            return self.datalog_engine._make_operand('constant', self.name)
+            return pyEngine.make_operand('constant', self.name)
     
     def _variables(self):
         if self.type == 'variable':
@@ -391,27 +369,26 @@ class Symbol(Expression):
     
     def __setitem__(self, keys, value):
         """  called when compiling f[X] = expression """
-        function = Function(self.name, self.datalog_engine, keys)
+        function = Function(self.name, keys)
         # following statement translates it into (f[X]==V) <= (V==expression)
         (function == function.symbol) <= (function.symbol == value)
 
 class Operation(Expression):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
-    def __init__(self, lhs, operator, rhs, datalog_engine=default_datalog_engine):
+    def __init__(self, lhs, operator, rhs):
         self.operator = operator
         
         self.lhs = lhs
         if isinstance(lhs, six.string_types) or isinstance(lhs, int):
-            self.lhs = Symbol(lhs, datalog_engine)
+            self.lhs = Symbol(lhs)
         elif isinstance(lhs, type(lambda: None)):
-            self.lhs = Lambda(lhs, datalog_engine)
+            self.lhs = Lambda(lhs)
             
         self.rhs = rhs
         if isinstance(rhs, six.string_types) or isinstance(rhs, int):
-            self.rhs = Symbol(rhs, datalog_engine)
+            self.rhs = Symbol(rhs)
         elif isinstance(rhs, type(lambda: None)):
-            self.rhs = Lambda(rhs, datalog_engine)
-        self.datalog_engine = datalog_engine
+            self.rhs = Lambda(rhs)
         
     def _variables(self):
         temp = self.lhs._variables()
@@ -422,24 +399,23 @@ class Operation(Expression):
         return self.lhs._precalculation() & self.rhs._precalculation()
     
     def lua_expr(self, variables):
-        return self.datalog_engine._make_expression(self.operator, self.lhs.lua_expr(variables), self.rhs.lua_expr(variables))
+        return pyEngine.make_expression(self.operator, self.lhs.lua_expr(variables), self.rhs.lua_expr(variables))
     
     def __str__(self):
         return '(' + str(self.lhs) + self.operator + str(self.rhs) + ')'
 
 class Lambda(Expression):
     """represents a lambda function, used in expressions"""
-    def __init__(self, other, datalog_engine=default_datalog_engine):
+    def __init__(self, other):
         self.operator = '<lambda>'
         self.lambda_object = other
-        self.datalog_engine = datalog_engine
         
     def _variables(self):
-        return dict([ [var, Symbol(var, self.datalog_engine)] for var in getattr(self.lambda_object,func_code).co_varnames])
+        return dict([ [var, Symbol(var)] for var in getattr(self.lambda_object,func_code).co_varnames])
     
     def lua_expr(self, variables):
-        operands = [self.datalog_engine._make_operand('variable', variables.index(varname)) for varname in getattr(self.lambda_object,func_code).co_varnames] 
-        return self.datalog_engine._make_lambda(self.lambda_object, operands)
+        operands = [pyEngine.make_operand('variable', variables.index(varname)) for varname in getattr(self.lambda_object,func_code).co_varnames] 
+        return pyEngine.make_lambda(self.lambda_object, operands)
     
     def __str__(self):
         return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(getattr(self.lambda_object,func_code).co_varnames))
@@ -451,8 +427,7 @@ class Literal(object):
     binary operator '&' means 'and', and returns a Body
     operator '<=' means 'is true if', and creates a Clause
     """
-    def __init__(self, predicate_name, terms, datalog_engine=default_datalog_engine, prearity=None, aggregate=None):
-        self.datalog_engine = datalog_engine # needed to insert facts, clauses
+    def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
         self.predicate_name = predicate_name
         self.terms = terms
         self.prearity = prearity or len(terms)
@@ -475,8 +450,8 @@ class Literal(object):
             base_terms.append(Symbol('X')) # OK to use any variable
             
             # create the second predicate # TODO use make_pred instead
-            l = Literal(predicate_name, base_terms, self.datalog_engine, prearity, self.aggregate)
-            self.datalog_engine.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
+            l = Literal(predicate_name, base_terms, prearity, self.aggregate)
+            default_datalog_engine.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
             # TODO check that l.pred.aggregate_method is correct
         else:
             self.aggregate = None
@@ -488,28 +463,28 @@ class Literal(object):
             if isinstance(a, Symbol):
                 tbl.append(a.lua)
             elif isinstance(a, six.string_types):
-                tbl.append(datalog_engine._make_const(a))
+                tbl.append(pyEngine.make_const(a))
             elif isinstance(a, Literal):
                 raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
             elif isinstance(a, Aggregate):
                 raise TypeError("Incorrect use of '%s' aggregation." % a.method)
             else:
-                tbl.append(datalog_engine._make_const(a))
+                tbl.append(pyEngine.make_const(a))
         # now create the literal for the head of a clause
-        self.lua = datalog_engine._make_literal(h_predicate_name, tbl, h_prearity, aggregate)
+        self.lua = pyEngine.make_literal(h_predicate_name, tbl, h_prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
 
     def __pos__(self):
         " unary + means insert into datalog_engine as fact "
-        self.datalog_engine._assert_fact(self)
+        default_datalog_engine._assert_fact(self)
 
     def __neg__(self):
         " unary - means retract fact from datalog_engine "
-        self.datalog_engine._retract_fact(self)
+        default_datalog_engine._retract_fact(self)
         
     def __invert__(self):
         """unary ~ means negation """
-        negated_literal = Literal('~' + self.predicate_name, self.terms, self.datalog_engine)
+        negated_literal = Literal('~' + self.predicate_name, self.terms)
         return negated_literal
 
     def __le__(self, body):
@@ -522,7 +497,7 @@ class Literal(object):
             for literal in body.literals:
                 pre_calculations = pre_calculations & literal.pre_calculations
         newBody = pre_calculations & body
-        result = self.datalog_engine.add_clause(self, newBody)
+        result = default_datalog_engine.add_clause(self, newBody)
         if not result: 
             raise TypeError("Can't create clause %s <= %s" % (str(self), str(newBody)))
 
@@ -555,30 +530,29 @@ class Body(object):
 class Function(Expression):
     """ represents predicate[a, b]"""
     Counter = 0
-    def __init__(self, name, datalog_engine, keys):
+    def __init__(self, name, keys):
         if not isinstance(keys, tuple):
             keys = (keys,)
         self.name = "%s[%i]" % (name, len(keys))
-        self.datalog_engine = datalog_engine
         self.keys = keys
         self.dummy_variable_name = '_X%i' % Function.Counter
         Function.Counter += 1
         
         self.symbol = Symbol(self.dummy_variable_name)
         self.symbol.type = 'variable'
-        self.symbol.lua = self.datalog_engine._make_var(self.dummy_variable_name)
+        self.symbol.lua = pyEngine.make_var(self.dummy_variable_name)
         
     def _variables(self):
         return {self.dummy_variable_name : self.symbol}
 
     def lua_expr(self, variables):
-        return self.datalog_engine._make_operand('variable', variables.index(self.dummy_variable_name))
+        return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
 
     def __eq__(self, other):
         assert isinstance(other, (six.string_types, int, Symbol, Aggregate)), "The left hand side of a function literal must be a constant, variable"
         terms = list(self.keys)
         terms.append(other)
-        l = Literal(self.name, terms, datalog_engine=self.datalog_engine, prearity=len(self.keys))
+        l = Literal(self.name, terms, prearity=len(self.keys))
         return l
     
     def _precalculation(self):
