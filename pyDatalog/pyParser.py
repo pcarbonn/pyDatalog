@@ -454,6 +454,12 @@ class Symbol(Expression):
 
     def __str__(self):
         return str(self.name)
+    
+    def __setitem__(self, keys, value):
+        """  formula : f[X] = expression """
+        function = Function(self.name, self.datalog_engine, keys)
+        # following statement translates it into (f[X]==V) <= (V==expression)
+        (function == function.symbol) <= (function.symbol == value)
 
 class Operation(Expression):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
@@ -644,6 +650,7 @@ class Function(Expression):
     def _precalculation(self):
         literal = (self == self.symbol)
         return Body(literal)
+
         
 class Aggregate(object):
     """ represents aggregation_method(X,Y)"""

@@ -17,7 +17,7 @@ pyDatalog.load("+ (salary['Mary'] == 6300)")
 
 """ 2. define business rules """
 # the salary class of employee X is computed as a function of his/her salary
-pyDatalog.load("(salary_class[X]==N) <= (N==salary[X]//1000)")
+pyDatalog.load("salary_class[X] = salary[X]//1000")
     
 # all the indirect managers of employee X are derived from his manager, recursively
 pyDatalog.load("indirect_manager(X,Y) <= (manager[X] == Y)")

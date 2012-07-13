@@ -224,7 +224,7 @@ def test():
     """ functions                                                         """
     pyDatalog.clear()
     @pyDatalog.program()
-    def _(): 
+    def function(): 
         + (f[a]==b)
         assert ask(f[a]==b) == set([('a', 'b')])
     
@@ -236,6 +236,9 @@ def test():
     
         + (f2[a,x]==c)
         assert ask(f2[a,x]==X) == set([('a', 'x', 'c')])
+        
+        g[X] = f[X]+f[X]
+        assert(ask(g[a]==X)) == set([('a', 'cc')])
         
     """ aggregates                                                         """
     pyDatalog.clear()
