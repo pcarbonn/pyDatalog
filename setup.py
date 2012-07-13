@@ -2,7 +2,7 @@ from distutils.core import setup
 setup(
     name = "pyDatalog",
     packages = ["pyDatalog"],
-    version = "0.6.0",
+    version = "0.7.0",
     description = "A pure-python implementation of a subset of prolog, using SLG algorithm with memoization",
     author = "Pierre Carbonnelle",
     author_email = "pierre.carbonnelle@gmail.com",
