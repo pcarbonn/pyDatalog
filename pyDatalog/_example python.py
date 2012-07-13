@@ -8,7 +8,6 @@ It has 3 parts :
 """
 
 import pyDatalog # or: from pyDatalog import pyDatalog
-import console # or: from pyDatalog import console
 
 """ 1. define python class and business rules """
 
@@ -68,5 +67,6 @@ Employee.indirect_manager(X, X)
 print(X) # prints (,)
 
 # start the datalog console, for interactive querying of employee
+import console # or: from pyDatalog import console
 console = console.datalogConsole(locals=locals())
 console.interact('')
