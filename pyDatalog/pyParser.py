@@ -58,22 +58,13 @@ PY3 = sys.version_info[0] == 3
 func_code = '__code__' if PY3 else 'func_code'
 
 import pyDatalog
-# determine which engine to use, python or lua
-try:
-    import lupa
-    from lupa import LuaRuntime
-    Engine = 'Lua'
-except:
-    Engine = 'Python'
-Engine = 'Python' # let's use Python after all
-print(('Using %s engine for Datalog.' % Engine))
+Engine = 'Python'
 
 try:
     from . import pyEngine
 except ValueError:
     import pyEngine
 
-import pyEngine
 
 """                             ENGINES                                                   """
 
@@ -250,73 +241,9 @@ class Python_engine(Datalog_engine_):
         return None if not result else set(result.answers)
     
         
-class Lua_engine(Datalog_engine_):
-    def __init__(self):
-        self.clauses = []
-        self.lua = LuaRuntime()
-        
-        lua_program_path = os.path.join(os.path.dirname(__file__), 'luaEngine.py')
-        lua_program = open(lua_program_path).read()
-        self.lua.execute(lua_program)
-        
-        self._insert = self.lua.eval('table.insert')
-        self._make_const = self.lua.eval('datalog.make_const')      # make_const(id) --> { id: } unique, inherits from Const
-        self._make_var = self.lua.eval('datalog.make_var')          # make_var(id) --> { id: ) unique, inherits from Var
-        self.lua_make_literal = self.lua.eval('datalog.make_literal')  # make_literal(pred_name, terms) --> { pred: , id: , <i>: , tag: } 
-                                                                    #    where id represents name, terms; 
-                                                                    #    where tag is used as a key to literal by the subgoal table
-        self._make_literal = lambda name, atoms: self.lua_make_literal(name, self.lua_table(atoms))
-        
-        self.lua_make_clause = self.lua.eval('datalog.make_clause')    # make_clause(head, body) = { head: , <i>: }
-        self._make_clause = lambda head, body: self.lua_make_clause(head, self.lua_table(body))
-        
-        self._assert = self.lua.eval('datalog.assert')              # assert(clause) --> clause or nil
-        self._retract = self.lua.eval('datalog.retract')            # retract(clause) --> clause
-        self._ask = self.lua.eval('datalog.ask')                    # ask(literal) = nil or {name: , arity: , <i>: {i: }}
-        self._ask2 = self.lua.eval('datalog.ask2')                  # ask2(literal, _fast) = nil or {name: , arity: , <i>: {i: }}
-        self._db = self.lua.eval('datalog.db')
-        self._add_iter_prim = self.lua.eval('datalog.add_iter_prim')# add_iter_prim(name, arity, iter) = 
-        self._make_operand = self.lua.eval('datalog.make_operand')
-        self._make_expression = self.lua.eval('datalog.make_expression')
-        self.lua_make_lambda = self.lua.eval('datalog.make_lambda')
-        self._make_lambda = lambda lambda_object, operands: self.lua_make_lambda(lambda_object, self.lua_table(operands))
-        self._add_expr_to_predicate = self.lua.eval('datalog.add_expr_to_predicate')
-        """ other functions available in datalog.lua
-            # make_pred(name, arity) -->  { id: , db: { <clause ID>: }} unique, where id = name/arity.  (Called by make_pred)
-            # get_name(pred) = 
-            # get_arity(pred) = 
-            # insert(pred) =
-            # remove(pred) = 
-            # save() = 
-            # restore() = 
-            # copy(src=None) = 
-            # revert(clone) = 
-        """
-    def clear(self):
-        self.__init__()
-        
-    def lua_table(self, table):
-        tbl = self.lua.eval('{ }')
-        for a in table:
-            self._insert(tbl, a)
-        return tbl
-        
-    def _ask_literal(self, literal, _fast=None): # called by Literal
-        # print("asking : %s" % str(literal))
-        lua_result = self._ask2(literal.lua, _fast)
-        
-        if not lua_result: return None
-        # print pr(lua_result)
-        result = set(tuple(dict(lua_result[i+1]).values()) for i in range(len(lua_result)))
-        #print(result)
-        return result
-
 def Datalog_engine(implementation=None): 
     """ a factory for Datalog_engine_ """
-    if (implementation or Engine) == 'Lua':
-        return Lua_engine()
-    else:
-        return Python_engine()
+    return Python_engine()
     
 default_datalog_engine = Datalog_engine()
 
