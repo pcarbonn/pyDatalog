@@ -51,12 +51,13 @@ except ValueError:
 
 try:
     from . import pyParser
-    from .pyParser import Datalog_engine_, Python_engine, Lua_engine
+    from .pyParser import Datalog_engine_, Python_engine
     from .pyParser import Symbol, Expression, Lambda, Literal, Body
 except ValueError:
     import pyParser
-    from pyParser import Datalog_engine_, Python_engine, Lua_engine
+    from pyParser import Datalog_engine_, Python_engine
     from pyParser import Symbol, Expression, Lambda, Literal, Body
+
 default_datalog_engine = pyParser.default_datalog_engine
 Datalog_engine = pyParser.Datalog_engine
 Engine = pyParser.Engine
