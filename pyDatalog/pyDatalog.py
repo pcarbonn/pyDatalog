@@ -34,6 +34,9 @@ methods for direct access to datalog knowledge base:
   * load(code) : loads the clauses contained in the code string
   * ask(code) : returns the result of the query contained in the code string
   * clear() : resets the datalog database
+Answer class defines the object returned by ask()
+  * __eq__ for equality test
+  * __str__ for printing
 classes for Python Mixin:
   * Variable : a class to define Variable, for use in datalog queries
   * Mixin : a class that can be mixed in another class to give it datalog capability
@@ -58,10 +61,12 @@ try:
 except:
     DeclarativeMeta = object
 
+class Dummy(object):
+    pass
 try:
     from sqlalchemy.orm.attributes import InstrumentedAttribute
 except:
-    InstrumentedAttribute = list # not used; could be any class, really
+    InstrumentedAttribute = Dummy # not used; could be any class, really
     
 
 """ ****************** direct access to datalog knowledge base ***************** """
@@ -92,6 +97,19 @@ def clear():
     """ resets the default datalog database """
     pyEngine.clear()
 
+class Answer(object):
+    """ object returned by ask() """
+    def __init__(self, name, arity, answers):
+        self.name = name
+        self.arity = arity
+        self.answers = answers
+
+    def __eq__ (self, other):
+        return set(self.answers) == other if self.answers else other is None
+    
+    def __str__(self):
+        return str(set(self.answers))
+
 #utility functions, also used by pyParser
 
 def _assert_fact(literal):
@@ -113,7 +131,7 @@ def add_clause(head,body):
 def _ask_literal(literal, _fast=None): # called by Literal
     # print("asking : %s" % str(literal))
     result = pyEngine.ask2(literal.lua, _fast)
-    return None if not result else set(result.answers)
+    return result
 
 """ ****************** python Mixin ***************** """
 
@@ -162,7 +180,7 @@ class metaMixin(type):
                 literal = Literal(predicate_name, terms)
                 result = _ask_literal(literal)
                 if result: 
-                    result = list(zip(*result)) # transpose result
+                    result = list(zip(*result.answers)) # transpose result
                     for i, arg in enumerate(args):
                         if isinstance(arg, Variable) and len(arg)==0:
                             arg.extend(result[i])
@@ -204,7 +222,7 @@ class metaMixin(type):
                         literal = Literal(predicate_name, terms)
                         result = _ask_literal(literal)
                         if result: 
-                            result = list(zip(*result)) # transpose result
+                            result = list(zip(*result.answers)) # transpose result
                             for i, arg in enumerate(keys):
                                 if isinstance(arg, Variable) and len(arg)==0:
                                     arg.extend(result[i])
