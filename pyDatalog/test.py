@@ -27,19 +27,14 @@ import six
 import pyDatalog
 def test():
 
-    # instantiate a pyDatalog engine
-    datalog_engine = pyDatalog.Datalog_engine()
-    
-    print("Defining a datalog program in %s..." % pyDatalog.Engine)
-        
     # test of expressions
-    datalog_engine.load("""
+    pyDatalog.load("""
         + p(a) # p is a proposition
     """)
-    assert datalog_engine.ask('p(a)') == set([('a',)])
+    assert pyDatalog.ask('p(a)') == set([('a',)])
     
-    datalog_engine.clear()
-    assert datalog_engine.ask('p(a)') == None
+    pyDatalog.clear()
+    assert pyDatalog.ask('p(a)') == None
     
     pyDatalog.assert_fact('p', 'a', 'b')
     assert pyDatalog.ask('p(a, "b")') == set([('a', 'b')])
@@ -78,7 +73,7 @@ def test():
         assert ask(farmer(X)) == set([('Moshe dayan',), ('omar',)])
 
     # execute queries in a python program
-    moshe_is_a_farmer = datalog_engine.ask("farmer('Moshe dayan')")
+    moshe_is_a_farmer = pyDatalog.ask("farmer('Moshe dayan')")
     assert moshe_is_a_farmer == set([('Moshe dayan',)])
 
     """ binary facts                                                         """
@@ -166,8 +161,8 @@ def test():
     
     """ recursion with expressions                                         """
     # reset the engine
-    datalog_engine = pyDatalog.Datalog_engine()
-    @pyDatalog.program(datalog_engine)
+    pyDatalog.clear()
+    @pyDatalog.program()
     def recursive_expression(): 
         
         predecessor(X,Y) <= (X==Y-1)
@@ -187,8 +182,8 @@ def test():
         assert ask(even(5)) == None
         
     # Factorial
-    datalog_engine = pyDatalog.Datalog_engine()
-    @pyDatalog.program(datalog_engine)
+    pyDatalog.clear()
+    @pyDatalog.program()
     def _(): 
         factorial(N, F) <= (N < 2) & (F==1)
         factorial(N, F) <= (N > 1) & (N1 == N-1) & factorial(N1, F1) & (F == N*F1)
@@ -196,8 +191,8 @@ def test():
         assert ask(factorial(4, F)) == set([(4, 24)])
     
     # Fibonacci
-    datalog_engine = pyDatalog.Datalog_engine()
-    @pyDatalog.program(datalog_engine)
+    pyDatalog.clear()
+    @pyDatalog.program()
     def _(): 
         fibonacci(N, F) <= (N == 0) & (F==0)
         fibonacci(N, F) <= (N == 1) & (F==1)
@@ -207,7 +202,7 @@ def test():
         assert ask(fibonacci(18, F)) == set([(18, 2584)])
 
     # string manipulation
-    @pyDatalog.program(datalog_engine)
+    @pyDatalog.program()
     def _lambda(): 
         split(X, Y,Z) <= (X == Y+'-'+Z)
         assert ask(split(X, 'a', 'b')) == set([('a-b', 'a', 'b')])
@@ -217,20 +212,19 @@ def test():
 
     """ negation                                                     """    
     
-    datalog_engine = pyDatalog.Datalog_engine()
-    datalog_engine.load("""
+    pyDatalog.load("""
         + even(0)
         even(N) <= (N > 0) & (N1==N-1) & odd(N1)
         odd(N) <= (N2==N+2) & ~ even(N) & (N2>0)
     """)
-    assert datalog_engine.ask('~ odd(7)', _fast=True) == None
-    assert datalog_engine.ask('~ odd(2)', _fast=True) == set([(2,)])
-    assert datalog_engine.ask('odd(3)', _fast=True) == set([(3,)])
-    assert datalog_engine.ask('odd(3)'             ) == set([(3,)])
-    assert datalog_engine.ask('odd(5)', _fast=True) == set([(5,)])
-    assert datalog_engine.ask('odd(5)'            ) == set([(5,)])
-    assert datalog_engine.ask('even(5)', _fast=True) == None
-    assert datalog_engine.ask('even(5)'            ) == None
+    assert pyDatalog.ask('~ odd(7)', _fast=True) == None
+    assert pyDatalog.ask('~ odd(2)', _fast=True) == set([(2,)])
+    assert pyDatalog.ask('odd(3)', _fast=True) == set([(3,)])
+    assert pyDatalog.ask('odd(3)'             ) == set([(3,)])
+    assert pyDatalog.ask('odd(5)', _fast=True) == set([(5,)])
+    assert pyDatalog.ask('odd(5)'            ) == set([(5,)])
+    assert pyDatalog.ask('even(5)', _fast=True) == None
+    assert pyDatalog.ask('even(5)'            ) == None
     
     """ functions                                                         """
     pyDatalog.clear()
@@ -336,7 +330,7 @@ def test():
 
     """ literal cannot have a literal as argument                      """
 
-    @pyDatalog.program(datalog_engine)
+    @pyDatalog.program()
     def _():
 
         _error = False
@@ -348,6 +342,5 @@ def test():
     print("Done.")
 
 if __name__ == "__main__":
-    pyDatalog.default_datalog_engine = pyDatalog.Datalog_engine()
     test()
     #cProfile.runctx('test()', globals(), locals())

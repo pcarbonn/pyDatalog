@@ -945,3 +945,5 @@ def clear():
     Pred.registry = weakref.WeakValueDictionary()
     binary_equals_pred = make_pred("=", 2)
     binary_equals_pred.prim = equals_primitive
+
+clear()

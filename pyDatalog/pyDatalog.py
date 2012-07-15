@@ -26,15 +26,15 @@ http://www.python.org/download/releases/2.0.1/license/ )
 """
 
 """
-
-Objects exposed by this file:
-for direct access to datalog knowledge base:
-  * Datalog_engine(implementation=None) : a factory for Datalog_engine.
-  * program(datalog_engine=None) : decorator function to create datalog programs
-  * ask(code) : returns the result of the query contained in the code string, and run in the default datalog engine
-  * load(code) : loads the clauses contained in the code string into the default datalog engine
-  * clear() : resets the default engine
-for Python Mixin:
+methods / classes exposed by this file:
+methods for direct access to datalog knowledge base:
+  * assert_fact(predicate_name, *args) : assert predicate_name(args)
+  * retract_fact(predicate_name, *args) : retracts predicate_name(args)
+  * program() : decorator function to create datalog programs
+  * load(code) : loads the clauses contained in the code string
+  * ask(code) : returns the result of the query contained in the code string
+  * clear() : resets the datalog database
+classes for Python Mixin:
   * Variable : a class to define Variable, for use in datalog queries
   * Mixin : a class that can be mixed in another class to give it datalog capability
   * sqlMetaMixin : a metaclass to be used when creating a class with both SQLAlchemy and datalog capability
@@ -46,21 +46,12 @@ import weakref
 
 try:
     from . import pyEngine
-except ValueError:
-    import pyEngine
-
-try:
     from . import pyParser
-    from .pyParser import Datalog_engine
     from .pyParser import Symbol, Expression, Lambda, Literal, Body
 except ValueError:
+    import pyEngine
     import pyParser
-    from pyParser import Datalog_engine
     from pyParser import Symbol, Expression, Lambda, Literal, Body
-
-default_datalog_engine = pyParser.default_datalog_engine
-Datalog_engine = pyParser.Datalog_engine
-Engine = pyParser.Engine
 
 try:
     from sqlalchemy.ext.declarative import DeclarativeMeta
@@ -70,30 +61,59 @@ except:
 try:
     from sqlalchemy.orm.attributes import InstrumentedAttribute
 except:
-    InstrumentedAttribute = Datalog_engine # not used; could be any class, really
+    InstrumentedAttribute = list # not used; could be any class, really
     
 
 """ ****************** direct access to datalog knowledge base ***************** """
 
-def program(datalog_engine=None):
-    """
-    A decorator for datalog program
-    """
-    datalog_engine = datalog_engine or default_datalog_engine
-    return datalog_engine.add_program
-
-def ask(code):
-    """returns the result of the query contained in the code string, and run in the default datalog engine"""
-    return default_datalog_engine.ask(code)
 def assert_fact(predicate_name, *args):
-    return default_datalog_engine.assert_fact(predicate_name, *args)
+    """ assert predicate_name(args) """
+    literal = Literal(predicate_name, args)
+    _assert_fact(literal)
+
+def retract_fact(predicate_name, *args):
+    """ retracts predicate_name(args) """
+    literal = Literal(predicate_name, args)
+    _retract_fact(literal)
+
+def program():
+    """ A decorator for datalog program  """
+    return pyParser.add_program
+
 def load(code):
-    """loads the clauses contained in the code string into the default datalog engine"""
-    return default_datalog_engine.load(code)
+    """loads the clauses contained in the code string """
+    return pyParser.load(code)
+
+def ask(code, _fast=None):
+    """returns the result of the query contained in the code string"""
+    return pyParser.ask(code, _fast)
+
 def clear():
-    """ resets the default datalog engine """
-    global default_datalog_engine
-    default_datalog_engine.clear()
+    """ resets the default datalog database """
+    pyEngine.clear()
+
+#utility functions, also used by pyParser
+
+def _assert_fact(literal):
+    clause = pyEngine.make_clause(literal.lua, [])
+    pyEngine.assert_(clause)
+    
+def _retract_fact(literal):
+    clause = pyEngine.make_clause(literal.lua, [])
+    pyEngine.retract(clause)
+
+def add_clause(head,body):
+    if isinstance(body, Body):
+        tbl = [a.lua for a in body.literals]
+    else: # body is a literal
+        tbl = (body.lua,)
+    clause = pyEngine.make_clause(head.lua, tbl)
+    return pyEngine.assert_(clause)
+    
+def _ask_literal(literal, _fast=None): # called by Literal
+    # print("asking : %s" % str(literal))
+    result = pyEngine.ask2(literal.lua, _fast)
+    return None if not result else set(result.answers)
 
 """ ****************** python Mixin ***************** """
 
@@ -140,7 +160,7 @@ class metaMixin(type):
                         terms.append(arg)
                     
                 literal = Literal(predicate_name, terms)
-                result = default_datalog_engine._ask_literal(literal)
+                result = _ask_literal(literal)
                 if result: 
                     result = list(zip(*result)) # transpose result
                     for i, arg in enumerate(args):
@@ -182,7 +202,7 @@ class metaMixin(type):
                                 terms.append(arg)
                             
                         literal = Literal(predicate_name, terms)
-                        result = default_datalog_engine._ask_literal(literal)
+                        result = _ask_literal(literal)
                         if result: 
                             result = list(zip(*result)) # transpose result
                             for i, arg in enumerate(keys):
