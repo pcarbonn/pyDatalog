@@ -29,12 +29,15 @@ http://www.python.org/download/releases/2.0.1/license/ )
 Design principle:
 Instead of writing our own parser, we use python's parser.  The datalog code is first compiled in python byte code, 
 then "undefined" variables are initialized as instance of Symbol, then the code is finally executed to load the clauses.
-This is done in the load() and add_program() method of Datalog_engine class.
+This is done in the load() and add_program() method of Parser class.
+
+Methods exposed by this file:
+* load(code)
+* add_program(func)
+* ask(code)
 
 Classes contained in this file:
-* Datalog_engine_ : common part for an engine. Subclasses are Python_engine and Lua_engine
-* Python_engine :implements the interface to the datalog engine written in python.  Instantiated by the calling module
-* Lua_engine :implements the interface to the lua datalog engine written in Lua.  Instantiated by the calling module
+* _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
 * Expression : base class for objects that can be part of an inequality or operation
 * Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
 * Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
@@ -61,152 +64,111 @@ PY3 = sys.version_info[0] == 3
 func_code = '__code__' if PY3 else 'func_code'
 
 import pyDatalog
-Engine = 'Python'
 
 try:
     from . import pyEngine
+    from . import pyDatalog
 except ValueError:
     import pyEngine
+    import pyDatalog
 
 
-"""                             ENGINE                                                   """
+"""                             Parser methods                                                   """
 
-class Datalog_engine(object):
+def add_symbols(names, variables):
+    for name in names:
+        variables[name] = Symbol(name)            
+    
+class _transform_ast(ast.NodeTransformer):
+    """ does some transformation of the Abstract Syntax Tree of the datalog program """
+    def visit_Call(self, node):
+        """rename builtins to allow customization"""
+        if hasattr(node.func, 'id'):
+            node.func.id = '__sum__' if node.func.id == 'sum' else node.func.id
+            node.func.id = '__len__' if node.func.id == 'len' else node.func.id
+            node.func.id = '__min__' if node.func.id == 'min' else node.func.id
+            node.func.id = '__max__' if node.func.id == 'max' else node.func.id
+        return node
+    
+    def visit_Compare(self, node):
+        """ rename 'in' to allow customization of (X in (1,2))"""
+        self.generic_visit(node)
+        if not isinstance(node.ops[0], ast.In): return node
+        var = node.left # X, an _ast.Name object
+        comparators = node.comparators[0] # (1,2), an _ast.Tuple object
+        newNode = ast.Call(
+                ast.Attribute(var, '_in', var.ctx), # func
+                [comparators], # args
+                [], # keywords
+                None, # starargs
+                None # kwargs
+                )
+        newNode = ast.fix_missing_locations(newNode)
+        return newNode
+
+def load(code, newglobals={}, defined=set([]), function='load'):
+    """ code : a string or list of string 
+        newglobals : global variables for executing the code
+        defined : reserved symbols
     """
-    """
-
-    def __init__(self):
-        self.clear()
-        
-    def clear(self):
-        pyEngine.clear()
-        
-    def _ask_literal(self, literal, _fast=None): # called by Literal
-        # print("asking : %s" % str(literal))
-        result = pyEngine.ask2(literal.lua, _fast)
-        return None if not result else set(result.answers)
-
-    def add_symbols(self, names, variables):
-        for name in names:
-            variables[name] = Symbol(name)            
-        
-    def _assert_fact(self, literal):
-        clause = pyEngine.make_clause(literal.lua, [])
-        pyEngine.assert_(clause)
-        
-    def assert_fact(self, predicate_name, *args):
-        literal = Literal(predicate_name, args)
-        self._assert_fact(literal)
+    # remove indentation based on first non-blank line
+    lines = code.splitlines() if isinstance(code, six.string_types) else code
+    r = re.compile('^\s*')
+    for line in lines:
+        spaces = r.match(line).group()
+        if spaces and line != spaces:
+            break
+    code = '\n'.join([line.replace(spaces,'') for line in lines])
     
-    def _retract_fact(self, literal):
-        clause = pyEngine.make_clause(literal.lua, [])
-        pyEngine.retract(clause)
+    tree = ast.parse(code, function, 'exec')
+    tree = _transform_ast().visit(tree)
+    code = compile(tree, function, 'exec')
 
-    def retract_fact(self, predicate_name, *args):
-        literal = Literal(predicate_name, args)
-        self._retract_fact(literal)
-    
-    def add_clause(self,head,body):
-        if isinstance(body, Body):
-            tbl = [a.lua for a in body.literals]
-        else: # body is a literal
-            tbl = (body.lua,)
-        clause = pyEngine.make_clause(head.lua, tbl)
-        return pyEngine.assert_(clause)
+    defined = defined.union(dir(builtins))
+    defined.add('None')
+    for name in set(code.co_names).difference(defined): # for names that are not defined
+        add_symbols((name,), newglobals)
+    six.exec_(code, newglobals)
         
-    class _NoCallFunction(object):
-        """
-        This class prevents a call to a datalog program created using the 'program' decorator
-        """
-        def __call__(self):
-            raise TypeError("Datalog programs are not callable")
-    
-    def add_program(self, func):
-        """
-        A helper for decorator implementation
-        """
-        source_code = inspect.getsource(func)
-        lines = source_code.splitlines()
-        # drop the first 2 lines (@pydatalog and def _() )
-        if '@' in lines[0]: del lines[0]
-        if 'def' in lines[0]: del lines[0]
-        source_code = lines
+class _NoCallFunction(object):
+    """ This class prevents a call to a datalog program created using the 'program' decorator """
+    def __call__(self):
+        raise TypeError("Datalog programs are not callable")
 
-        try:
-            code = func.__code__
-        except:
-            raise TypeError("function or method argument expected")
-        if PY3:
-            newglobals = func.__globals__.copy()
-            func_name = func.__name__
-        else:
-            newglobals = func.func_globals.copy()
-            func_name = func.func_name
-        defined = set(code.co_varnames).union(set(newglobals.keys())) # local variables and global variables
+def add_program(func):
+    """ A helper for decorator implementation   """
+    source_code = inspect.getsource(func)
+    lines = source_code.splitlines()
+    # drop the first 2 lines (@pydatalog and def _() )
+    if '@' in lines[0]: del lines[0]
+    if 'def' in lines[0]: del lines[0]
+    source_code = lines
 
-        self.load(source_code, newglobals, defined, function=func_name)
-        return self._NoCallFunction()
-    
-    def ask(self, code, _fast=None):
-        tree = ast.parse(code, 'ask', 'eval')
-        #TODO transform tree ?
-        code = compile(tree, 'ask', 'eval')
-        newglobals = {}
-        self.add_symbols(code.co_names, newglobals)
-        lua_code = eval(code, newglobals)
-        return self._ask_literal(lua_code, _fast)
+    try:
+        code = func.__code__
+    except:
+        raise TypeError("function or method argument expected")
+    if PY3:
+        newglobals = func.__globals__.copy()
+        func_name = func.__name__
+    else:
+        newglobals = func.func_globals.copy()
+        func_name = func.func_name
+    defined = set(code.co_varnames).union(set(newglobals.keys())) # local variables and global variables
 
-    class _transform_ast(ast.NodeTransformer):
-        def visit_Call(self, node):
-            """rename builtins to allow customization"""
-            if hasattr(node.func, 'id'):
-                node.func.id = '__sum__' if node.func.id == 'sum' else node.func.id
-                node.func.id = '__len__' if node.func.id == 'len' else node.func.id
-                node.func.id = '__min__' if node.func.id == 'min' else node.func.id
-                node.func.id = '__max__' if node.func.id == 'max' else node.func.id
-            return node
-        
-        def visit_Compare(self, node):
-            """ rename 'in' to allow customization of (X in (1,2))"""
-            self.generic_visit(node)
-            if not isinstance(node.ops[0], ast.In): return node
-            var = node.left # X, an _ast.Name object
-            comparators = node.comparators[0] # (1,2), an _ast.Tuple object
-            newNode = ast.Call(
-                    ast.Attribute(var, '_in', var.ctx), # func
-                    [comparators], # args
-                    [], # keywords
-                    None, # starargs
-                    None # kwargs
-                    )
-            newNode = ast.fix_missing_locations(newNode)
-            return newNode
-    
-    def load(self, code, newglobals={}, defined=set([]), function='load'):
-        """ code : a string or list of string 
-            newglobals : global variables for executing the code
-            defined : reserved symbols
-        """
-        # remove indentation based on first non-blank line
-        lines = code.splitlines() if isinstance(code, six.string_types) else code
-        r = re.compile('^\s*')
-        for line in lines:
-            spaces = r.match(line).group()
-            if spaces and line != spaces:
-                break
-        code = '\n'.join([line.replace(spaces,'') for line in lines])
-        
-        tree = ast.parse(code, function, 'exec')
-        tree = Datalog_engine._transform_ast().visit(tree)
-        code = compile(tree, function, 'exec')
+    load(source_code, newglobals, defined, function=func_name)
+    return _NoCallFunction()
 
-        defined = defined.union(dir(builtins))
-        defined.add('None')
-        for name in set(code.co_names).difference(defined): # for names that are not defined
-            self.add_symbols((name,), newglobals)
-        six.exec_(code, newglobals)
-            
-default_datalog_engine = Datalog_engine()
+def ask(code, _fast=None):
+    tree = ast.parse(code, 'ask', 'eval')
+    tree = _transform_ast().visit(tree)
+    code = compile(tree, 'ask', 'eval')
+    newglobals = {}
+    add_symbols(code.co_names, newglobals)
+    lua_code = eval(code, newglobals)
+    return pyDatalog._ask_literal(lua_code, _fast)
+
+"""                             Parser classes                                                   """
 
 class Expression(object):
     def _precalculation(self):
@@ -280,7 +242,7 @@ class Symbol(Expression):
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
-            return default_datalog_engine._ask_literal(args[0], fast)
+            return pyDatalog._ask_literal(args[0], fast)
         elif self.name == 'sum_foreach': # TODO remove
             args = (args[0], kwargs['key'])
             return Sum_aggregate(args)
@@ -451,7 +413,7 @@ class Literal(object):
             
             # create the second predicate # TODO use make_pred instead
             l = Literal(predicate_name, base_terms, prearity, self.aggregate)
-            default_datalog_engine.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
+            pyDatalog.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
             # TODO check that l.pred.aggregate_method is correct
         else:
             self.aggregate = None
@@ -475,12 +437,12 @@ class Literal(object):
         # TODO check that l.pred.aggregate is empty
 
     def __pos__(self):
-        " unary + means insert into datalog_engine as fact "
-        default_datalog_engine._assert_fact(self)
+        " unary + means insert into database as fact "
+        pyDatalog._assert_fact(self)
 
     def __neg__(self):
-        " unary - means retract fact from datalog_engine "
-        default_datalog_engine._retract_fact(self)
+        " unary - means retract fact from database "
+        pyDatalog._retract_fact(self)
         
     def __invert__(self):
         """unary ~ means negation """
@@ -497,7 +459,7 @@ class Literal(object):
             for literal in body.literals:
                 pre_calculations = pre_calculations & literal.pre_calculations
         newBody = pre_calculations & body
-        result = default_datalog_engine.add_clause(self, newBody)
+        result = pyDatalog.add_clause(self, newBody)
         if not result: 
             raise TypeError("Can't create clause %s <= %s" % (str(self), str(newBody)))
 
