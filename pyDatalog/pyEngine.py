@@ -40,6 +40,8 @@ from itertools import groupby
 import six
 import weakref
 
+import pyDatalog
+
 Trace = False # True --> show new facts when they are established
 Debug = False # for deeper traces
 Auto_print = False # True => automatically prints the result of a query
@@ -722,12 +724,6 @@ def search(subgoal):
 # the predicate, the predicate's arity, and an array of constant
 # terms for each answer.  If there are no answers, nil is returned.
 
-class Answer(object):
-    def __init__(self, name, arity, answers):
-        self.name = name
-        self.arity = arity
-        self.answers = answers
-
 def ask2(literal, fast):
     # same as 'ask', but with 'fast' argument
     global Fast, subgoals, tasks, Stack
@@ -741,7 +737,7 @@ def ask2(literal, fast):
     
     answers = [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]
     if 0 < len(answers):
-        answer = Answer(get_name(literal.pred), get_arity(literal.pred), answers)
+        answer = pyDatalog.Answer(get_name(literal.pred), get_arity(literal.pred), answers)
     else:
         answer = None
     if Auto_print: 
@@ -845,7 +841,7 @@ def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
                     fact(subgoal, new)
     pred.prim = prim
     
-def add_iter_prim(name, arity, iter): # TODO
+def add_iter_prim(name, arity, iter): # Not used
     pred = make_pred(name, arity)
     add_iter_prim_to_predicate(pred, iter)
     return insert(pred)
