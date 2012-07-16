@@ -97,6 +97,7 @@ class _transform_ast(ast.NodeTransformer):
     def visit_Compare(self, node):
         """ rename 'in' to allow customization of (X in (1,2))"""
         self.generic_visit(node)
+        if 1 < len(node.comparators): raise SyntaxError("please add parenthesis around (in)equalities")
         if not isinstance(node.ops[0], ast.In): return node
         var = node.left # X, an _ast.Name object
         comparators = node.comparators[0] # (1,2), an _ast.Tuple object
