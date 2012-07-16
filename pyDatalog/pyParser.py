@@ -68,9 +68,13 @@ import pyDatalog
 try:
     from . import pyEngine
     from . import pyDatalog
-except ValueError:
-    import pyEngine
-    import pyDatalog
+except (ValueError, ImportError):
+    try:
+        from pyDatalog import pyEngine
+        from pyDatalog import pyDatalog
+    except (ValueError, ImportError):
+        import pyEngine
+        import pyDatalog
 
 
 """                             Parser methods                                                   """
@@ -226,10 +230,10 @@ class Symbol(Expression):
         self.negated = False # for aggregate with sort in descending order
         if isinstance(name, int):
             self.type = 'constant'
-        elif (name[0] in string.ascii_uppercase):
-            self.type = 'variable'
-        else:
+        elif (name[0] not in string.ascii_uppercase):
             self.type = 'constant'
+        else:
+            self.type = 'variable'
         if self.type == 'variable':
             self.lua = pyEngine.make_var(name)
         else:

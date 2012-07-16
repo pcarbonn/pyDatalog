@@ -1,32 +1,37 @@
 
-/* http://railroad.my28msec.com/rr/ui
-*/
+/* http://railroad.my28msec.com/rr/ui  */
+
 datalog_statement ::= ('+' | '-') fact 
   | head '<=' body
+  | function '=' expression
 
-fact ::= simple_predicate '(' (constant | python_variable) (',' (constant | python_variable))* ')'
+fact ::= literal_without_variable
 
-head ::= literal | function '==' ('len' | 'sum' | 'concat' | 'min' | 'max') '(' arguments ')'
-body ::= ( '~' ? literal 
-  | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')') 
-    ( '&' ( '~' ? literal | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')' ))*
+head ::= literal | '(' function '==' ('len' | 'sum' | 'concat' | 'min' | 'max') '(' arguments ')' ')'
+body ::= ( '~' ? ) ( literal 
+           | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')'
+           | '(' variable 'in' range ')'
+         ) 
+         ( '&' ( '~' ? ) ( literal 
+                 | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')' 
+                 | '(' variable 'in' range ')' )
+         )*
 
-literal ::= predicate '(' (variable | constant | python_variable) (',' (variable | constant | python_variable))* ')'
-  | function '==' (variable | constant | python_variable)
+literal ::= predicate '(' (variable | constant) (',' (variable | constant))* ')'
+  | '(' function '==' (variable | constant) ')'
+  
 predicate ::= simple_predicate | simple_predicate '.' simple_predicate
 
-function ::= predicate '[' (variable | constant | python_variable) (',' (variable | constant | python_variable))*  ']'
+function ::= predicate '[' (variable | constant) (',' (variable | constant))*  ']'
 
 expression ::= (constant 
-  | python_variable
   | variable 
+  | function
   | '(' expression ')'  
   | '(' lambda-expression ')' 
   | expression ([+*/-] | '//') expression
   )
-
   
 simple_predicate ::= [a-fA-F_] [0-9a-fA-F_]*
 constant ::= [a-f] [0-9a-fA-F_]* | ["'] char ["']
-python_variable ::= [a-fA-F_] [0-9a-fA-F_]*
-variable::= [A-F] [0-9a-fA-F_]*
+variable::= [A-F_] [0-9a-fA-F_]*
