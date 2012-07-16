@@ -109,7 +109,7 @@ class Answer(object):
     
     def __str__(self):
         return str(set(self.answers))
-
+    
 #utility functions, also used by pyParser
 
 def _assert_fact(literal):
@@ -151,6 +151,16 @@ class metaMixin(type):
         super(metaMixin, cls).__init__(name, bases, dct)
         Class_dict[name]=cls
         cls.has_SQLAlchemy = any(base.__module__ in ('sqlalchemy.ext.declarative',) for base in bases)
+        
+        def _getattr(self, attribute):
+            """ responds to instance.method by asking datalog engine """
+            if not attribute == '__iter__' and not attribute.startswith('_sa_'):
+                predicate_name = "%s.%s[1]" % (self.__class__.__name__, attribute)
+                literal = Literal(predicate_name, (self, Symbol("X")))
+                result = _ask_literal(literal)
+                return result.answers[0][-1] if result else None
+            else: raise AttributeError
+        cls.__getattr__ = _getattr   
     
     def __getattr__(cls, method):
         """when access to an attribute of a subclass of Mixin fails, return an object that responds to () and to [] """
@@ -180,10 +190,10 @@ class metaMixin(type):
                 literal = Literal(predicate_name, terms)
                 result = _ask_literal(literal)
                 if result: 
-                    result = list(zip(*result.answers)) # transpose result
+                    transposed = list(zip(*result.answers)) # transpose result
                     for i, arg in enumerate(args):
                         if isinstance(arg, Variable) and len(arg)==0:
-                            arg.extend(result[i])
+                            arg.extend(transposed[i])
                 return result
             
             def __getitem__(self, keys):
@@ -222,14 +232,14 @@ class metaMixin(type):
                         literal = Literal(predicate_name, terms)
                         result = _ask_literal(literal)
                         if result: 
-                            result = list(zip(*result.answers)) # transpose result
+                            transposed = list(zip(*result.answers)) # transpose result
                             for i, arg in enumerate(keys):
                                 if isinstance(arg, Variable) and len(arg)==0:
-                                    arg.extend(result[i])
+                                    arg.extend(transposed[i])
                             j = i+1
                             for i, arg in enumerate(other):
                                 if isinstance(arg, Variable) and len(arg)==0:
-                                    arg.extend(result[j+i])
+                                    arg.extend(transposed[j+i])
                         return result
                 return Logic_function()
         return Pseudo_attribute()
@@ -312,7 +322,7 @@ class sqlMetaMixin(metaMixin, DeclarativeMeta):
 def InstrumentedAttribute_call(self, *args):
     cls = self.class_
     method = self.key
-    return cls.__getattr__(method)(*args)
+    return type(cls).__getattr__(cls, method)(*args)
 InstrumentedAttribute.__call__ = InstrumentedAttribute_call
 
 """ attach a method to SQLAlchemy class.attribute, 
@@ -320,5 +330,5 @@ InstrumentedAttribute.__call__ = InstrumentedAttribute_call
 def InstrumentedAttribute_getitem(self, *args):
     cls = self.class_
     method = self.key
-    return cls.__getattr__(method)[args[0]] # TODO
+    return type(cls).__getattr__(cls, method).__getitem__(*args)
 InstrumentedAttribute.__getitem__ = InstrumentedAttribute_getitem

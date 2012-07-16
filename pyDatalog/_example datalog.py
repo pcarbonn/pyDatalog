@@ -35,7 +35,7 @@ print(pyDatalog.ask("indirect_manager('Mary', X)")) # prints set([('Mary', 'John
 print(pyDatalog.ask("salary_class[X] == 6")) # prints set([('Mary', 6), ('John', 6)])
 
 # who is his own direct managers of Mary ?
-print(pyDatalog.ask("manager('X', X)")) # prints set([(,)])
+print(pyDatalog.ask("manager('X', X)")) # prints None
 
 # start the datalog console, for interactive querying 
 import console # or: from pyDatalog import console
