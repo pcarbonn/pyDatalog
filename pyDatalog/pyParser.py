@@ -97,7 +97,8 @@ class _transform_ast(ast.NodeTransformer):
     def visit_Compare(self, node):
         """ rename 'in' to allow customization of (X in (1,2))"""
         self.generic_visit(node)
-        if 1 < len(node.comparators): raise SyntaxError("please add parenthesis around (in)equalities")
+        if 1 < len(node.comparators): 
+            raise SyntaxError("please add parenthesis around (in)equalities (line %i)." % node.lineno)
         if not isinstance(node.ops[0], ast.In): return node
         var = node.left # X, an _ast.Name object
         comparators = node.comparators[0] # (1,2), an _ast.Tuple object
@@ -291,7 +292,8 @@ class Symbol(Expression):
         if isinstance(other, (int, six.string_types, list, tuple)):
             literal = Literal(name, [self])
             expr = pyEngine.make_operand('constant', other)
-        else: # other is a symbol or an expression
+        else: 
+            assert isinstance(other, (Symbol, Expression)), "Symbol or Expression expected"
             literal = Literal(name, [self] + list(other._variables().values()))
             expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
             literal.pre_calculations = other._precalculation()
@@ -554,6 +556,9 @@ class Aggregate(object):
     @property
     def value(self):
         return self._value
+    
+    def __le__(self,other):
+        raise SyntaxError("Invalid use of Aggregate function. Please consider using parenthesis around aggregate definition.")
 
 class Sum_aggregate(Aggregate):
     """ represents sum_foreach(X, key=(Y,Z))"""
