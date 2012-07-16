@@ -452,13 +452,12 @@ class Literal(object):
     def __le__(self, body):
         " head <= body"
         if isinstance(body, Literal):
-            pre_calculations = body.pre_calculations
+            newBody = body.pre_calculations & body
         else:
             assert isinstance(body, Body), "Invalid body for clause"
-            pre_calculations = Body()
+            newBody = Body()
             for literal in body.literals:
-                pre_calculations = pre_calculations & literal.pre_calculations
-        newBody = pre_calculations & body
+                newBody = newBody & literal.pre_calculations & literal
         result = pyDatalog.add_clause(self, newBody)
         if not result: 
             raise TypeError("Can't create clause %s <= %s" % (str(self), str(newBody)))

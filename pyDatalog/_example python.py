@@ -41,14 +41,13 @@ Mary = Employee('Mary', John, 6300)
 """ 3. Query the objects using the datalog engine """
 # the following python statements implicitly use the datalog clauses in the class definition
 
+# What is the salary class of Mary ?
+print(Mary.salary_class)
+
 # who has a salary of 6300 ?
 X = pyDatalog.Variable()
 Employee.salary[X] == 6300 # notice the similarity to a pyDatalog query
 print(X) # prints (Mary,)
-
-# what is the salary class of Mary ?
-Employee.salary_class[Mary] == X
-print(X) # prints (6,)
 
 # Who are the employees with a salary class of 6 ?
 Employee.salary_class[X] == 6
