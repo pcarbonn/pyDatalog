@@ -339,6 +339,14 @@ def test():
             _error = True
         assert _error
         
+    def test_ask(code):
+        _error = False
+        try:
+            pyDatalog.ask(code)
+        except: 
+            _error = True
+        assert _error
+
     """ error detection                      """
     test_error("+ farmer(farmer(moshe))")
     test_error("+ manager[Mary]==John")
