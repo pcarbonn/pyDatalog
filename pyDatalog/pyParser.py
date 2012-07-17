@@ -63,20 +63,12 @@ import weakref
 PY3 = sys.version_info[0] == 3
 func_code = '__code__' if PY3 else 'func_code'
 
-import pyDatalog
-
 try:
     from . import pyEngine
-    from . import pyDatalog
-except (ValueError, ImportError):
-    try:
-        from pyDatalog import pyEngine
-        from pyDatalog import pyDatalog
-    except (ValueError, ImportError):
-        import pyEngine
-        import pyDatalog
-
-
+except ValueError:
+    import pyEngine
+pyDatalog = None #circ: later set by pyDatalog to avoid circular import
+ 
 """                             Parser methods                                                   """
 
 def add_symbols(names, variables):
