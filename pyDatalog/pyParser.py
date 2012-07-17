@@ -224,7 +224,7 @@ class Symbol(Expression):
         self.negated = False # for aggregate with sort in descending order
         if isinstance(name, int):
             self.type = 'constant'
-        elif (name[0] not in string.ascii_uppercase):
+        elif (not name or name[0] not in string.ascii_uppercase):
             self.type = 'constant'
         else:
             self.type = 'variable'
