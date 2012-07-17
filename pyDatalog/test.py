@@ -322,22 +322,29 @@ def test():
 
     """ can't call a pyDatalog program                             """
     
+    @pyDatalog.program()
+    def _(): 
+        pass
     error = False
     try:
         _()
     except: error = True
     assert error
 
-    """ literal cannot have a literal as argument                      """
-
-    @pyDatalog.program()
-    def _():
-
+    def test_error(code):
         _error = False
         try:
-            + farmer(farmer(moshe))
-        except: _error = True
+            pyDatalog.load(code)
+        except: 
+            _error = True
         assert _error
+        
+    """ error detection                      """
+    test_error("+ farmer(farmer(moshe))")
+    test_error("+ manager[Mary]==John")
+    test_error("manager[X]==Y <= (X==Y)")
+    test_error("p(X) <= X==1 & X==2")
+    test_error("p(X) <= (manager[X]== min(X))")
         
     print("Done.")
 
