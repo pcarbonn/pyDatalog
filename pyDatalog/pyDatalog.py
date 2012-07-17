@@ -133,6 +133,16 @@ def _ask_literal(literal, _fast=None): # called by Literal
     result = pyEngine.ask2(literal.lua, _fast)
     return result
 
+#circ: share functions with pyParser and avoid circular import
+pyDatalog = Dummy()
+pyDatalog._ask_literal = _ask_literal
+pyDatalog.add_clause = add_clause
+pyDatalog._assert_fact = _assert_fact
+pyDatalog._retract_fact = _retract_fact
+pyDatalog.Answer = Answer
+pyParser.pyDatalog = pyDatalog
+pyEngine.pyDatalog = pyDatalog
+
 """ ****************** python Mixin ***************** """
 
 class Variable(list):

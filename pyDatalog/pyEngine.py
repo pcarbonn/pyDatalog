@@ -40,7 +40,7 @@ from itertools import groupby
 import six
 import weakref
 
-import pyDatalog
+pyDatalog = None #circ: later set by pyDatalog to avoid circular import
 
 Trace = False # True --> show new facts when they are established
 Debug = False # for deeper traces
