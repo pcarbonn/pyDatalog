@@ -28,7 +28,7 @@ Sample session:
     pyDatalog> +p(a)
     pyDatalog> ask(p(X))
     [('a',)]
-    pyDatalog>
+    pyDatalog> exit()
 
 """
 import code
