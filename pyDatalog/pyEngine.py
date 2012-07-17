@@ -787,11 +787,12 @@ def equals_primitive(literal, subgoal):
     if env != None:                     # and at least one of them
         x = x.subst(env)          # must be a constant.
         y = y.subst(env)
+    #unbound: can't raise error if both are still unbound, because split(a,b,c) would fail (see test.py)
     return x.equals_primitive(y, subgoal)
 binary_equals_pred.prim = equals_primitive
 
-Var.equals_primitive = lambda term, subgoal: None
-Fresh_var.equals_primitive = lambda term, subgoal: None
+Var.equals_primitive = lambda self, term, subgoal: None
+Fresh_var.equals_primitive = lambda self, term, subgoal: None
 
 def _(self, term, subgoal):
     if self == term:          # Both terms are constant and equal.
@@ -909,6 +910,7 @@ def add_expr_to_predicate(pred, operator, expression):
         args = []
         for term in literal.terms[1:]:
             if not term.is_const():
+                #unbound: can't raise error if right side is unbound, because split(a,b,c) would fail (see test.py)
                 return
             args.append(term.id)
             
