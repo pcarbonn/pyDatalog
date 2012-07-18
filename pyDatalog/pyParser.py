@@ -174,7 +174,7 @@ class Expression(object):
         return Body()
     
     def __eq__(self, other):
-        if self.type == 'variable' and not isinstance(other, Symbol):
+        if self._pyD_type == 'variable' and not isinstance(other, Symbol):
             return self._make_expression_literal('=', other)
         else:
             return Literal("=", (self, other))
@@ -220,61 +220,58 @@ class Symbol(Expression):
     created when analysing the datalog program
     """
     def __init__ (self, name):
-        self.name = name
-        self.negated = False # for aggregate with sort in descending order
+        self._pyD_name = name
+        self._pyD_negated = False # for aggregate with sort in descending order
         if isinstance(name, int):
-            self.type = 'constant'
+            self._pyD_type = 'constant'
         elif (not name or name[0] not in string.ascii_uppercase):
-            self.type = 'constant'
+            self._pyD_type = 'constant'
         else:
-            self.type = 'variable'
-        if self.type == 'variable':
-            self.lua = pyEngine.make_var(name)
+            self._pyD_type = 'variable'
+        if self._pyD_type == 'variable':
+            self._pyD_lua = pyEngine.make_var(name)
         else:
-            self.lua = pyEngine.make_const(name)
+            self._pyD_lua = pyEngine.make_const(name)
         
     def __call__ (self, *args, **kwargs):
         """ called when compiling p(args) """
         "time to create a literal !"
-        if self.name == 'ask':
+        if self._pyD_name == 'ask':
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             return pyDatalog._ask_literal(args[0], fast)
-        elif self.name == 'sum_foreach': # TODO remove
-            args = (args[0], kwargs['key'])
-            return Sum_aggregate(args)
-        elif self.name == '__sum__':
+        elif self._pyD_name == '__sum__':
             if isinstance(args[0], Symbol):
                 args = (args[0], kwargs['key'])
                 return Sum_aggregate(args)
             else:
                 return sum(args)
-        elif self.name == 'concat':
+        elif self._pyD_name == 'concat':
             args = (args[0], kwargs['key'], kwargs['sep'])
             return Concat_aggregate(args)
-        elif self.name == '__min__':
+        elif self._pyD_name == '__min__':
             if isinstance(args[0], Symbol):
                 args = (args[0], kwargs['key'],)
                 return Min_aggregate(args)
             else:
                 return min(args)
-        elif self.name == '__max__':
+        elif self._pyD_name == '__max__':
             if isinstance(args[0], Symbol):
                 args = (args[0], kwargs['key'],)
                 return Max_aggregate(args)
             else:
                 return max(args)
-        elif self.name == 'rank':
+        elif self._pyD_name == 'rank':
             args = (kwargs['key'],)
             return Rank_aggregate(args)
-        elif self.name == '__len__':
+        elif self._pyD_name == '__len__':
             if isinstance(args[0], Symbol):
                 return Len_aggregate(args[0])
             else: 
                 return len(args[0]) 
         else:
-            return Literal(self.name, args)
+            return Literal(self._pyD_name, args)
 
     def _make_expression_literal(self, operator, other):
         """private function to create a literal for comparisons"""
@@ -294,8 +291,8 @@ class Symbol(Expression):
 
     def __neg__(self):
         """ called when compiling -X """
-        neg = Symbol(self.name)
-        neg.negated = True
+        neg = Symbol(self._pyD_name)
+        neg._pyD_negated = True
         return neg
     
     def _in(self, values):
@@ -307,30 +304,30 @@ class Symbol(Expression):
     
     def __getattr__(self, name):
         """ called when compiling class.attribute """
-        return Symbol(self.name + '.' + name)
+        return Symbol(self._pyD_name + '.' + name)
     
     def __getitem__(self, keys):
         """ called when compiling name[keys] """
-        return Function(self.name, keys)
+        return Function(self._pyD_name, keys)
     
     def lua_expr(self, variables):
-        if self.type == 'variable':
-            return pyEngine.make_operand('variable', variables.index(self.name))
+        if self._pyD_type == 'variable':
+            return pyEngine.make_operand('variable', variables.index(self._pyD_name))
         else:
-            return pyEngine.make_operand('constant', self.name)
+            return pyEngine.make_operand('constant', self._pyD_name)
     
     def _variables(self):
-        if self.type == 'variable':
-            return {self.name : self}
+        if self._pyD_type == 'variable':
+            return {self._pyD_name : self}
         else:
             return {}
 
     def __str__(self):
-        return str(self.name)
+        return str(self._pyD_name)
     
     def __setitem__(self, keys, value):
         """  called when compiling f[X] = expression """
-        function = Function(self.name, keys)
+        function = Function(self._pyD_name, keys)
         # following statement translates it into (f[X]==V) <= (V==expression)
         (function == function.symbol) <= (function.symbol == value)
 
@@ -422,7 +419,7 @@ class Literal(object):
         tbl = []
         for a in h_terms:
             if isinstance(a, Symbol):
-                tbl.append(a.lua)
+                tbl.append(a._pyD_lua)
             elif isinstance(a, six.string_types):
                 tbl.append(pyEngine.make_const(a))
             elif isinstance(a, Literal):
@@ -499,8 +496,8 @@ class Function(Expression):
         Function.Counter += 1
         
         self.symbol = Symbol(self.dummy_variable_name)
-        self.symbol.type = 'variable'
-        self.symbol.lua = pyEngine.make_var(self.dummy_variable_name)
+        self.symbol._pyD_type = 'variable'
+        self.symbol._pyD_lua = pyEngine.make_var(self.dummy_variable_name)
         
     def _variables(self):
         return {self.dummy_variable_name : self.symbol}
@@ -575,7 +572,7 @@ class Concat_aggregate(Aggregate):
     def sort_result(self, result):
         for i in reversed(range(len(self.args[1]))):
             result.sort(key=lambda literal, i=i: literal[-i-2].id, # -1 for separator
-                reverse = self.args[1][i].negated)
+                reverse = self.args[1][i]._pyD_negated)
         result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
     
     def reset(self):
@@ -593,7 +590,7 @@ class Min_aggregate(Aggregate):
     def sort_result(self, result):
         for i in reversed(range(len(self.args[1]))):
             result.sort(key=lambda literal, i=i: literal[-i-1].id,
-                reverse = self.args[1][i].negated)
+                reverse = self.args[1][i]._pyD_negated)
         result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
         pass
     
@@ -608,7 +605,7 @@ class Max_aggregate(Aggregate):
     def sort_result(self, result):
         for i in reversed(range(len(self.args[1]))):
             result.sort(key=lambda literal, i=i: literal[-i-1].id,
-                reverse = not self.args[1][i].negated)
+                reverse = not self.args[1][i]._pyD_negated)
         result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
         pass
     
@@ -628,4 +625,4 @@ class Rank_aggregate(Aggregate):
         key = self.args[0]
         for i in reversed(range(len(key))):
             result.sort(key=lambda literal, i=i: literal[-i-1].id,
-                reverse = key[i].negated)
+                reverse = key[i]._pyD_negated)

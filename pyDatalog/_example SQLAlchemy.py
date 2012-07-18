@@ -33,8 +33,6 @@ class Employee(Base): # --> Employee inherits from the Base class
     manager_name = Column(String, ForeignKey('employee.name'))
     salary = Column(Integer)
     
-    manager = relationship("Employee", backref="managees", remote_side='Employee.name',)
-    
     def __init__(self, name, manager_name, salary):
         super(Employee, self).__init__()
         self.name = name
@@ -45,6 +43,7 @@ class Employee(Base): # --> Employee inherits from the Base class
 
     @pyDatalog.program() # --> the following function contains pyDatalog clauses
     def _():
+        (Employee.manager[X]==Y) <= (Employee.manager_name[X]==Z) & (Employee.name[Y]==Z)
         # the salary class of employee X is computed as a function of his/her salary
         # this statement is a logic equality, not an assignment !
         Employee.salary_class[X] = Employee.salary[X]//1000
