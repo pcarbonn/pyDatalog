@@ -43,7 +43,7 @@ class Employee(Base): # --> Employee inherits from the Base class
 
     @pyDatalog.program() # --> the following function contains pyDatalog clauses
     def _():
-        (Employee.manager[X]==Y) <= (Employee.manager_name[X]==Z) & (Employee.name[Y]==Z)
+        (Employee.manager[X]==Y) <= (Employee.manager_name[X]==Z) & (Z==Employee.name[Y])
         # the salary class of employee X is computed as a function of his/her salary
         # this statement is a logic equality, not an assignment !
         Employee.salary_class[X] = Employee.salary[X]//1000
