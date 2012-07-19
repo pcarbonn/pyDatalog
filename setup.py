@@ -1,8 +1,9 @@
 from distutils.core import setup
+from pyDatalog import __version__
 setup(
     name = "pyDatalog",
     packages = ["pyDatalog"],
-    version = "0.8.0",
+    version = __version__,
     description = "A pure-python implementation of a subset of prolog, using SLG algorithm with memoization",
     author = "Pierre Carbonnelle",
     author_email = "pierre.carbonnelle@gmail.com",
