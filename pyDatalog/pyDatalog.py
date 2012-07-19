@@ -31,9 +31,10 @@ methods for direct access to datalog knowledge base:
   * assert_fact(predicate_name, *args) : assert predicate_name(args)
   * retract_fact(predicate_name, *args) : retracts predicate_name(args)
   * program() : decorator function to create datalog programs
-  * load(code) : loads the clauses contained in the code string
+  * load(code, catch_error=False) : loads the clauses contained in the code string
   * ask(code) : returns the result of the query contained in the code string
   * clear() : resets the datalog database
+DatalogError class
 Answer class defines the object returned by ask()
   * __eq__ for equality test
   * __str__ for printing
@@ -70,6 +71,13 @@ except:
     
 
 """ ****************** direct access to datalog knowledge base ***************** """
+class DatalogError(Exception):
+    def __init__(self, value, lineno, function):
+        self.value = value
+        self.lineno = lineno
+        self.function = function
+    def __str__(self):
+        return "%s\nin line %s of %s" % (self.value, self.lineno, self.function)        
 
 def assert_fact(predicate_name, *args):
     """ assert predicate_name(args) """
@@ -85,9 +93,9 @@ def program():
     """ A decorator for datalog program  """
     return pyParser.add_program
 
-def load(code):
+def load(code, catch_error=True):
     """loads the clauses contained in the code string """
-    return pyParser.load(code)
+    return pyParser.load(code, catch_error=catch_error)
 
 def ask(code, _fast=None):
     """returns the result of the query contained in the code string"""
@@ -135,6 +143,7 @@ def _ask_literal(literal, _fast=None): # called by Literal
 
 #circ: share functions with pyParser and avoid circular import
 pyDatalog = Dummy()
+pyDatalog.DatalogError= DatalogError
 pyDatalog._ask_literal = _ask_literal
 pyDatalog.add_clause = add_clause
 pyDatalog._assert_fact = _assert_fact
@@ -216,7 +225,7 @@ class metaMixin(type):
                             other = (other,)
                         predicate_name = "%s.%s[%i]" % (cls.__name__, method, len(keys))
                         
-                        #TODO avoid repetition of loops, by joining keys and other
+                        #TODO avoid duplication of loops, by joining keys and other
                         terms, env = [], {}
                         for i, arg in enumerate(keys):
                             if isinstance(arg, Variable):

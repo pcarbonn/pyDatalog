@@ -90,7 +90,7 @@ class _transform_ast(ast.NodeTransformer):
         """ rename 'in' to allow customization of (X in (1,2))"""
         self.generic_visit(node)
         if 1 < len(node.comparators): 
-            raise SyntaxError("please add parenthesis around (in)equalities (line %i)." % node.lineno)
+            raise pyDatalog.DatalogError("Syntax error: please verify parenthesis around (in)equalities", node.lineno, None) 
         if not isinstance(node.ops[0], ast.In): return node
         var = node.left # X, an _ast.Name object
         comparators = node.comparators[0] # (1,2), an _ast.Tuple object
@@ -104,7 +104,7 @@ class _transform_ast(ast.NodeTransformer):
         newNode = ast.fix_missing_locations(newNode)
         return newNode
 
-def load(code, newglobals={}, defined=set([]), function='load'):
+def load(code, newglobals={}, defined=set([]), function='load', catch_error=True):
     """ code : a string or list of string 
         newglobals : global variables for executing the code
         defined : reserved symbols
@@ -119,14 +119,41 @@ def load(code, newglobals={}, defined=set([]), function='load'):
     code = '\n'.join([line.replace(spaces,'') for line in lines])
     
     tree = ast.parse(code, function, 'exec')
-    tree = _transform_ast().visit(tree)
+    try:
+        tree = _transform_ast().visit(tree)
+    except pyDatalog.DatalogError as e:
+        e.function = function
+        e.value = "%s\n%s" % (e.value, lines[e.lineno-1])
+        if catch_error:
+            print(str(e))
+            exit()
+        else:
+            raise
     code = compile(tree, function, 'exec')
 
     defined = defined.union(dir(builtins))
     defined.add('None')
     for name in set(code.co_names).difference(defined): # for names that are not defined
         add_symbols((name,), newglobals)
-    six.exec_(code, newglobals)
+    try:
+        six.exec_(code, newglobals)
+    except pyDatalog.DatalogError as e:
+        e.function = function
+        exc_info = sys.exc_info()
+        traceback = exc_info[2]
+        e.lineno = 1
+        while True:
+            if traceback.tb_frame.f_code.co_name == '<module>':
+                e.lineno = traceback.tb_lineno
+                break
+            elif traceback.tb_next:
+                traceback = traceback.tb_next 
+        e.value = "%s\n%s" % (e.value, lines[e.lineno-1])
+        if catch_error:
+            print(str(e))
+            exit()
+        else:
+            raise
         
 class _NoCallFunction(object):
     """ This class prevents a call to a datalog program created using the 'program' decorator """
@@ -236,6 +263,9 @@ class Symbol(Expression):
     def __call__ (self, *args, **kwargs):
         """ called when compiling p(args) """
         "time to create a literal !"
+        def check_key(kwargs):
+            if not 'key' in kwargs:
+                raise pyDatalog.DatalogError("'key' argument missing in aggregate", None, None)
         if self._pyD_name == 'ask':
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
@@ -243,26 +273,31 @@ class Symbol(Expression):
             return pyDatalog._ask_literal(args[0], fast)
         elif self._pyD_name == '__sum__':
             if isinstance(args[0], Symbol):
+                check_key(kwargs)
                 args = (args[0], kwargs['key'])
                 return Sum_aggregate(args)
             else:
                 return sum(args)
         elif self._pyD_name == 'concat':
+            check_key(kwargs)
             args = (args[0], kwargs['key'], kwargs['sep'])
             return Concat_aggregate(args)
         elif self._pyD_name == '__min__':
             if isinstance(args[0], Symbol):
+                check_key(kwargs)
                 args = (args[0], kwargs['key'],)
                 return Min_aggregate(args)
             else:
                 return min(args)
         elif self._pyD_name == '__max__':
             if isinstance(args[0], Symbol):
+                check_key(kwargs)
                 args = (args[0], kwargs['key'],)
                 return Max_aggregate(args)
             else:
                 return max(args)
         elif self._pyD_name == 'rank':
+            check_key(kwargs)
             args = (kwargs['key'],)
             return Rank_aggregate(args)
         elif self._pyD_name == '__len__':
@@ -282,7 +317,8 @@ class Symbol(Expression):
             literal = Literal(name, [self])
             expr = pyEngine.make_operand('constant', other)
         else: 
-            assert isinstance(other, (Symbol, Expression)), "Symbol or Expression expected"
+            if not isinstance(other, (Symbol, Expression)):
+                raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
             literal = Literal(name, [self] + list(other._variables().values()))
             expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
             literal.pre_calculations = other._precalculation()
@@ -423,9 +459,9 @@ class Literal(object):
             elif isinstance(a, six.string_types):
                 tbl.append(pyEngine.make_const(a))
             elif isinstance(a, Literal):
-                raise SyntaxError("Literals cannot have a literal as argument : %s%s" % (predicate_name, terms))
+                raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, terms), None, None)
             elif isinstance(a, Aggregate):
-                raise TypeError("Incorrect use of '%s' aggregation." % a.method)
+                raise pyDatalog.DatalogError("Syntax error: Incorrect use of '%s' aggregation." % a.method, None, None)
             else:
                 tbl.append(pyEngine.make_const(a))
         # now create the literal for the head of a clause
@@ -450,13 +486,14 @@ class Literal(object):
         if isinstance(body, Literal):
             newBody = body.pre_calculations & body
         else:
-            assert isinstance(body, Body), "Invalid body for clause"
+            if not isinstance(body, Body):
+                raise pyDatalog.DatalogError("Invalid body for clause", None, None)
             newBody = Body()
             for literal in body.literals:
                 newBody = newBody & literal.pre_calculations & literal
         result = pyDatalog.add_clause(self, newBody)
         if not result: 
-            raise TypeError("Can't create clause %s <= %s" % (str(self), str(newBody)))
+            raise pyDatalog.DatalogError("Can't create clause", None, None)
 
     def __and__(self, other):
         " literal & literal" 
@@ -477,7 +514,8 @@ class Body(object):
             self.literals += [arg] if isinstance(arg, Literal) else arg.literals
 
     def __and__(self, body2):
-        assert isinstance(body2, Body) or not body2.aggregate, "Aggregation cannot appear in the body of a clause"
+        if not (isinstance(body2, Body) or not body2.aggregate):
+            raise pyDatalog.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
         return Body(self, body2)
     
     def __str__(self):
@@ -506,11 +544,18 @@ class Function(Expression):
         return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
 
     def __eq__(self, other):
-        assert isinstance(other, (six.string_types, int, Symbol, Aggregate)), "The left hand side of a function literal must be a constant, variable"
+        if not isinstance(other, (six.string_types, int, Symbol, Aggregate)):
+            raise pyDatalog.DatalogError("The right hand side of a function literal must be a constant or variable", None, None)
         terms = list(self.keys)
         terms.append(other)
         l = Literal(self.name, terms, prearity=len(self.keys))
         return l
+    
+    def __pos__(self):
+        raise pyDatalog.DatalogError("bad operand type for unary +: 'Function'. Please consider adding parenthesis", None, None)
+    
+    def __neg__(self):
+        raise pyDatalog.DatalogError("bad operand type for unary -: 'Function'. Please consider adding parenthesis", None, None)
     
     def _precalculation(self):
         literal = (self == self.symbol)
@@ -547,7 +592,7 @@ class Aggregate(object):
         return self._value
     
     def __le__(self,other):
-        raise SyntaxError("Invalid use of Aggregate function. Please consider using parenthesis around aggregate definition.")
+        raise pyDatalog.DatalogError("Syntax error: Invalid use of Aggregate function. Please consider using parenthesis around aggregate definition.")
 
 class Sum_aggregate(Aggregate):
     """ represents sum_foreach(X, key=(Y,Z))"""

@@ -334,8 +334,8 @@ def test():
     def test_error(code):
         _error = False
         try:
-            pyDatalog.load(code)
-        except: 
+            pyDatalog.load(code, catch_error=False)
+        except pyDatalog.DatalogError as e: 
             _error = True
         assert _error
         
@@ -354,7 +354,7 @@ def test():
     test_error("p(X) <= X==1 & X==2")
     test_error("p(X) <= (manager[X]== min(X))")
         
-    print("Done.")
+    print("Test completed successfully.")
 
 if __name__ == "__main__":
     test()
