@@ -272,56 +272,62 @@ class metaMixin(type):
         terms = literal.terms
         pred_name = literal.pred.id.split('/')[0]
         attr_name = pred_name.split('[')[0].split('.')[1]
-        # TODO check prearity
-        if len(terms)==2:
-            X = terms[0]
-            Y = terms[1]
-            if X.is_const():
-                # try accessing the attribute of the first term in literal
-                if X.id.__class__ != cls:
-                    raise TypeError("Object is incompatible with the class that is queried.")
-                try:
-                    Y1 = getattr(X.id, attr_name)
-                except:
-                    pass
-                else:
-                    if Y.is_const() and Y1 != Y.id:
-                        return
-                    if Y1: # ignore None's
-                        result = Literal(pred_name, (X.id, Y1))
-                        yield result.lua
-                    return
-            if cls.has_SQLAlchemy:
-                if cls.session:
-                    q = cls.session.query(cls)
-                    if X.is_const():
-                        raise RuntimeError ("%s could not be resolved" % pred_name)
-                    if Y.is_const():
-                        q = q.filter(getattr(cls, attr_name) == Y.id)
-                    for r in q:
-                        Y1 = getattr(r, attr_name)
+        try: # other database
+            cls.query(pred_name, terms)
+            return
+        except:
+            # TODO check prearity
+            if len(terms)==2:
+                X = terms[0]
+                Y = terms[1]
+                if X.is_const():
+                    # try accessing the attribute of the first term in literal
+                    if X.id.__class__ != cls:
+                        raise TypeError("Object is incompatible with the class that is queried.")
+                    try:
+                        Y1 = getattr(X.id, attr_name)
+                    except:
+                        pass
+                    else:
                         if Y.is_const() and Y1 != Y.id:
                             return
-                        if Y1:
-                            result = Literal(pred_name, (r, Y1))
+                        if Y1: # ignore None's
+                            result = Literal(pred_name, (X.id, Y1))
                             yield result.lua
-                    return
-            else: # python object with Mixin
-                if not X.is_const() and Y.is_const():
-                    # predicate(X, atom)
-                    for X in metaMixin.__refs__[cls]:
-                        X=X()
-                        if getattr(X, attr_name)==Y.id:
-                            yield Literal(pred_name, (X, Y.id)).lua 
-                    return
-                elif not X.is_const() and not Y.is_const():
-                    # predicate(X, Y)
-                    for X1 in metaMixin.__refs__[cls]:
-                        X1=X1()
-                        Y1 = getattr(X1, attr_name)
-                        if Y1 and (X is not Y or ((X is Y) and (X1==Y1))): 
-                            yield Literal(pred_name, (X1, Y1)).lua
-                    return
+                        return
+                if cls.has_SQLAlchemy:
+                    if cls.session:
+                        q = cls.session.query(cls)
+                        if X.is_const():
+                            raise RuntimeError ("%s could not be resolved" % pred_name)
+                        if Y.is_const():
+                            q = q.filter(getattr(cls, attr_name) == Y.id)
+                        for r in q:
+                            Y1 = getattr(r, attr_name)
+                            if Y.is_const() and Y1 != Y.id:
+                                return
+                            if Y1:
+                                result = Literal(pred_name, (r, Y1))
+                                yield result.lua
+                        return
+                else:
+                    # python object with Mixin
+                    if not X.is_const() and Y.is_const():
+                        # predicate(X, atom)
+                        for X in metaMixin.__refs__[cls]:
+                            X=X()
+                            if getattr(X, attr_name)==Y.id:
+                                yield Literal(pred_name, (X, Y.id)).lua 
+                        return
+                    elif not X.is_const() and not Y.is_const():
+                        # predicate(X, Y)
+                        for X1 in metaMixin.__refs__[cls]:
+                            X1=X1()
+                            Y1 = getattr(X1, attr_name)
+                            if Y1 and (X is not Y or ((X is Y) and (X1==Y1))): 
+                                yield Literal(pred_name, (X1, Y1)).lua
+                        return
+                
         raise RuntimeError ("%s could not be resolved" % pred_name)
 
 # following syntax to declare Mixin is used for compatibility with python 2 and 3
