@@ -42,7 +42,7 @@ Mary = Employee('Mary', John, 6300)
 # the following python statements implicitly use the datalog clauses in the class definition
 
 # What is the salary class of Mary ?
-print(Mary.salary_class)
+print(Mary.salary_class) # prints 6
 
 # who has a salary of 6300 ?
 X = pyDatalog.Variable()
