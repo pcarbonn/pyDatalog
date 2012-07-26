@@ -29,7 +29,8 @@ and use the inference engine to resolve complex, recursive queries fast.
 Datalog is a subset of prolog that is best 
 at managing large sets of related information (e.g. in data integration or the semantic web).  
 at simulating intelligent behavior (e.g. in games), 
-or at performing recursive algorithms (e.g. in network protocol, code and graph analysis) 
+at performing recursive algorithms (e.g. in network protocol, code and graph analysis)
+or at solving discrete constraint problems. 
 
 Datalog statements can be specified in any order, eliminating the need for sequence diagrams and the associated risk of tricky errors. 
 Datalog programs are often shorter than their python equivalent.  
