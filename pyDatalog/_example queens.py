@@ -2,8 +2,6 @@
 import pyDatalog # or from pyDatalog import pyDatalog
 import time
 
-# with more memoization
-
 pyDatalog.clear()
 @pyDatalog.program()
 def _():
@@ -57,3 +55,7 @@ python_time = time.time() - start_time
 
 print("%i solutions by datalog in %f seconds" % (datalog_count, datalog_time))
 print("python : %f seconds" % python_time)
+
+# results with pypy 1.9 on Intel Core i7-2820 QM CPU @ 2.3 GHz (run from Command prompt):
+# 0.4 sec for Datalog
+# 0.1 sec for python
