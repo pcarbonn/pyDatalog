@@ -13,20 +13,17 @@ def _():
     
     queens1(X0,X1) <= queens0(X0) & ok(X1,1,X0)
 
-    queens2(X0,X1,X2) <= queens1(X0,X1) & ok(X2, 1, X1, X0)
-    # when is it ok to have 2 queens N columns away from another one ?  Also memoized
-    ok(X2, N, X1, X0) <= ok(X2,N,X1) & (N1==N+1) & ok(X2,N1,X0)
+    queens2(X0,X1,X2) <= queens1(X0,X1) & queens1(X1,X2) & ok(X0,2,X2)
 
-    queens3(X0,X1,X2,X3) <= queens2(X0,X1,X2) & ok(X3, 1, X2, X1, X0)
-    ok(X3, N, X2, X1, X0) <= ok(X3,N, X2,X1)& (N1==N+2) & ok(X3,N1,X0)
+    queens3(X0,X1,X2,X3) <= queens2(X0,X1,X2) & queens2(X1,X2,X3) & ok(X0,3,X3)
 
-    queens4(X0,X1,X2,X3,X4) <= queens3(X0,X1,X2,X3) & ok(X4,1, X3, X2, X1) & ok(X4,4,X0)
+    queens4(X0,X1,X2,X3,X4) <= queens3(X0,X1,X2,X3) & queens3(X1,X2,X3,X4) & ok(X0,4,X4)
 
-    queens5(X0,X1,X2,X3,X4,X5) <= queens4(X0,X1,X2,X3,X4) & ok(X5,1,X4,X3,X2) & ok(X5,4,X1,X0)
+    queens5(X0,X1,X2,X3,X4,X5) <= queens4(X0,X1,X2,X3,X4) & queens4(X1,X2,X3,X4,X5) & ok(X0,5,X5)
 
-    queens6(X0,X1,X2,X3,X4,X5,X6) <= queens5(X0,X1,X2,X3,X4,X5) & ok(X6,1,X5,X4,X3) & ok(X6,4,X2,X1,X0)
+    queens6(X0,X1,X2,X3,X4,X5,X6) <= queens5(X0,X1,X2,X3,X4,X5) & queens5(X1,X2,X3,X4,X5,X6) & ok(X0,6,X6)
     # counting is 0-based, so this is actually the 8-queens solution
-    queens7(X0,X1,X2,X3,X4,X5,X6,X7) <= queens6(X0,X1,X2,X3,X4,X5,X6) & ok(X7,1,X6,X5,X4) & ok(X7,4,X3,X2,X1) & ok(X7,7,X0)
+    queens7(X0,X1,X2,X3,X4,X5,X6,X7) <= queens6(X0,X1,X2,X3,X4,X5,X6) & queens6(X1,X2,X3,X4,X5,X6,X7) & ok(X0,7,X7)
 
 # counting is 0-based, so this is actually the 8-queens solution
 print(pyDatalog.ask("queens7(X0,X1,X2,X3,X4,X5,X6,X7)"))
@@ -57,5 +54,5 @@ print("%i solutions by datalog in %f seconds" % (datalog_count, datalog_time))
 print("python : %f seconds" % python_time)
 
 # results with pypy 1.9 on Intel Core i7-2820 QM CPU @ 2.3 GHz (run from Command prompt):
-# 0.4 sec for Datalog
-# 0.1 sec for python
+# 0.33 sec for Datalog
+# 0.11 sec for python
