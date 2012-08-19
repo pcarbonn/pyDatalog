@@ -77,10 +77,18 @@ class Interned (object):
 
 # Variables as simple objects.
 
+def add_size(s):
+    return "%i:%s" % (len(s), s)
+
 class Var(Interned):
     registry = weakref.WeakValueDictionary()
-    def __init__(self, _id):
-        self.id = _id
+    def __new__(cls,  _id):
+        if not _id in cls.registry: # don't use setdefault to avoid creating unnecessary objects
+            o = object.__new__(cls) # o is the ref that keeps it alive
+            o.id = _id
+            o.key = add_size('v' + _id)
+            cls.registry[_id] = o
+        return cls.registry[_id]
     def is_const(self):
         return False
     def __str__(self): return self.id 
@@ -91,6 +99,7 @@ class Fresh_var(object): # no interning needed
     fresh_var_state = 0  
     def __init__(self):
         self.id = str(Fresh_var.fresh_var_state)
+        self.key = add_size('v' + self.id)
         Fresh_var.fresh_var_state += 1 # ensures freshness
     def is_const(self):
         return False
@@ -102,8 +111,14 @@ def mk_fresh_var():
 
 class Const(Interned):
     registry = weakref.WeakValueDictionary()
-    def __init__(self, _id):
-        self.id = _id
+    def __new__(cls,  _id):
+        if not _id in cls.registry: # don't use setdefault to avoid creating unnecessary objects
+            o = object.__new__(cls) # o is the ref that keeps it alive
+            o.id = _id
+            o.key = add_size( 'c' + str(o.id) if isinstance(o.id, six.string_types) or isinstance(o.id, int) 
+                    else 'o' + str(id(o)) )
+            cls.registry[_id] = o
+        return cls.registry[_id]
     def is_const(self):
         return True
     def __str__(self): return "'%s'" % self.id 
@@ -176,9 +191,6 @@ class Literal(object):
 def make_literal(pred_name, terms, prearity=None, aggregate=None):
     return Literal(pred_name, terms, prearity, aggregate)
 
-def add_size(s):
-    return "%i:%s" % (len(s), s)
-
 # A literal's id is computed on demand, but then cached.  It is used
 # by a clause when creating its id.
 
@@ -187,13 +199,8 @@ def add_size(s):
 
 def get_id(literal):
     if not hasattr(literal, 'id'):
-        literal.id = add_size(literal.pred.id) + ''.join([add_size(term.get_id()) for term in literal.terms])
+        literal.id = add_size(literal.pred.id) + ''.join([term.key for term in literal.terms])
     return literal.id
-
-Const.get_id = lambda self : ( 'c' + str(self.id) if isinstance(self.id, six.string_types) or isinstance(self.id, int) 
-                    else 'o' + str(id(self)) )  # TODO for performance : calculate it at constant creation, or use id(self) for all ?
-Var.get_id = lambda self : 'v' + self.id
-Fresh_var.get_id = lambda self : 'v' + self.id
 
 # A literal's key is similar to get_id, but only uses the terms up to the prearity. 
 # It is used to ensure unicity of results of functions like "pred[k]=v"
@@ -204,10 +211,9 @@ def get_key(literal):
         if len(terms) == literal.prearity:
             literal.key = get_id(literal)
         else:
-            literal.key = add_size(literal.pred.id) + ''.join([add_size(terms[i].get_id()) for i in range(literal.prearity)])
+            literal.key = add_size(literal.pred.id) + ''.join([terms[i].key for i in range(literal.prearity)])
     return literal.key
     
-
 # Variant tag
 
 # Two literal's variant tags are the same if there is a one-to-one
@@ -224,7 +230,7 @@ def get_tag(literal):
         literal.tag += ''.join([add_size(term.get_tag(i, env)) for i, term in enumerate(literal.terms)])
     return literal.tag
      
-Const.get_tag = lambda self, i, env : self.get_id()
+Const.get_tag = lambda self, i, env : self.key
 Var.get_tag = lambda self, i, env : env[self] if self in env else env.setdefault(self, 'v%i' % i)
 Fresh_var.get_tag = lambda self, i, env : env[self] if self in env else env.setdefault(self, 'v%i' % i)
 
