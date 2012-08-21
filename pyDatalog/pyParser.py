@@ -191,7 +191,7 @@ def ask(code, _fast=None):
     newglobals = {}
     add_symbols(code.co_names, newglobals)
     lua_code = eval(code, newglobals)
-    return pyDatalog._ask_literal(lua_code, _fast)
+    return pyEngine.ask2(lua_code.lua, _fast)
 
 """                             Parser classes                                                   """
 
@@ -270,7 +270,7 @@ class Symbol(Expression):
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
-            return pyDatalog._ask_literal(args[0], fast)
+            return pyEngine.ask2(args[0].lua, fast)
         elif self._pyD_name == '__sum__':
             if isinstance(args[0], Symbol):
                 check_key(kwargs)

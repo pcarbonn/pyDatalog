@@ -140,15 +140,9 @@ def add_clause(head,body):
     clause = pyEngine.make_clause(head.lua, tbl)
     return pyEngine.assert_(clause)
     
-def _ask_literal(literal, _fast=None): # called by Literal
-    # print("asking : %s" % str(literal))
-    result = pyEngine.ask2(literal.lua, _fast)
-    return result
-
 #circ: share functions with pyParser and avoid circular import
 pyDatalog = Dummy()
 pyDatalog.DatalogError= DatalogError
-pyDatalog._ask_literal = _ask_literal
 pyDatalog.add_clause = add_clause
 pyDatalog._assert_fact = _assert_fact
 pyDatalog._retract_fact = _retract_fact
@@ -180,7 +174,7 @@ class metaMixin(type):
             if not attribute == '__iter__' and not attribute.startswith('_sa_'):
                 predicate_name = "%s.%s[1]" % (self.__class__.__name__, attribute)
                 literal = Literal(predicate_name, (self, Symbol("X")))
-                result = _ask_literal(literal)
+                result = pyEngine.ask(literal.lua)
                 return result.answers[0][-1] if result else None
             else: raise AttributeError
         cls.__getattr__ = _getattr   
@@ -211,7 +205,7 @@ class metaMixin(type):
                         terms.append(arg)
                     
                 literal = Literal(predicate_name, terms)
-                result = _ask_literal(literal)
+                result = pyEngine.ask(literal.lua)
                 if result: 
                     transposed = list(zip(*result.answers)) # transpose result
                     for i, arg in enumerate(args):
@@ -253,7 +247,7 @@ class metaMixin(type):
                                 terms.append(arg)
                             
                         literal = Literal(predicate_name, terms)
-                        result = _ask_literal(literal)
+                        result = pyEngine.ask(literal.lua)
                         if result: 
                             transposed = list(zip(*result.answers)) # transpose result
                             for i, arg in enumerate(keys):
