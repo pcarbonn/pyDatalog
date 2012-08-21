@@ -423,10 +423,27 @@ class Literal(object):
     """
     def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
         self.predicate_name = predicate_name
-        self.terms = terms
         self.prearity = prearity or len(terms)
         self.pre_calculations = Body()
-
+        
+        variables = [term for term in terms if isinstance(term, pyDatalog.Variable)]
+        if variables:
+            args = terms
+            cls = self.predicate_name.split('.')[0]
+            terms, env = [], {}
+            for i, arg in enumerate(args):
+                if isinstance(arg, pyDatalog.Variable):
+                    del arg[:] # reset variables
+                    # deal with (X,X)
+                    variable = env.get(id(arg), Symbol('X%i' % i))
+                    env[id(arg)] = variable
+                    terms.append(variable)
+                elif i==0 and arg.__class__.__name__ != cls:
+                    raise TypeError("Object is incompatible with the class that is queried.")
+                else:
+                    terms.append(arg)
+        self.terms = terms
+                            
         # adjust head literal for aggregate
         h_terms = list(terms)
         if isinstance(terms[-1], Aggregate):
@@ -467,6 +484,14 @@ class Literal(object):
         # now create the literal for the head of a clause
         self.lua = pyEngine.make_literal(h_predicate_name, tbl, h_prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
+        
+        if variables:
+            result = pyEngine.ask(self.lua)
+            if result: 
+                transposed = list(zip(*result.answers)) # transpose result
+                for i, arg in enumerate(args):
+                    if isinstance(arg, pyDatalog.Variable) and len(arg)==0:
+                        arg.extend(transposed[i])
 
     def __pos__(self):
         " unary + means insert into database as fact "
@@ -544,7 +569,8 @@ class Function(Expression):
         return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
 
     def __eq__(self, other):
-        if not isinstance(other, (six.string_types, int, Symbol, Aggregate)):
+        if (not isinstance(other, (six.string_types, int, Symbol, Aggregate)) 
+            and all([isinstance(key, (six.string_types, int, Symbol)) for key in self.keys])):
             raise pyDatalog.DatalogError("The right hand side of a function literal must be a constant or variable", None, None)
         terms = list(self.keys)
         terms.append(other)

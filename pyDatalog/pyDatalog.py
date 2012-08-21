@@ -154,6 +154,7 @@ pyEngine.pyDatalog = pyDatalog
 
 class Variable(list):
     pass
+pyDatalog.Variable = Variable
 
 """Keep a dictionary of classes with datalog capabilities.  This list is used by pyEngine to resolve prefixed literals."""
 Class_dict = {}
@@ -185,81 +186,7 @@ class metaMixin(type):
                 '__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__', 
                 '__table_cls__'):
             raise AttributeError
-
-        class Pseudo_attribute(object):
-            def __call__(self, *args):
-                """ responds to class.attribute(x,y)"""
-                predicate_name = "%s.%s" % (cls.__name__, method)
-                
-                terms, env = [], {}
-                for i, arg in enumerate(args):
-                    if isinstance(arg, Variable):
-                        del arg[:] # reset variables
-                        # deal with (X,X)
-                        variable = env.get(id(arg), Symbol('X%i' % i))
-                        env[id(arg)] = variable
-                        terms.append(variable)
-                    elif i==0 and arg.__class__ != cls:
-                        raise TypeError("Object is incompatible with the class that is queried.")
-                    else:
-                        terms.append(arg)
-                    
-                literal = Literal(predicate_name, terms)
-                result = pyEngine.ask(literal.lua)
-                if result: 
-                    transposed = list(zip(*result.answers)) # transpose result
-                    for i, arg in enumerate(args):
-                        if isinstance(arg, Variable) and len(arg)==0:
-                            arg.extend(transposed[i])
-                return result
-            
-            def __getitem__(self, keys):
-                """ responds to class.attribute[x,y] by returning another object"""
-                if not isinstance(keys, tuple):
-                    keys = (keys,)
-                class Logic_function(object):
-                    def __eq__(self, other):
-                        if isinstance(other, Variable) or not getattr(other, '__iter__', False):
-                            other = (other,)
-                        predicate_name = "%s.%s[%i]" % (cls.__name__, method, len(keys))
-                        
-                        #TODO avoid duplication of loops, by joining keys and other
-                        terms, env = [], {}
-                        for i, arg in enumerate(keys):
-                            if isinstance(arg, Variable):
-                                del arg[:] # reset variables
-                                # deal with [X,X]
-                                variable = env.get(id(arg), Symbol('X%i' % i))
-                                env[id(arg)] = variable
-                                terms.append(variable)
-                            elif i==0 and arg.__class__ != cls:
-                                raise TypeError("Object is incompatible with the class that is queried.")
-                            else:
-                                terms.append(arg)
-                        for i, arg in enumerate(other):
-                            if isinstance(arg, Variable):
-                                del arg[:] # reset variables
-                                # deal with [X,X]
-                                variable = env.get(id(arg), Symbol('Y%i' % i))
-                                env[id(arg)] = variable
-                                terms.append(variable)
-                            else:
-                                terms.append(arg)
-                            
-                        literal = Literal(predicate_name, terms)
-                        result = pyEngine.ask(literal.lua)
-                        if result: 
-                            transposed = list(zip(*result.answers)) # transpose result
-                            for i, arg in enumerate(keys):
-                                if isinstance(arg, Variable) and len(arg)==0:
-                                    arg.extend(transposed[i])
-                            j = i+1
-                            for i, arg in enumerate(other):
-                                if isinstance(arg, Variable) and len(arg)==0:
-                                    arg.extend(transposed[j+i])
-                        return result
-                return Logic_function()
-        return Pseudo_attribute()
+        return pyParser.Symbol("%s.%s" % (cls.__name__, method))
 
     def pyDatalog_search(cls, literal):
         """Called by pyEngine to resolve a prefixed literal for a subclass of Mixin."""
