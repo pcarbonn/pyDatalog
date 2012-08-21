@@ -552,7 +552,8 @@ def resolve(clause, literal):
     if env == None: return None
     return make_clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
  
-# A stack of thunks used to delay the evaluation of some expressions
+# A stack of thunks used to avoid the stack overflow problem
+# by delaying the evaluation of some functions
 
 Fast = None
 tasks = None
@@ -566,17 +567,17 @@ class Thunk(object):
     def do(self):
         self.thunk()
         
-def sched(thunk):
+def schedule(task):
     global tasks
-    if Fast: return thunk()
-    return tasks.append(Thunk(thunk))
+    if Fast: return task.do()
+    return tasks.append(task)
 
 def complete(thunk, post_thunk):
     """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
     global Fast, subgoals, tasks, Stack
     Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
     subgoals, tasks = {}, []
-    sched(thunk)
+    schedule(Thunk(thunk))
     if Fast: 
         #TODO pop to recover memory space
         return post_thunk() # don't bother with thunks if Fast
@@ -584,7 +585,7 @@ def complete(thunk, post_thunk):
     # so that it is run immediately by invoke() after the search() thunk is complete
     Stack[-1][1].insert(0, Thunk(post_thunk)) 
     
-# Invoke the scheduled tasks
+# Invoke the tasks. Each task may append new tasks on the schedule.
 
 def invoke(thunk):
     global tasks, subgoals
@@ -599,16 +600,12 @@ def invoke(thunk):
             if Debug: print('pop')
     tasks = None
 
-# dedicated objects for search(), add_clause() give better performance than thunks 
+# dedicated objects give better performance than thunks 
 class Search(object):
     def __init__(self, subgoal):
         self.subgoal = subgoal
     def do(self):
         search(self.subgoal)
-def sched_search(subgoal):
-    global tasks
-    if Fast: return search(subgoal)
-    return tasks.append(Search(subgoal)) 
 
 class Add_clause(object):
     def __init__(self, subgoal, clause):
@@ -617,11 +614,6 @@ class Add_clause(object):
     def do(self):
         add_clause(self.subgoal, self.clause)
         
-def sched_add_clause(subgoal, clause):
-    global tasks
-    if Fast: return add_clause(subgoal, clause)
-    return tasks.append(Add_clause(subgoal, clause))       
-
 # Store a fact, and inform all waiters of the fact too.
 
 def fact(subgoal, literal):
@@ -631,7 +623,7 @@ def fact(subgoal, literal):
         for waiter in reversed(subgoal.waiters):
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
-                sched_add_clause(waiter.subgoal, resolvent)
+                schedule(Add_clause(waiter.subgoal, resolvent))
 
 # Use a newly derived rule.
 
@@ -651,13 +643,13 @@ def rule(subgoal, clause, selected):
             if resolvent != None: 
                 todo.append(resolvent)
         for t in todo:
-            sched_add_clause(subgoal, t)
+            schedule(Add_clause(subgoal, t))
     else:
         if Debug: print("Rule, subgoal not found : %s" % str(subgoal.literal))
         sg = make_subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
         merge(sg)
-        return sched_search(sg)
+        return schedule(Search(sg))
     
 def add_clause(subgoal, clause):
     if len(clause.body) == 0:
@@ -706,8 +698,8 @@ def search(subgoal):
                      lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
                         fact(subgoal, literal) if 0 == len(list(base_subgoal.facts.values())) else None)
                 
-        sched(lambda base_literal=base_literal, subgoal=subgoal, literal=literal: 
-                       _search(base_literal, subgoal, literal))
+        schedule(Thunk(lambda base_literal=base_literal, subgoal=subgoal, literal=literal: 
+                       _search(base_literal, subgoal, literal)))
     elif literal.pred.aggregate:
         aggregate = literal.pred.aggregate
         base_pred_name = get_name(literal.pred)+'!' # TODO performance : store in literal.pred
@@ -745,11 +737,11 @@ def search(subgoal):
             renamed = rename_clause(clause)
             env = unify(literal, renamed.head)
             if env != None: # lua considers {} as true
-                sched_add_clause(subgoal, subst_in_clause(renamed, env))
+                schedule(Add_clause(subgoal, subst_in_clause(renamed, env)))
     else: # try resolving a prefixed literal by accessing the corresponding python class
         _class = literal.pred._class()
         if _class:
-            #TODO use sched() too ?
+            #TODO use schedule() too ?
             for result in _class.pyDatalog_search(literal):
                 fact(subgoal, result)
             
