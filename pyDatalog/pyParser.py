@@ -195,6 +195,37 @@ def ask(code, _fast=None):
 
 """                             Parser classes                                                   """
 
+class LazyList(object):
+    """a list that is calculated when it is accessed """
+    """used by Literal, Body to delay evaluation of datalog queries written in python  """
+    def __init__(self):
+        self.todo = None # self.todo.ask() calculates self._list
+        self._list = []
+
+    def __iter__(self):
+        if self.todo: self.todo.ask()
+        return self._list
+    
+    def __len__(self):
+        if self.todo: self.todo.ask()
+        return len(self._list)
+
+    def __getitem__(self, item):
+        if self.todo: self.todo.ask()
+        return list.__getitem__(self._list, item)
+    
+    def __str__(self): 
+        if self.todo: self.todo.ask()
+        return str(self._list)
+    
+    def __repr__(self):
+        if self.todo: self.todo.ask()
+        return repr(self._list)
+        
+    def reversed(self):
+        if self.todo: self.todo.ask()
+        return reversed(self._list)
+
 class Expression(object):
     def _precalculation(self):
         # by default, there is no precalculation needed to evaluate an expression
@@ -428,12 +459,13 @@ class Literal(object):
         
         variables = [term for term in terms if isinstance(term, pyDatalog.Variable)]
         if variables:
-            args = terms
+            self.args = terms
             cls = self.predicate_name.split('.')[0]
             terms, env = [], {}
-            for i, arg in enumerate(args):
+            for i, arg in enumerate(self.args):
                 if isinstance(arg, pyDatalog.Variable):
-                    del arg[:] # reset variables
+                    arg.todo = self
+                    del arg._list[:] # reset variables
                     # deal with (X,X)
                     variable = env.get(id(arg), Symbol('X%i' % i))
                     env[id(arg)] = variable
@@ -484,14 +516,15 @@ class Literal(object):
         # now create the literal for the head of a clause
         self.lua = pyEngine.make_literal(h_predicate_name, tbl, h_prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
-        
-        if variables:
-            result = pyEngine.ask(self.lua)
-            if result: 
-                transposed = list(zip(*result.answers)) # transpose result
-                for i, arg in enumerate(args):
-                    if isinstance(arg, pyDatalog.Variable) and len(arg)==0:
-                        arg.extend(transposed[i])
+
+    def ask(self):        
+        result = pyEngine.ask(self.lua)
+        if result: 
+            transposed = list(zip(*result.answers)) # transpose result
+            for i, arg in enumerate(self.args):
+                if isinstance(arg, pyDatalog.Variable) and len(arg._list)==0:
+                    arg._list.extend(transposed[i])
+                    arg.todo = None
 
     def __pos__(self):
         " unary + means insert into database as fact "

@@ -152,7 +152,7 @@ pyEngine.pyDatalog = pyDatalog
 
 """ ****************** python Mixin ***************** """
 
-class Variable(list):
+class Variable(pyParser.LazyList):
     pass
 pyDatalog.Variable = Variable
 
@@ -185,7 +185,8 @@ class metaMixin(type):
         if cls in ('Mixin', 'metaMixin') or method in (
                 '__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__', 
                 '__table_cls__'):
-            raise AttributeError
+            raise AttributeError        
+
         return pyParser.Symbol("%s.%s" % (cls.__name__, method))
 
     def pyDatalog_search(cls, literal):
