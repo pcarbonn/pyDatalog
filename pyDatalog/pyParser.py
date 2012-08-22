@@ -474,6 +474,8 @@ class Literal(object):
                     raise TypeError("Object is incompatible with the class that is queried.")
                 else:
                     terms.append(arg)
+        else:
+            self.args = []
         self.terms = terms
                             
         # adjust head literal for aggregate
@@ -517,7 +519,8 @@ class Literal(object):
         self.lua = pyEngine.make_literal(h_predicate_name, tbl, h_prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
 
-    def ask(self):        
+    def ask(self):
+        assert self.args # ask() must be used with literal containing pyDatalog.Variable instances        
         result = pyEngine.ask(self.lua)
         if result: 
             transposed = list(zip(*result.answers)) # transpose result
@@ -528,19 +531,23 @@ class Literal(object):
 
     def __pos__(self):
         " unary + means insert into database as fact "
+        assert not self.args # '+' cannot be used with literal containing pyDatalog.Variable instances
         pyDatalog._assert_fact(self)
 
     def __neg__(self):
         " unary - means retract fact from database "
+        assert not self.args # '-' cannot be used with literal containing pyDatalog.Variable instances
         pyDatalog._retract_fact(self)
         
     def __invert__(self):
         """unary ~ means negation """
+        # TODO test with python queries
         negated_literal = Literal('~' + self.predicate_name, self.terms)
         return negated_literal
 
     def __le__(self, body):
         " head <= body"
+        assert not self.args # '<=' cannot be used with literal containing pyDatalog.Variable instances
         if isinstance(body, Literal):
             newBody = body.pre_calculations & body
         else:
