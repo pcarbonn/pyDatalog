@@ -203,28 +203,26 @@ class LazyList(object):
         self._list = []
 
     def __iter__(self):
-        if self.todo: self.todo.ask()
-        return self._list
-    
+        if not self.todo is None: self.todo.ask()
+        return iter(self._list)
     def __len__(self):
-        if self.todo: self.todo.ask()
+        if not self.todo is None: self.todo.ask()
         return len(self._list)
-
     def __getitem__(self, item):
-        if self.todo: self.todo.ask()
+        if not self.todo is None: self.todo.ask()
         return list.__getitem__(self._list, item)
-    
     def __str__(self): 
-        if self.todo: self.todo.ask()
+        if not self.todo is None: self.todo.ask()
         return str(self._list)
-    
     def __repr__(self):
-        if self.todo: self.todo.ask()
+        if not self.todo is None: self.todo.ask()
         return repr(self._list)
-        
     def reversed(self):
-        if self.todo: self.todo.ask()
+        if not self.todo is None: self.todo.ask()
         return reversed(self._list)
+    def __nonzero__(self):
+        if not self.todo is None: self.todo.ask()
+        return bool(self._list)
 
 class Expression(object):
     def _precalculation(self):
@@ -445,7 +443,7 @@ class Lambda(Expression):
     def __str__(self):
         return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(getattr(self.lambda_object,func_code).co_varnames))
         
-class Literal(object):
+class Literal(LazyList):
     """
     created by source code like 'p(a, b)'
     unary operator '+' means insert it as fact
@@ -456,9 +454,11 @@ class Literal(object):
         self.predicate_name = predicate_name
         self.prearity = prearity or len(terms)
         self.pre_calculations = Body()
+        LazyList.__init__(self)
         
-        variables = [term for term in terms if isinstance(term, pyDatalog.Variable)]
-        if variables:
+        symbols = [term for term in terms if isinstance(term, (Symbol, pyEngine.Const, pyEngine.Var, pyEngine.Fresh_var))]
+        if not symbols and 1< len(self.predicate_name.split('.')):
+            self.todo = self
             self.args = terms
             cls = self.predicate_name.split('.')[0]
             terms, env = [], {}
@@ -522,6 +522,8 @@ class Literal(object):
     def ask(self):
         assert self.args # ask() must be used with literal containing pyDatalog.Variable instances        
         result = pyEngine.ask(self.lua)
+        self._list = result.answers if isinstance(result, pyDatalog.Answer) else result
+        self.todo = None
         if result: 
             transposed = list(zip(*result.answers)) # transpose result
             for i, arg in enumerate(self.args):
@@ -565,8 +567,11 @@ class Literal(object):
         return Body(self, other)
 
     def __str__(self):
-        terms = list(map (str, self.terms))
-        return str(self.predicate_name) + "(" + ','.join(terms) + ")"
+        if not self.args:
+            terms = list(map (str, self.terms))
+            return str(self.predicate_name) + "(" + ','.join(terms) + ")"
+        else:
+            return LazyList.__str__(self)
 
 class Body(object):
     """
