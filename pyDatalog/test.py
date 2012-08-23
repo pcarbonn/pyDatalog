@@ -347,8 +347,10 @@ def test():
             (A.c[X]==N) <= (A.b[X]==N)
             
     a = A('a')
+    assert a.c == 'a'
     X = pyDatalog.Variable()
-    A.c[X]=='a'
+    result = A.c[X]=='a'
+    assert result == [(a, 'a')]
     assert X == [a]
     (A.c[X]=='a') & (A.b[X]=='b')
     assert X == []
