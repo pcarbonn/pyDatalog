@@ -203,31 +203,30 @@ class LazyList(object):
     def __init__(self):
         self.todo = None # self.todo.ask() calculates self._list
         self._list = []
+    def _value(self):
+        if self.todo is not None: self.todo.ask()
+        return self._list
 
     def __iter__(self):
-        if not self.todo is None: self.todo.ask()
-        return iter(self._list)
+        return iter(self._value())
     def __len__(self):
-        if not self.todo is None: self.todo.ask()
-        return len(self._list)
+        return len(self._value())
     def __getitem__(self, item):
-        if not self.todo is None: self.todo.ask()
-        return list.__getitem__(self._list, item)
+        return list.__getitem__(self._value(), item)
     def __str__(self): 
-        if not self.todo is None: self.todo.ask()
-        return str(self._list)
+        return str(self._value())
     def __repr__(self):
-        if not self.todo is None: self.todo.ask()
-        return repr(self._list)
+        return repr(self._value())
     def reversed(self):
-        if not self.todo is None: self.todo.ask()
-        return reversed(self._list)
+        return reversed(self._value())
     def __nonzero__(self):
-        if not self.todo is None: self.todo.ask()
-        return bool(self._list)
+        return bool(self._value())
     def __eq__(self, other):
-        if not self.todo is None: self.todo.ask()
-        return self._list == other
+        #TODO if iterable, use set
+        if self._value() and isinstance(self._list[0], LazyList): # if it's a result set
+            return set(self._list) == set(other)
+        else:
+            return self._list == other
 
 class Expression(object):
     def _precalculation(self):
