@@ -38,6 +38,7 @@ Methods exposed by this file:
 
 Classes contained in this file:
 * _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
+* LazyList : a subclassable list that is populated when it is accessed
 * Expression : base class for objects that can be part of an inequality or operation
 * Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
 * Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
@@ -50,7 +51,7 @@ Classes contained in this file:
 """
 
 import ast
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import inspect
 import os
 import re
@@ -190,13 +191,14 @@ def ask(code, _fast=None):
     code = compile(tree, 'ask', 'eval')
     newglobals = {}
     add_symbols(code.co_names, newglobals)
-    lua_code = eval(code, newglobals)
-    return pyEngine.ask2(lua_code.lua, _fast)
+    parsed_code = eval(code, newglobals)
+    parsed_code = parsed_code.literal() if isinstance(parsed_code, Body) else parsed_code
+    return pyEngine.toAnswer(parsed_code.lua, parsed_code.lua.ask(_fast))
 
 """                             Parser classes                                                   """
 
 class LazyList(object):
-    """a list that is calculated when it is accessed """
+    """a subclassable list that is populated when it is accessed """
     """used by Literal, Body to delay evaluation of datalog queries written in python  """
     def __init__(self):
         self.todo = None # self.todo.ask() calculates self._list
@@ -223,6 +225,9 @@ class LazyList(object):
     def __nonzero__(self):
         if not self.todo is None: self.todo.ask()
         return bool(self._list)
+    def __eq__(self, other):
+        if not self.todo is None: self.todo.ask()
+        return self._list == other
 
 class Expression(object):
     def _precalculation(self):
@@ -299,7 +304,8 @@ class Symbol(Expression):
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
-            return pyEngine.ask2(args[0].lua, fast)
+            literal = args[0] if not isinstance(args[0], Body) else args[0].literal()
+            return pyEngine.toAnswer(literal.lua, literal.lua.ask(fast))
         elif self._pyD_name == '__sum__':
             if isinstance(args[0], Symbol):
                 check_key(kwargs)
@@ -383,9 +389,9 @@ class Symbol(Expression):
     
     def _variables(self):
         if self._pyD_type == 'variable':
-            return {self._pyD_name : self}
+            return OrderedDict({self._pyD_name : self})
         else:
-            return {}
+            return OrderedDict()
 
     def __str__(self):
         return str(self._pyD_name)
@@ -456,6 +462,7 @@ class Literal(LazyList):
         self.pre_calculations = Body()
         LazyList.__init__(self)
         
+        # TODO cleanup by redifining self.args, .HasSymbols, .hasVariables, .prefix
         symbols = [term for term in terms if isinstance(term, (Symbol, pyEngine.Const, pyEngine.Var, pyEngine.Fresh_var))]
         if not symbols and 1< len(self.predicate_name.split('.')):
             self.todo = self
@@ -467,7 +474,7 @@ class Literal(LazyList):
                     arg.todo = self
                     del arg._list[:] # reset variables
                     # deal with (X,X)
-                    variable = env.get(id(arg), Symbol('X%i' % i))
+                    variable = env.get(id(arg), Symbol('X%i' % id(arg)))
                     env[id(arg)] = variable
                     terms.append(variable)
                 elif i==0 and arg.__class__.__name__ != cls:
@@ -480,7 +487,7 @@ class Literal(LazyList):
                             
         # adjust head literal for aggregate
         h_terms = list(terms)
-        if isinstance(terms[-1], Aggregate):
+        if terms and isinstance(terms[-1], Aggregate):
             self.aggregate = terms[-1]
             h_predicate_name = predicate_name + '!'
             # compute list of terms
@@ -520,12 +527,10 @@ class Literal(LazyList):
         # TODO check that l.pred.aggregate is empty
 
     def ask(self):
-        assert self.args # ask() must be used with literal containing pyDatalog.Variable instances        
-        result = pyEngine.ask(self.lua)
-        self._list = result.answers if isinstance(result, pyDatalog.Answer) else result
+        self._list = self.lua.ask(False)
         self.todo = None
-        if result: 
-            transposed = list(zip(*result.answers)) # transpose result
+        if self.args and self._list: 
+            transposed = list(zip(*(self._list))) # transpose result
             for i, arg in enumerate(self.args):
                 if isinstance(arg, pyDatalog.Variable) and len(arg._list)==0:
                     arg._list.extend(transposed[i])
@@ -582,6 +587,11 @@ class Body(object):
         self.literals = []
         for arg in args:
             self.literals += [arg] if isinstance(arg, Literal) else arg.literals
+        for literal in self.literals:
+            if hasattr(literal, 'args'):
+                for arg in literal.args:
+                    if isinstance(arg, pyDatalog.Variable):
+                        arg.todo = self
 
     def __and__(self, body2):
         if not (isinstance(body2, Body) or not body2.aggregate):
@@ -592,6 +602,28 @@ class Body(object):
         literals = list(map (str, self.literals))
         return ' & '.join(literals)
 
+    def literal(self):
+        # return a literal that can be queried to resolve the body
+        env, args = OrderedDict(), []
+        for literal in self.literals:
+            for term in literal.terms:
+                if isinstance(term, Symbol) and term._pyD_type == 'variable':
+                    env[term._pyD_name] = term
+            for arg in literal.args:
+                if isinstance(arg, pyDatalog.Variable):
+                    args.append(arg)
+        # TODO cleanup : use args instead of env.values() ?
+        literal = Literal('_pyD_query', list(env.values()))
+        literal.lua.pred.reset_clauses()
+        literal <= self
+        literal.args = args
+        return literal 
+        
+    def ask(self):
+        literal = self.literal()
+        literal.ask()
+        self._list = literal._list
+    
 class Function(Expression):
     """ represents predicate[a, b]"""
     Counter = 0

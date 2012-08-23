@@ -174,8 +174,8 @@ class metaMixin(type):
             if not attribute == '__iter__' and not attribute.startswith('_sa_'):
                 predicate_name = "%s.%s[1]" % (self.__class__.__name__, attribute)
                 literal = Literal(predicate_name, (self, Symbol("X")))
-                result = pyEngine.ask(literal.lua)
-                return result.answers[0][-1] if result else None
+                result = literal.lua.ask(False)
+                return result[0][-1] if result else None
             else: raise AttributeError
         cls.__getattr__ = _getattr   
     
