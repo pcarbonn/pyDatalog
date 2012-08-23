@@ -50,6 +50,7 @@ def test():
         assert ask(p(X)) == set([('a',)])
         assert ask(p(Y)) == set([('a',)])
         assert ask(p(b)) == None
+        # TODO assert ask(p(a) & p(b)) == None
         
         + p(b)
         assert ask(p(X), _fast=True) == set([('a',), ('b',)])
@@ -93,6 +94,19 @@ def test():
         - q(a,c)
         assert ask(q(a, Y)) == set([('a', 'b')])
         
+    """ Conjunctive queries                                             """
+
+    @pyDatalog.program()
+    def conjuctive(): 
+        assert ask(q(X, Y) & p(X)) == set([('a', 'b')])
+
+        assert ask(p(X) & p(a)) == set([('a',),('c',),(1,)])
+        assert ask(p(X) & p(Y) & (X==Y)) == set([('a', 'a'), ('c', 'c'), (1, 1)])
+        assert ask(p(X) & p(Y) & (X==Y) & (Y==a)) == set([('a', 'a')])
+
+        assert ask(q(X, Y)) == set([('a', 'b')])
+        assert ask(q(X, Y) & p(X)) == set([('a', 'b')])
+    
     """ clauses                                                         """
     
     @pyDatalog.program()
@@ -320,7 +334,26 @@ def test():
         #(a_rank[X, Y] == rank(group_by=X, key=-Z)) <= q(X, Y, Z)
         #assert ask(rank[a,b]==Y) == set([('a', 'b', 1)])
 
-    """ can't call a pyDatalog program                             """
+    """ interface with python classes                                        """
+
+    class A(pyDatalog.Mixin):
+        def __init__(self, b):
+            super(A, self).__init__()
+            self.b = b
+        def __repr__(self):
+            return self.b
+        @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
+        def _():
+            (A.c[X]==N) <= (A.b[X]==N)
+            
+    a = A('a')
+    X = pyDatalog.Variable()
+    A.c[X]=='a'
+    assert X == [a]
+    (A.c[X]=='a') & (A.b[X]=='b')
+    assert X == []
+
+    """ error detection                                              """
     
     @pyDatalog.program()
     def _(): 
@@ -347,7 +380,6 @@ def test():
             _error = True
         assert _error
 
-    """ error detection                      """
     test_error("+ farmer(farmer(moshe))")
     test_error("+ manager[Mary]==John")
     test_error("manager[X]==Y <= (X==Y)")

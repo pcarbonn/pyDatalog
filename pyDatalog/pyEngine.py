@@ -148,6 +148,11 @@ class Pred(Interned):
             o.aggregate = args[2]
             cls.registry[_id] = o
         return cls.registry[_id]
+    
+    def reset_clauses(self):
+        for clause in list(self.clauses):
+            retract(clause)
+    
     def __init__(self, pred_name, arity, aggregate):
         pass
     def __str__(self): return "%s()" % get_name(self)
@@ -750,8 +755,7 @@ def search(subgoal):
 # the predicate, the predicate's arity, and an array of constant
 # terms for each answer.  If there are no answers, nil is returned.
 
-def ask2(literal, fast):
-    # same as 'ask', but with 'fast' argument
+def _(literal, fast):
     global Fast, subgoals, tasks, Stack
     Fast = fast
     
@@ -760,8 +764,10 @@ def ask2(literal, fast):
     merge(subgoal)
     invoke(lambda subgoal=subgoal: search(subgoal))
     subgoals = None
-    
-    answers = [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]
+    return [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]    
+Literal.ask = _
+
+def toAnswer(literal, answers):
     if 0 < len(answers):
         answer = pyDatalog.Answer(get_name(literal.pred), get_arity(literal.pred), answers)
     else:
@@ -769,9 +775,6 @@ def ask2(literal, fast):
     if Auto_print: 
         print(answers)
     return answer
-    
-def ask(query):
-    return ask2(query, False)
     
 # PRIMITIVES
 
