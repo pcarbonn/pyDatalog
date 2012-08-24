@@ -352,8 +352,12 @@ def test():
     result = A.c[X]=='a'
     assert result == [(a, 'a')]
     assert X == [a]
-    (A.c[X]=='a') & (A.b[X]=='b')
+    (A.c[X]=='b') & (A.b[X]=='a')
     assert X == []
+    (A.c[X]=='a') & (A.b[X]=='a')
+    assert X == [a]
+    result = (A.c[X]=='a') & (A.b[X]=='a')
+    assert result == [(a,)]
 
     """ error detection                                              """
     

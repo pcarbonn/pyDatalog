@@ -743,12 +743,14 @@ def search(subgoal):
             env = unify(literal, renamed.head)
             if env != None: # lua considers {} as true
                 schedule(Add_clause(subgoal, subst_in_clause(renamed, env)))
-    else: # try resolving a prefixed literal by accessing the corresponding python class
+    elif '.' in literal.pred.id: # try resolving a prefixed literal by accessing the corresponding python class
         _class = literal.pred._class()
         if _class:
             #TODO use schedule() too ?
             for result in _class.pyDatalog_search(literal):
                 fact(subgoal, result)
+    else:
+        print("Warning : unknown predicate : %s" % literal.pred.id) 
             
 # Sets up and calls the subgoal search procedure, and then extracts
 # the answers into an easily used table.  The table has the name of

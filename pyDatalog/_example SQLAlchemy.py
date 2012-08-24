@@ -57,32 +57,53 @@ class Employee(Base): # --> Employee inherits from the Base class
 Base.metadata.create_all(engine) 
 
 # create rows for 2 employees
+# John is the manager of Mary, who is the manager of Sam
 John = Employee('John', None, 6800)
 Mary = Employee('Mary', 'John', 6300)
+Sam = Employee('Sam', 'Mary', 5900)
 
 session.add(John)
 session.add(Mary)
+session.add(Sam)
 session.commit()
 
 """ 4. Query the objects using the datalog engine """
-# the following python statements implicitly use the datalog clauses
+# the following python statements implicitly use the datalog clauses in the class definition
+
+# What is the salary class of John ?
+print(John.salary_class) # prints 6
 
 # who has a salary of 6300 ?
 X = pyDatalog.Variable()
 Employee.salary[X] == 6300 # notice the similarity to a pyDatalog query
-print(X) # prints (Mary,)
-
-# what is the salary class of Mary ?
-Employee.salary_class[Mary] == X
-print(X) # prints (6,)
-
-# Who are the employees with a salary class of 6 ?
-Employee.salary_class[X] == 6
-print(X) # prints (John, Mary)
+print(X) # prints [Employee: Mary]
 
 # who are the indirect managers of Mary ?
 Employee.indirect_manager(Mary, X)
-print(X) # prints (John,)
+print(X) # prints [Employee: John]
+
+# Who are the employees of John with a salary class of 5 ?
+result = (Employee.salary_class[X] == 5) & Employee.indirect_manager(X, John)
+print result # prints [(Employee: Sam,)]
+print(X) # prints [Employee: Sam]
+
+# verify that the manager of Mary is John
+assert Employee.manager[Mary]==John
+
+# who is his own indirect manager ?
+Employee.indirect_manager(X, X)
+print(X) # prints []
+
+# what is the total salary of the employees of John ?
+# note : it is better to place aggregation clauses in the class definition 
+pyDatalog.load("(Employee.budget[X] == sum(N, key=Y)) <= (Employee.indirect_manager(Y, X)) & (Employee.salary[Y]==N)")
+Employee.budget[John]==X
+print(X) # prints [12200]
+
+# who has the lowest salary ?
+pyDatalog.load("(lowest[1] == min(X, key=N)) <= (Employee.salary[X]==N)")
+# must use ask() because inline queries cannot use unprefixed literals 
+print(pyDatalog.ask("lowest[1]==X")) # prints set([(1, Employee: Sam)])
 
 # start the datalog console, for interactive querying of employee
 import console # or: from pyDatalog import console
