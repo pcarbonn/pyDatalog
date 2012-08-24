@@ -11,8 +11,6 @@ import pyDatalog # or: from pyDatalog import pyDatalog
 
 """ 1. define python class and business rules """
 
-import pyDatalog # or: from pyDatalog import pyDatalog
-
 class Employee(pyDatalog.Mixin):   # --> Employee inherits the pyDatalog capability to use logic clauses
     
     def __init__(self, name, manager, salary): # method to initialize Employee instances
@@ -35,36 +33,48 @@ class Employee(pyDatalog.Mixin):   # --> Employee inherits the pyDatalog capabil
         Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Z) & Employee.indirect_manager(Z,Y)
 
 """ 2. create python objects for 2 employees """
+# John is the manager of Mary, who is the manager of Sam
 John = Employee('John', None, 6800)
 Mary = Employee('Mary', John, 6300)
+Sam = Employee('Sam', Mary, 5900)
 
 """ 3. Query the objects using the datalog engine """
 # the following python statements implicitly use the datalog clauses in the class definition
 
-# What is the salary class of Mary ?
-print(Mary.salary_class) # prints 6
+# What is the salary class of John ?
+print(John.salary_class) # prints 6
 
 # who has a salary of 6300 ?
 X = pyDatalog.Variable()
 Employee.salary[X] == 6300 # notice the similarity to a pyDatalog query
-print(X) # prints (Mary,)
-
-# Who are the employees with a salary class of 6 ?
-Employee.salary_class[X] == 6
-print(X) # prints (John, Mary)
+print(X) # prints [Mary]
 
 # who are the indirect managers of Mary ?
 Employee.indirect_manager(Mary, X)
-print(X) # prints (John,)
+print(X) # prints [John]
 
+# Who are the employees of John with a salary class of 5 ?
+result = (Employee.salary_class[X] == 5) & Employee.indirect_manager(X, John)
+print result # prints [(Sam,)]
+print(X) # prints [Sam]
+
+# verify that the manager of Mary is John
 assert Employee.manager[Mary]==John
-# who is his own  managers ?
-Employee.manager[X]==X
-print(X) # prints (,)
 
-# who is his own indirect managers ?
+# who is his own indirect manager ?
 Employee.indirect_manager(X, X)
-print(X) # prints (,)
+print(X) # prints []
+
+# what is the total salary of the employees of John ?
+# note : it is better to place aggregation clauses in the class definition 
+pyDatalog.load("(Employee.budget[X] == sum(N, key=Y)) <= (Employee.indirect_manager(Y, X)) & (Employee.salary[Y]==N)")
+Employee.budget[John]==X
+print(X) # prints [12200]
+
+# who has the lowest salary ?
+pyDatalog.load("(lowest[1] == min(X, key=N)) <= (Employee.salary[X]==N)")
+# must use ask() because inline queries cannot use unprefixed literals 
+print(pyDatalog.ask("lowest[1]==X")) # prints set([(1, 'Sam')])
 
 # start the datalog console, for interactive querying of employee
 import console # or: from pyDatalog import console

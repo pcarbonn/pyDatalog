@@ -199,7 +199,8 @@ def ask(code, _fast=None):
 
 class LazyList(object):
     """a subclassable list that is populated when it is accessed """
-    """used by Literal, Body to delay evaluation of datalog queries written in python  """
+    """used by Literal, Body, pyDatalog.Variable to delay evaluation of datalog queries written in python  """
+    """ during debugging, beware that viewing a Lazylist will force its udpate""" 
     def __init__(self):
         self.todo = None # self.todo.ask() calculates self._list
         self._list = []
@@ -456,10 +457,10 @@ class Literal(LazyList):
     operator '<=' means 'is true if', and creates a Clause
     """
     def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
+        LazyList.__init__(self)
         self.predicate_name = predicate_name
         self.prearity = prearity or len(terms)
         self.pre_calculations = Body()
-        LazyList.__init__(self)
         
         # TODO cleanup by redifining self.args, .HasSymbols, .hasVariables, .prefix
         symbols = [term for term in terms if isinstance(term, (Symbol, pyEngine.Const, pyEngine.Var, pyEngine.Fresh_var))]
@@ -577,17 +578,21 @@ class Literal(LazyList):
         else:
             return LazyList.__str__(self)
 
-class Body(object):
+class Body(LazyList):
     """
     created by p(a,b) & q(c,d)
     operator '&' means 'and', and returns a Body
     """
     def __init__(self, *args):
+        LazyList.__init__(self)
         self.literals = []
         for arg in args:
             self.literals += [arg] if isinstance(arg, Literal) else arg.literals
+        self.hasVariables = False
         for literal in self.literals:
             if hasattr(literal, 'args'):
+                self.hasVariables = True
+                self.todo = self
                 for arg in literal.args:
                     if isinstance(arg, pyDatalog.Variable):
                         arg.todo = self
@@ -598,6 +603,8 @@ class Body(object):
         return Body(self, body2)
     
     def __str__(self):
+        if self.hasVariables:
+            return LazyList.__str__(self)
         literals = list(map (str, self.literals))
         return ' & '.join(literals)
 
