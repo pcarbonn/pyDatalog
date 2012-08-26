@@ -332,8 +332,7 @@ class Symbol(Expression):
             else:
                 return max(args)
         elif self._pyD_name == 'rank':
-            check_key(kwargs)
-            args = (kwargs['key'],)
+            args = (kwargs['group_by'], kwargs['order_by'], kwargs['for_each'])
             return Rank_aggregate(args)
         elif self._pyD_name == '__len__':
             if isinstance(args[0], Symbol):
@@ -488,18 +487,21 @@ class Literal(LazyList):
         # adjust head literal for aggregate
         h_terms = list(terms)
         if terms and isinstance(terms[-1], Aggregate):
-            self.aggregate = terms[-1]
+            # example : a[X] = sum(Y, key = Z)
+            self.aggregate = terms[-1] # sum(Y, key=Z)
             h_predicate_name = predicate_name + '!'
             # compute list of terms
-            del h_terms[-1]
+            del h_terms[-1] # --> (X,)
             base_terms = list(h_terms) # creates a copy
+            # OK to use any variable to represent the aggregate value
+            base_terms.append(Symbol('X')) # (X, X)
+
             for arg in self.aggregate.args:
                 if isinstance(arg, Symbol):
                     h_terms.append(arg)
                 else:
                     h_terms.extend(arg)
-            h_prearity = len(h_terms)
-            base_terms.append(Symbol('X')) # OK to use any variable
+            h_prearity = len(h_terms) # (X,Y,Z)
             
             # create the second predicate # TODO use make_pred instead
             l = Literal(predicate_name, base_terms, prearity, self.aggregate)
@@ -672,25 +674,31 @@ class Function(Expression):
 
         
 class Aggregate(object):
-    """ represents aggregation_method(X,Y)"""
+    """ represents aggregation_method(X,Y), e.g. 'sum(Y,key=Z)' in '(a[X]==sum(Y,key=Z))'"""
+    """ provide defaults methods that may need to be overriden for some aggregation methods"""
+    """ pyEngine calls sort_result(), key(), reset(), add() and fact() to compute the aggregate"""
     def __init__(self, args):
-        if isinstance(args, Symbol):
-            args = (args,)
-        # make sure that 2nd argument is iterable
-        if 1 < len(args) and isinstance(args[1], Symbol):
+        # correct for method(Y), method(Y,key=(Z,..)) 
+        if isinstance(args, Symbol): # len(Y), for example
+            args = (args,) # (Y,)
+        elif 1 < len(args) and isinstance(args[1], Symbol): # correct only for method(Y,key=Z)
+            # make sure that 2nd argument is iterable
             args = list(args)
-            args[1] = (args[1],)
+            args[1] = (args[1],) # [Y, (Z,)]
         self.args = args
     
     @property
-    def arity(self):
+    def arity(self): 
+        # correct only for aggregation_method(Y, key=(Z,...))
         return 1 + len(self.args[1])
         
     def sort_result(self, result):
+        # default sort order : X,Y,Z for a[X] = agg(Y,key=Z)
         result.sort(key=lambda literal: [id(term) for term in literal])
     
     def key(self, result):
         # return the grouping key of a result
+        # default is X1,X2 for a[X1,X2] = agg(Y,key=Z)
         return list(result[:len(result)-self.arity])
     
     def reset(self):
@@ -700,13 +708,16 @@ class Aggregate(object):
     def value(self):
         return self._value
     
+    def fact(self,k):
+        return k + [pyEngine.make_const(self.value)]
+       
     def __le__(self,other):
         raise pyDatalog.DatalogError("Syntax error: Invalid use of Aggregate function. Please consider using parenthesis around aggregate definition.")
 
 class Sum_aggregate(Aggregate):
-    """ represents sum_foreach(X, key=(Y,Z))"""
-    def add(self, other):
-        self._value += other[-self.arity].id
+    """ represents sum(X, key=(Y,Z))"""
+    def add(self, row):
+        self._value += row[-self.arity].id
         
 class Len_aggregate(Aggregate):
     """ represents len(X)"""
@@ -714,26 +725,28 @@ class Len_aggregate(Aggregate):
     def arity(self):
         return 1
         
-    def add(self, other):
+    def add(self, row):
         self._value += 1
 
 class Concat_aggregate(Aggregate):
-    """ represents concat(X, key=(Y,Z), sep=sep)"""
+    """ represents concat(Y, key=(Z1,Z2), sep=sep)"""
     @property
     def arity(self):
         return 2 + len(self.args[1])
         
     def sort_result(self, result):
-        for i in reversed(range(len(self.args[1]))):
-            result.sort(key=lambda literal, i=i: literal[-i-2].id, # -1 for separator
-                reverse = self.args[1][i]._pyD_negated)
+        # first sort per Z1,Z2
+        for i in range(len(self.args[1])):
+            result.sort(key=lambda literal, i=i: literal[-i-2].id, # -2 because of separator
+                reverse = self.args[1][-i-1]._pyD_negated)
+        # then sort per X1,X2
         result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
     
     def reset(self):
         self._value = []
         
-    def add(self, other):
-        self._value.append(other[-self.arity].id)
+    def add(self, row):
+        self._value.append(row[-self.arity].id)
         
     @property
     def value(self):
@@ -742,41 +755,78 @@ class Concat_aggregate(Aggregate):
 class Min_aggregate(Aggregate):
     """ represents min(X, key=(Y,Z))"""
     def sort_result(self, result):
-        for i in reversed(range(len(self.args[1]))):
+        # first sort per Z1,Z2
+        for i in range(len(self.args[1])):
             result.sort(key=lambda literal, i=i: literal[-i-1].id,
-                reverse = self.args[1][i]._pyD_negated)
+                reverse = self.args[1][-i-1]._pyD_negated)
+        # then sort per X1,X2
         result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
         pass
     
     def reset(self):
         self._value = None
         
-    def add(self, other):
-        self._value = other[-self.arity].id if self._value is None else self._value
+    def add(self, row):
+        self._value = row[-self.arity].id if self._value is None else self._value
 
 class Max_aggregate(Aggregate):
     """ represents max(X, key=(Y,Z))"""
     def sort_result(self, result):
-        for i in reversed(range(len(self.args[1]))):
+        # first sort per Z1,Z2
+        for i in range(len(self.args[1])):
             result.sort(key=lambda literal, i=i: literal[-i-1].id,
-                reverse = not self.args[1][i]._pyD_negated)
+                reverse = not self.args[1][-i-1]._pyD_negated)
+        # then sort per X1,X2
         result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
         pass
     
     def reset(self):
         self._value = None
         
-    def add(self, other):
-        self._value = other[-self.arity].id if self._value is None else self._value
+    def add(self, row):
+        self._value = row[-self.arity].id if self._value is None else self._value
 
 class Rank_aggregate(Aggregate):
-    """ TODO represents rank(group_by=(X), key(Y)"""
+    """ represents rank(group_by=(Y), order_by(T), for_each=(Z)"""
+    def __init__(self, args):
+        args = list(args)
+        if 0 < len(args) and isinstance(args[0], Symbol):
+            args[0] = (args[0],)
+        if 1 < len(args) and isinstance(args[1], Symbol):
+            args[1] = (args[1],)
+        if 2 < len(args) and isinstance(args[2], Symbol):
+            args[2] = (args[2],)
+        self.args = args
+    
     @property
     def arity(self):
-        return len(self.args[0])
+        return len(self.args[0]) + len(self.args[1]) + len(self.args[2])
 
     def sort_result(self, result):
-        key = self.args[0]
-        for i in reversed(range(len(key))):
+        # sort per Y, Z, T
+        key = self.args[0] + self.args[1] + self.args[2]
+        for i in range(len(key)):
             result.sort(key=lambda literal, i=i: literal[-i-1].id,
-                reverse = key[i]._pyD_negated)
+                reverse = key[-i-1]._pyD_negated)
+        # significant indexes in the result rows
+        self.for_each_start = len(result[0]) - len(self.args[2])
+        self.order_by_start = self.for_each_start - len(self.args[1])
+        self.group_start = self.order_by_start - len(self.args[0])
+        pass
+
+    def key(self, result):
+        # key = Y
+        return list(result[self.group_start:self.order_by_start])
+    
+    def reset(self):
+        self.count = 0
+        self._value = None
+
+    def add(self, row):
+        # retain the value if (X,) == (Z,)
+        if row[:self.group_start] == row[self.for_each_start:]:
+            self._value = list(row[:self.group_start]) + [pyEngine.make_const(self.count),]
+        self.count += 1
+        
+    def fact(self, k):
+        return self._value
