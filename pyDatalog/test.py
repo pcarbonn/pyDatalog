@@ -318,9 +318,10 @@ def test():
         
         (a_min2[X, Y] == min(Z, key=(X,Y))) <= q(X, Y, Z)
         assert ask(a_min2[Y, b]==X) == set([('a', 'b', '2'),('b', 'b', '4')])
+        assert ask(a_min2[Y, Y]==X) == set([('b', 'b', '4')]), "a_min2"
         
-        (a_min3[X, Y] == min(Z, key=(X,Y))) <= q(X, Y, Z)
-        assert ask(a_min3[Y, Y]==X) == set([('b', 'b', '4')])
+        (a_min3[Y] == min(Z, key=(-X,Z))) <= q(X, Y, Z)
+        assert ask(a_min3[b]==Y) == set([('b', '4')]), "a_min3"
         
         #max
         assert max(1,2) == 2
@@ -331,8 +332,11 @@ def test():
         assert ask(a_maxD[a]==X) == set([('a', 'b')])
 
         # rank
-        #(a_rank[X, Y] == rank(group_by=X, key=-Z)) <= q(X, Y, Z)
-        #assert ask(rank[a,b]==Y) == set([('a', 'b', 1)])
+        (a_rank[X,Y] == rank(for_each=(X,Y2), group_by=X, order_by=Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
+        assert ask(a_rank[a,b]==Y) == set([('a', 'b', 1)])
+        # inversed
+        (b_rank[X,Y] == rank(for_each=(X,Y2), group_by=X, order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
+        assert ask(b_rank[a,b]==Y) == set([('a', 'b', 0)])
 
     """ interface with python classes                                        """
 
@@ -358,6 +362,8 @@ def test():
     assert X == [a]
     result = (A.c[X]=='a') & (A.b[X]=='a')
     assert result == [(a,)]
+    assert (A.c[a]=='a') & (A.b[a]=='a')
+    assert not ((A.c[a]=='a') & (A.b[a]=='f'))
 
     """ error detection                                              """
     

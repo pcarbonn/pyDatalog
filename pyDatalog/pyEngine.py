@@ -714,9 +714,9 @@ def search(subgoal):
         base_terms.extend([ make_var('V%i' % i) for i in range(aggregate.arity)])
         base_literal = Literal(base_pred_name, base_terms)
 
-        #TODO thunking
+        #TODO thunking to avoid possible stack overflow
         global Fast, subgoals, tasks, Stack
-        Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
+        Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop() when tasks is empty
         subgoals, tasks = {}, []
         #result = ask(base_literal)
         base_subgoal = make_subgoal(base_literal)
@@ -731,9 +731,8 @@ def search(subgoal):
                 aggregate.reset()
                 for r in v:
                     aggregate.add(r)
-                k.append(make_const(aggregate.value))
-                if not literal.terms[-1].is_const() or  aggregate.value == literal.terms[-1].id:
-                    # TODO k1 = list(map(make_const, k))
+                k = aggregate.fact(k)
+                if k and not literal.terms[-1].is_const() or k[-1] == literal.terms[-1]:
                     fact(subgoal, Literal(literal.pred, k))
                     
     elif literal.pred.db: # has a datalog definition

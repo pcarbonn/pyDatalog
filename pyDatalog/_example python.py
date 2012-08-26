@@ -55,7 +55,7 @@ print(X) # prints [John]
 
 # Who are the employees of John with a salary class of 5 ?
 result = (Employee.salary_class[X] == 5) & Employee.indirect_manager(X, John)
-print result # prints [(Sam,)]
+print(result) # prints [(Sam,)]
 print(X) # prints [Sam]
 
 # verify that the manager of Mary is John
