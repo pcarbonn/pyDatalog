@@ -275,7 +275,7 @@ def test():
         assert ask(a_sum[X]==4) == set([('b', 4)])
         assert ask(a_sum[c]==X) == None
 
-        (a_sum2[X] == sum(Y, key=X)) <= p(X, Z, Y)
+        (a_sum2[X] == sum(Y, for_each=X)) <= p(X, Z, Y)
         assert ask(a_sum2[a]==X) == set([('a', 1)])
 
         (a_sum3[X] == sum(Y, key=(X,Z))) <= p(X, Z, Y)
@@ -313,7 +313,7 @@ def test():
         (a_min[X] == min(Y, key=Z)) <= q(X, Y, Z)
         assert ask(a_min[a]==X) == set([('a', 'c')])
         
-        (a_minD[X] == min(Y, key=-Z)) <= q(X, Y, Z)
+        (a_minD[X] == min(Y, order_by=-Z)) <= q(X, Y, Z)
         assert ask(a_minD[a]==X) == set([('a', 'b')])
         
         (a_min2[X, Y] == min(Z, key=(X,Y))) <= q(X, Y, Z)
@@ -328,15 +328,17 @@ def test():
         (a_max[X] == max(Y, key=-Z)) <= q(X, Y, Z)
         assert ask(a_max[a]==X) == set([('a', 'c')])
         
-        (a_maxD[X] == max(Y, key=Z)) <= q(X, Y, Z)
+        (a_maxD[X] == max(Y, order_by=Z)) <= q(X, Y, Z)
         assert ask(a_maxD[a]==X) == set([('a', 'b')])
 
         # rank
         (a_rank[X,Y] == rank(for_each=(X,Y2), group_by=X, order_by=Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
         assert ask(a_rank[a,b]==Y) == set([('a', 'b', 1)])
+        assert ask(a_rank[a,y]==Y) == None
         # inversed
         (b_rank[X,Y] == rank(for_each=(X,Y2), group_by=X, order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
         assert ask(b_rank[a,b]==Y) == set([('a', 'b', 0)])
+        assert ask(b_rank[a,y]==Y) == None
 
     """ interface with python classes                                        """
 
@@ -380,7 +382,7 @@ def test():
         _error = False
         try:
             pyDatalog.load(code, catch_error=False)
-        except pyDatalog.DatalogError as e: 
+        except Exception as e: 
             _error = True
         assert _error
         

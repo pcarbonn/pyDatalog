@@ -23,7 +23,7 @@ class Employee(pyDatalog.Mixin):   # --> Employee inherits the pyDatalog capabil
         return self.name
 
     @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
-    def _():
+    def Employee():
         # the salary class N of employee X is computed as a function of his/her salary
         # this statement is a logic equality, not an assignment !
         Employee.salary_class[X] = Employee.salary[X]//1000
@@ -31,6 +31,9 @@ class Employee(pyDatalog.Mixin):   # --> Employee inherits the pyDatalog capabil
         # all the indirect managers Y of employee X are derived from his manager, recursively
         Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Y)
         Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Z) & Employee.indirect_manager(Z,Y)
+        
+        # count the number of reports of X
+        (Employee.report_count[X] == len(Y)) <= Employee.indirect_manager(Y,X)
 
 """ 2. create python objects for 2 employees """
 # John is the manager of Mary, who is the manager of Sam
@@ -65,18 +68,22 @@ assert Employee.manager[Mary]==John
 Employee.indirect_manager(X, X)
 print(X) # prints []
 
+# who has 2 reports ?
+Employee.report_count[X] == 2
+print(X) # prints [John]
+
 # what is the total salary of the employees of John ?
 # note : it is better to place aggregation clauses in the class definition 
-pyDatalog.load("(Employee.budget[X] == sum(N, key=Y)) <= (Employee.indirect_manager(Y, X)) & (Employee.salary[Y]==N)")
+pyDatalog.load("(Employee.budget[X] == sum(N, for_each=Y)) <= (Employee.indirect_manager(Y, X)) & (Employee.salary[Y]==N)")
 Employee.budget[John]==X
 print(X) # prints [12200]
 
 # who has the lowest salary ?
-pyDatalog.load("(lowest[1] == min(X, key=N)) <= (Employee.salary[X]==N)")
+pyDatalog.load("(lowest[1] == min(X, order_by=N)) <= (Employee.salary[X]==N)")
 # must use ask() because inline queries cannot use unprefixed literals 
 print(pyDatalog.ask("lowest[1]==X")) # prints set([(1, 'Sam')])
 
 # start the datalog console, for interactive querying of employee
 import console # or: from pyDatalog import console
 console = console.datalogConsole(locals=locals())
-console.interact('')
+console.interact('Type exit() when done.')

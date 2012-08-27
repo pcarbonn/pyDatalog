@@ -730,7 +730,8 @@ def search(subgoal):
             for k, v in groupby(result, aggregate.key):
                 aggregate.reset()
                 for r in v:
-                    aggregate.add(r)
+                    if aggregate.add(r):
+                        break
                 k = aggregate.fact(k)
                 if k and not literal.terms[-1].is_const() or k[-1] == literal.terms[-1]:
                     fact(subgoal, Literal(literal.pred, k))

@@ -27,6 +27,9 @@ pyDatalog.load("salary_class[X] = salary[X]//1000")
 pyDatalog.load("indirect_manager(X,Y) <= (manager[X] == Y)")
 pyDatalog.load("indirect_manager(X,Y) <= (manager[X] == Z) & indirect_manager(Z,Y)")
 
+# count the number of reports of X
+pyDatalog.load("(report_count[X] == len(Y)) <= indirect_manager(Y,X)")
+
 """ 3. Query the datalog engine """
 
 # what is the salary class of John ?
@@ -44,15 +47,18 @@ print(pyDatalog.ask("(salary_class[X] == 5) & indirect_manager(X, 'John')")) # p
 # who is his own indirect manager ?
 print(pyDatalog.ask("indirect_manager('X', X)")) # prints None
 
+# who has 2 reports ?
+print pyDatalog.ask("report_count[X] == 2") # prints set([('John', 2)])
+
 # what is the total salary of the employees of John ? 
-pyDatalog.load("(Budget[X] == sum(N, key=Y)) <= (indirect_manager(Y, X)) & (salary[Y]==N)")
+pyDatalog.load("(Budget[X] == sum(N, for_each=Y)) <= (indirect_manager(Y, X)) & (salary[Y]==N)")
 print(pyDatalog.ask("Budget['John']==N")) # prints set([('John', 12200)])
 
 # who has the lowest salary ?
-pyDatalog.load("(Lowest[1] == min(X, key=N)) <= (salary[X]==N)")
+pyDatalog.load("(Lowest[1] == min(X, order_by=N)) <= (salary[X]==N)")
 print(pyDatalog.ask("Lowest[1]==N")) # prints set([(1, 'Sam')])
 
 # start the datalog console, for interactive querying 
 import console # or: from pyDatalog import console
 console = console.datalogConsole(locals=locals())
-console.interact('')
+console.interact('Type exit() when done.')

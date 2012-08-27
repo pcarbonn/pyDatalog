@@ -297,9 +297,10 @@ class Symbol(Expression):
     def __call__ (self, *args, **kwargs):
         """ called when compiling p(args) """
         "time to create a literal !"
-        def check_key(kwargs):
-            if not 'key' in kwargs:
-                raise pyDatalog.DatalogError("'key' argument missing in aggregate", None, None)
+        def check(kwargs, template):
+            for arg in template:
+                if not [kw for kw in arg if kw in kwargs]:
+                    raise pyDatalog.DatalogError("Error: argument missing in aggregate", None, None)
         if self._pyD_name == 'ask':
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
@@ -308,26 +309,26 @@ class Symbol(Expression):
             return pyEngine.toAnswer(literal.lua, literal.lua.ask(fast))
         elif self._pyD_name == '__sum__':
             if isinstance(args[0], Symbol):
-                check_key(kwargs)
-                args = (args[0], kwargs['key'])
+                check(kwargs, (('key', 'for_each'),))
+                args = (args[0], kwargs.get('for_each', kwargs.get('key')))
                 return Sum_aggregate(args)
             else:
                 return sum(args)
         elif self._pyD_name == 'concat':
-            check_key(kwargs)
-            args = (args[0], kwargs['key'], kwargs['sep'])
+            check(kwargs, (('key','order_by'),('sep',)))
+            args = (args[0], kwargs.get('order_by',kwargs.get('key')), kwargs['sep'])
             return Concat_aggregate(args)
         elif self._pyD_name == '__min__':
             if isinstance(args[0], Symbol):
-                check_key(kwargs)
-                args = (args[0], kwargs['key'],)
+                check(kwargs, (('key', 'order_by'),))
+                args = (args[0], kwargs.get('order_by',kwargs.get('key')),)
                 return Min_aggregate(args)
             else:
                 return min(args)
         elif self._pyD_name == '__max__':
             if isinstance(args[0], Symbol):
-                check_key(kwargs)
-                args = (args[0], kwargs['key'],)
+                check(kwargs, (('key', 'order_by'),))
+                args = (args[0], kwargs.get('order_by',kwargs.get('key')),)
                 return Max_aggregate(args)
             else:
                 return max(args)
@@ -827,6 +828,7 @@ class Rank_aggregate(Aggregate):
         if row[:self.group_start] == row[self.for_each_start:]:
             self._value = list(row[:self.group_start]) + [pyEngine.make_const(self.count),]
         self.count += 1
+        return self._value
         
     def fact(self, k):
         return self._value
