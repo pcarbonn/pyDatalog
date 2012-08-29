@@ -262,14 +262,14 @@ def test():
     """ aggregates                                                         """
     pyDatalog.clear()
     @pyDatalog.program()
-    def aggregate(): 
+    def sum(): 
         + p(a, c, 1)
         + p(b, b, 4)
         + p(a, b, 1)
 
-        # sum
         assert(sum(1,2)) == 3
         (a_sum[X] == sum(Y, key=Z)) <= p(X, Z, Y)
+        assert ask(a_sum[X]==Y) == set([('a', 2), ('b', 4)])
         assert ask(a_sum[a]==X) == set([('a', 2)])
         assert ask(a_sum[a]==2) == set([('a', 2)])
         assert ask(a_sum[X]==4) == set([('b', 4)])
@@ -279,12 +279,17 @@ def test():
         assert ask(a_sum2[a]==X) == set([('a', 1)])
 
         (a_sum3[X] == sum(Y, key=(X,Z))) <= p(X, Z, Y)
+        assert ask(a_sum3[X]==Y) == set([('a', 2), ('b', 4)])
         assert ask(a_sum3[a]==X) == set([('a', 2)])
 
-        # len
+    @pyDatalog.program()
+    def len(): 
         assert(len((1,2))) == 2
         (a_len[X] == len(Z)) <= p(X, Z, Y)
+        assert ask(a_len[X]==Y) == set([('a', 2), ('b', 1)])
         assert ask(a_len[a]==X) == set([('a', 2)])
+        assert ask(a_len[X]==1) == set([('b', 1)])
+        assert ask(a_len[X]==5) == None
         
         (a_lenY[X] == len(Y)) <= p(X, Z, Y)
         assert ask(a_lenY[a]==X) == set([('a', 1)])
@@ -298,20 +303,28 @@ def test():
         + q(a, b, 2)
         + q(b, b, 4)
 
-        # concat
+    @pyDatalog.program()
+    def concat(): 
         (a_concat[X] == concat(Y, key=Z, sep='+')) <= q(X, Y, Z)
+        assert ask(a_concat[X]==Y) == set([('b', 'b'), ('a', 'c+b')])
+        assert ask(a_concat[a]=='c+b') == set([('a', 'c+b')])
         assert ask(a_concat[a]==X) == set([('a', 'c+b')])
+        assert ask(a_concat[X]==b) == set([('b', 'b')])
 
-        (a_concat2[X] == concat(Y, key=(Z,), sep='+')) <= q(X, Y, Z)
+        (a_concat2[X] == concat(Y, order_by=(Z,), sep='+')) <= q(X, Y, Z)
         assert ask(a_concat2[a]==X) == set([('a', 'c+b')])
 
         (a_concat3[X] == concat(Y, key=(-Z,), sep='-')) <= q(X, Y, Z)
         assert ask(a_concat3[a]==X) == set([('a', 'b-c')])
 
-        #min
+    @pyDatalog.program()
+    def min(): 
         assert min(1,2) == 1
         (a_min[X] == min(Y, key=Z)) <= q(X, Y, Z)
+        assert ask(a_min[X]==Y) == set([('b', 'b'), ('a', 'c')])
+        assert ask(a_min[a]=='c') == set([('a', 'c')])
         assert ask(a_min[a]==X) == set([('a', 'c')])
+        assert ask(a_min[X]=='b') == set([('b', 'b')])
         
         (a_minD[X] == min(Y, order_by=-Z)) <= q(X, Y, Z)
         assert ask(a_minD[a]==X) == set([('a', 'b')])
@@ -323,7 +336,8 @@ def test():
         (a_min3[Y] == min(Z, key=(-X,Z))) <= q(X, Y, Z)
         assert ask(a_min3[b]==Y) == set([('b', 4)]), "a_min3"
         
-        #max
+    @pyDatalog.program()
+    def max(): 
         assert max(1,2) == 2
         (a_max[X] == max(Y, key=-Z)) <= q(X, Y, Z)
         assert ask(a_max[a]==X) == set([('a', 'c')])

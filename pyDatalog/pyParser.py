@@ -681,6 +681,7 @@ class Aggregate(object):
     """ represents aggregation_method(X,Y), e.g. 'sum(Y,key=Z)' in '(a[X]==sum(Y,key=Z))'"""
     """ provide defaults methods that may need to be overriden for some aggregation methods"""
     """ pyEngine calls sort_result(), key(), reset(), add() and fact() to compute the aggregate"""
+    # TODO refactor aggregate to reduce repetition
     def __init__(self, args):
         # correct for method(Y), method(Y,key=(Z,..)) 
         if isinstance(args, Symbol): # len(Y), for example
@@ -775,6 +776,7 @@ class Min_aggregate(Aggregate):
 
 class Max_aggregate(Aggregate):
     """ represents max(X, key=(Y,Z))"""
+    # TODO refactor : inherit from Min_aggregate
     def sort_result(self, result):
         # first sort per Z1,Z2
         for i in range(len(self.args[1])):
