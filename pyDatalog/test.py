@@ -294,9 +294,9 @@ def test():
         assert ask(a_len2[a,b]==X) == set([('a', 'b', 1)])
         assert ask(a_len2[a,X]==Y) == set([('a', 'b', 1), ('a', 'c', 1)])
 
-        + q(a, c, '1')
-        + q(a, b, '2')
-        + q(b, b, '4')
+        + q(a, c, 1)
+        + q(a, b, 2)
+        + q(b, b, 4)
 
         # concat
         (a_concat[X] == concat(Y, key=Z, sep='+')) <= q(X, Y, Z)
@@ -317,11 +317,11 @@ def test():
         assert ask(a_minD[a]==X) == set([('a', 'b')])
         
         (a_min2[X, Y] == min(Z, key=(X,Y))) <= q(X, Y, Z)
-        assert ask(a_min2[Y, b]==X) == set([('a', 'b', '2'),('b', 'b', '4')])
-        assert ask(a_min2[Y, Y]==X) == set([('b', 'b', '4')]), "a_min2"
+        assert ask(a_min2[Y, b]==X) == set([('a', 'b', 2),('b', 'b', 4)])
+        assert ask(a_min2[Y, Y]==X) == set([('b', 'b', 4)]), "a_min2"
         
         (a_min3[Y] == min(Z, key=(-X,Z))) <= q(X, Y, Z)
-        assert ask(a_min3[b]==Y) == set([('b', '4')]), "a_min3"
+        assert ask(a_min3[b]==Y) == set([('b', 4)]), "a_min3"
         
         #max
         assert max(1,2) == 2
@@ -331,14 +331,47 @@ def test():
         (a_maxD[X] == max(Y, order_by=Z)) <= q(X, Y, Z)
         assert ask(a_maxD[a]==X) == set([('a', 'b')])
 
+    @pyDatalog.program()
+    def rank(): 
         # rank
-        (a_rank[X,Y] == rank(for_each=(X,Y2), group_by=X, order_by=Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
+        (a_rank[X,Y] == rank(for_each=(X,Y2), order_by=Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
+        assert ask(a_rank[X,Y]==Z) == set([('a', 'b', 1), ('a', 'c', 0), ('b', 'b', 0)])
+        assert ask(a_rank[a,b]==1) == set([('a', 'b', 1)])
         assert ask(a_rank[a,b]==Y) == set([('a', 'b', 1)])
+        assert ask(a_rank[a,X]==0) == set([('a', 'c', 0)])
+        assert ask(a_rank[a,X]==Y) == set([('a', 'b', 1), ('a', 'c', 0)])
+        assert ask(a_rank[X,Y]==1) == set([('a', 'b', 1)])
         assert ask(a_rank[a,y]==Y) == None
-        # inversed
-        (b_rank[X,Y] == rank(for_each=(X,Y2), group_by=X, order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
+        # reversed
+        (b_rank[X,Y] == rank(for_each=(X,Y2), order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
+        assert ask(b_rank[X,Y]==Z) == set([('a', 'b', 0), ('a', 'c', 1), ('b', 'b', 0)])
+        assert ask(b_rank[a,b]==0) == set([('a', 'b', 0)])
         assert ask(b_rank[a,b]==Y) == set([('a', 'b', 0)])
+        assert ask(b_rank[a,X]==1) == set([('a', 'c', 1)])
+        assert ask(b_rank[a,X]==Y) == set([('a', 'b', 0), ('a', 'c', 1)])
+        assert ask(b_rank[X,Y]==0) == set([('a', 'b', 0), ('b', 'b', 0)])
         assert ask(b_rank[a,y]==Y) == None
+
+    @pyDatalog.program()
+    def running_sum(): 
+        # running_sum
+        (a_run_sum[X,Y] == running_sum(Z2, for_each=(X,Y2), order_by=Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
+        assert ask(a_run_sum[X,Y]==Z) == set([('a', 'b', 3), ('a', 'c', 1), ('b', 'b', 4)])
+        assert ask(a_run_sum[a,b]==3) == set([('a', 'b', 3)])
+        assert ask(a_run_sum[a,b]==Y) == set([('a', 'b', 3)])
+        assert ask(a_run_sum[a,X]==1) == set([('a', 'c', 1)])
+        assert ask(a_run_sum[a,X]==Y) == set([('a', 'b', 3), ('a', 'c', 1)])
+        assert ask(a_run_sum[X,Y]==4) == set([('b', 'b', 4)])
+        assert ask(a_run_sum[a,y]==Y) == None
+
+        (b_run_sum[X,Y] == running_sum(Z2, for_each=(X,Y2), order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
+        assert ask(b_run_sum[X,Y]==Z) == set([('a', 'b', 2), ('a', 'c', 3), ('b', 'b', 4)])
+        assert ask(b_run_sum[a,b]==2) == set([('a', 'b', 2)])
+        assert ask(b_run_sum[a,b]==Y) == set([('a', 'b', 2)])
+        assert ask(b_run_sum[a,X]==3) == set([('a', 'c', 3)])
+        assert ask(b_run_sum[a,X]==Y) == set([('a', 'b', 2), ('a', 'c', 3)])
+        assert ask(b_run_sum[X,Y]==4) == set([('b', 'b', 4)])
+        assert ask(b_run_sum[a,y]==Y) == None
 
     """ interface with python classes                                        """
 

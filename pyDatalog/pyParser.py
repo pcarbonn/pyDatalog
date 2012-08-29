@@ -333,8 +333,11 @@ class Symbol(Expression):
             else:
                 return max(args)
         elif self._pyD_name == 'rank':
-            args = (kwargs['group_by'], kwargs['order_by'], kwargs['for_each'])
+            args = (kwargs['for_each'], kwargs['order_by'])
             return Rank_aggregate(args)
+        elif self._pyD_name == 'running_sum':
+            args = (args[0], kwargs['for_each'], kwargs['order_by'])
+            return Running_sum(args)
         elif self._pyD_name == '__len__':
             if isinstance(args[0], Symbol):
                 return Len_aggregate(args[0])
@@ -788,11 +791,53 @@ class Max_aggregate(Aggregate):
         self._value = row[-self.arity].id if self._value is None else self._value
 
 class Rank_aggregate(Aggregate):
-    """ represents rank(group_by=(Y), order_by(T), for_each=(Z)"""
+    """ represents rank(for_each=(Z), order_by(T))"""
     def __init__(self, args):
         args = list(args)
         if 0 < len(args) and isinstance(args[0], Symbol):
             args[0] = (args[0],)
+        if 1 < len(args) and isinstance(args[1], Symbol):
+            args[1] = (args[1],)
+        self.args = args
+    
+    @property
+    def arity(self):
+        return len(self.args[0]) + len(self.args[1])
+
+    def sort_result(self, result):
+        # significant indexes in the result rows
+        order_by_start = len(result[0]) - len(self.args[1])
+        for_each_start = order_by_start - len(self.args[0])
+        
+        self.for_each = slice(for_each_start, order_by_start)
+        self.reversed_order_by = range(len(result[0])-1, order_by_start-1,  -1)
+        self.group_by = slice(0, for_each_start)
+        # first sort per order_by
+        for i in self.reversed_order_by:
+            result.sort(key=lambda literal, i=i: literal[i].id,
+                reverse = self.args[1][i-order_by_start]._pyD_negated)
+        # then sort per group_by
+        result.sort(key=lambda literal, self=self: [id(term) for term in literal[self.group_by]])
+        pass
+
+    def reset(self):
+        self.count = 0
+        self._value = None
+
+    def add(self, row):
+        # retain the value if (X,) == (Z,)
+        if row[self.group_by] == row[self.for_each]:
+            self._value = list(row[self.group_by]) + [pyEngine.make_const(self.count),]
+            return self._value
+        self.count += 1
+        
+    def fact(self, k):
+        return self._value
+
+class Running_sum(Rank_aggregate):
+    """ represents running_sum(N, for_each=(Z), order_by(T)"""
+    def __init__(self, args):
+        args = list(args)
         if 1 < len(args) and isinstance(args[1], Symbol):
             args[1] = (args[1],)
         if 2 < len(args) and isinstance(args[2], Symbol):
@@ -801,34 +846,28 @@ class Rank_aggregate(Aggregate):
     
     @property
     def arity(self):
-        return len(self.args[0]) + len(self.args[1]) + len(self.args[2])
+        return 1+len(self.args[1]) + len(self.args[2])
 
     def sort_result(self, result):
-        # sort per Y, Z, T
-        key = self.args[0] + self.args[1] + self.args[2]
-        for i in range(len(key)):
-            result.sort(key=lambda literal, i=i: literal[-i-1].id,
-                reverse = key[-i-1]._pyD_negated)
         # significant indexes in the result rows
-        self.for_each_start = len(result[0]) - len(self.args[2])
-        self.order_by_start = self.for_each_start - len(self.args[1])
-        self.group_start = self.order_by_start - len(self.args[0])
+        order_by_start = len(result[0]) - len(self.args[2])
+        for_each_start = order_by_start - len(self.args[1])
+        self.to_add = for_each_start-1
+        
+        self.for_each = slice(for_each_start, order_by_start)
+        self.reversed_order_by = range(len(result[0])-1, order_by_start-1,  -1)
+        self.group_by = slice(0, self.to_add)
+        # first sort per order_by
+        for i in self.reversed_order_by:
+            result.sort(key=lambda literal, i=i: literal[i].id,
+                reverse = self.args[2][i-order_by_start]._pyD_negated)
+        # then sort per group_by
+        result.sort(key=lambda literal, self=self: [id(term) for term in literal[self.group_by]])
         pass
 
-    def key(self, result):
-        # key = Y
-        return list(result[self.group_start:self.order_by_start])
-    
-    def reset(self):
-        self.count = 0
-        self._value = None
-
-    def add(self, row):
-        # retain the value if (X,) == (Z,)
-        if row[:self.group_start] == row[self.for_each_start:]:
-            self._value = list(row[:self.group_start]) + [pyEngine.make_const(self.count),]
-        self.count += 1
-        return self._value
+    def add(self,row):
+        self.count += row[self.to_add].id # TODO
+        if row[:self.to_add] == row[self.for_each]:
+            self._value = list(row[:self.to_add]) + [pyEngine.make_const(self.count),]
+            return self._value
         
-    def fact(self, k):
-        return self._value
