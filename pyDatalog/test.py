@@ -43,6 +43,8 @@ def test():
     
     @pyDatalog.program()
     def unary(): 
+        +z()
+        assert ask(z()) == set([()])
         
         + p(a) 
         # check that unary queries work
@@ -400,11 +402,13 @@ def test():
             (A.c[X]==N) <= (A.b[X]==N)
             
     a = A('a')
+    b = A('b')
     assert a.c == 'a'
     X = pyDatalog.Variable()
-    result = A.c[X]=='a'
-    assert result == [(a, 'a')]
+    Y = pyDatalog.Variable()
+    assert (A.c[X]=='a') == [(a, 'a')]
     assert X == [a]
+    assert ((A.c[a]==X) >= X) == 'a'
     (A.c[X]=='b') & (A.b[X]=='a')
     assert X == []
     (A.c[X]=='a') & (A.b[X]=='a')
