@@ -741,7 +741,7 @@ def search(subgoal):
                         if aggregate.add(r):
                             break
                     k = aggregate.fact(k)
-                    if k and not literal.terms[-1].is_const() or k[-1] == literal.terms[-1]:
+                    if k and (not literal.terms[-1].is_const() or k[-1] == literal.terms[-1]):
                         fact(subgoal, Literal(literal.pred, k))
             return
         elif literal.pred.db: # has a datalog definition
