@@ -223,12 +223,22 @@ class LazyList(object):
     def __nonzero__(self):
         return bool(self._value())
     def __eq__(self, other):
-        #TODO if iterable, use set
-        if self._value() and isinstance(self._list[0], LazyList): # if it's a result set
-            return set(self._list) == set(other)
-        else:
-            return self._list == other
+        return self._value() == other
 
+class LazyListOfList(LazyList):
+    def __eq__(self, other):
+        return set(self._value()) == set(other)
+    
+    def __ge__(self, other):
+        # returns the first occurrence of 'other' variable in the result of a function
+        self._value()
+        assert isinstance(other, pyDatalog.Variable)
+        assert id(other) == id(self.args[-1])
+        assert "[" in self.predicate_name
+        for t in self.args:
+            if id(t) == id(other) and t._list:
+                return t._list[0]
+    
 class Expression(object):
     def _precalculation(self):
         # by default, there is no precalculation needed to evaluate an expression
@@ -452,7 +462,7 @@ class Lambda(Expression):
     def __str__(self):
         return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(getattr(self.lambda_object,func_code).co_varnames))
         
-class Literal(LazyList):
+class Literal(LazyListOfList):
     """
     created by source code like 'p(a, b)'
     unary operator '+' means insert it as fact
