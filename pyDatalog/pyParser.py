@@ -226,18 +226,17 @@ class LazyList(object):
         return self._value() == other
 
 class LazyListOfList(LazyList):
+    """ represents the result of an inline query (a Literal or Body)"""
     def __eq__(self, other):
         return set(self._value()) == set(other)
     
     def __ge__(self, other):
         # returns the first occurrence of 'other' variable in the result of a function
-        self._value()
-        assert isinstance(other, pyDatalog.Variable)
-        assert id(other) == id(self.args[-1])
-        assert "[" in self.predicate_name
-        for t in self.args:
-            if id(t) == id(other) and t._list:
-                return t._list[0]
+        if self._value():
+            assert isinstance(other, pyDatalog.Variable)
+            for t in self.literal().args:
+                if id(t) == id(other):
+                    return t._list[0]
     
 class Expression(object):
     def _precalculation(self):
@@ -470,7 +469,7 @@ class Literal(LazyListOfList):
     operator '<=' means 'is true if', and creates a Clause
     """
     def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
-        LazyList.__init__(self)
+        LazyListOfList.__init__(self)
         self.predicate_name = predicate_name
         self.prearity = prearity or len(terms)
         self.pre_calculations = Body()
@@ -592,15 +591,17 @@ class Literal(LazyListOfList):
             terms = list(map (str, self.terms))
             return str(self.predicate_name) + "(" + ','.join(terms) + ")"
         else:
-            return LazyList.__str__(self)
+            return LazyListOfList.__str__(self)
+    def literal(self):
+        return self
 
-class Body(LazyList):
+class Body(LazyListOfList):
     """
     created by p(a,b) & q(c,d)
     operator '&' means 'and', and returns a Body
     """
     def __init__(self, *args):
-        LazyList.__init__(self)
+        LazyListOfList.__init__(self)
         self.literals = []
         for arg in args:
             self.literals += [arg] if isinstance(arg, Literal) else arg.literals
@@ -620,7 +621,7 @@ class Body(LazyList):
     
     def __str__(self):
         if self.hasVariables:
-            return LazyList.__str__(self)
+            return LazyListOfList.__str__(self)
         literals = list(map (str, self.literals))
         return ' & '.join(literals)
 

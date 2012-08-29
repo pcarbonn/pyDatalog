@@ -409,6 +409,8 @@ def test():
     assert (A.c[X]=='a') == [(a, 'a')]
     assert X == [a]
     assert ((A.c[a]==X) >= X) == 'a'
+    assert ((A.c[a]==X) & (A.c[a]==X) >= X) == 'a'
+    assert ((A.c[a]==X) & (A.c[b]==X) >= X) == None
     (A.c[X]=='b') & (A.b[X]=='a')
     assert X == []
     (A.c[X]=='a') & (A.b[X]=='a')
