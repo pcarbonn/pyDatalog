@@ -185,6 +185,7 @@ def dup(pred):
 # which must match the predicate's arity.
 
 class Literal(object):
+    __slots__ = ['pred', 'terms', 'prearity', 'id', 'key', 'tag']
     def __init__(self, pred, terms, prearity=None, aggregate=None):
         if isinstance(pred, six.string_types):
             self.pred = make_pred(pred, len(terms), aggregate)

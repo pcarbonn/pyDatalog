@@ -25,6 +25,7 @@ results for 10 tests on Intel Core i7-2820 QM CPU @ 2.3 GHz (run from Command pr
 * python 2.7 : 112 sec in total
 * python 3.2 : 99 sec
 * pypy 1.9 : 23 sec
+Note : it is significantly slower when run in debug mode (instead of from the command prompt)
 
 """
 import time
