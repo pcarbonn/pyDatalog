@@ -205,6 +205,7 @@ class LazyList(object):
         self.todo = None # self.todo.ask() calculates self._list
         self._list = []
     def _value(self):
+        # returns the list, after recalculation if needed
         if self.todo is not None: self.todo.ask()
         return self._list
 
@@ -224,6 +225,8 @@ class LazyList(object):
         return bool(self._value())
     def __eq__(self, other):
         return self._value() == other
+    def v(self):
+        return self._list[0] if self._value() else None
 
 class LazyListOfList(LazyList):
     """ represents the result of an inline query (a Literal or Body)"""
