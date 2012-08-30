@@ -35,9 +35,14 @@ at simulating intelligent behavior (e.g. in games),
 at performing recursive algorithms (e.g. in network protocol, code and graph analysis)
 or at solving discrete constraint problems. 
 
-Datalog statements can be specified in any order, eliminating the need for sequence diagrams and the associated risk of tricky errors. 
-Datalog programs are often shorter than their python equivalent.  
-""",
+In particular, pyDatalog can be an alternative to SQL: 
+it is more expressive, with a cleaner syntax; 
+it facilitates re-use of code snippet (e.g. for frequent joins or formula); 
+it offloads the database server by performing joins on the application tier; 
+it can perform multi-database queries (from memory datastore, noSQL database, and/or relational databases, with appropriate connectors).
+
+Datalog excels at accelerated development : Datalog programs are often shorter than their python equivalent, 
+and Datalog statements can be specified in any order, as simply as formula in a spreadsheet.""",
     setup_requires = ["six"],
     install_requires = ["six"]
 )
