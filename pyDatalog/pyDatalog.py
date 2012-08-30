@@ -31,6 +31,7 @@ methods for direct access to datalog knowledge base:
   * assert_fact(predicate_name, *args) : assert predicate_name(args)
   * retract_fact(predicate_name, *args) : retracts predicate_name(args)
   * program() : decorator function to create datalog programs
+  * predicate() : decorator function to create a predicate resolver in python
   * load(code, catch_error=False) : loads the clauses contained in the code string
   * ask(code) : returns the result of the query contained in the code string
   * clear() : resets the datalog database
@@ -45,6 +46,8 @@ classes for Python Mixin:
   
 """
 from collections import defaultdict
+import inspect
+import six
 import sys
 import weakref
 
@@ -96,6 +99,15 @@ def retract_fact(predicate_name, *args):
 def program():
     """ A decorator for datalog program  """
     return pyParser.add_program
+
+def predicate():
+    """decorator function to create a predicate resolver in python"""
+    return _predicate 
+
+def _predicate(func):
+    arity = len(inspect.getargspec(func)[0])
+    pyEngine.Python_resolvers[func.__name__ + '/' + str(arity)] = func
+    return func
 
 def load(code, catch_error=True):
     """loads the clauses contained in the code string """
@@ -202,7 +214,7 @@ class metaMixin(type):
             raise TypeError("Object is incompatible with the class that is queried.")
         if '_pyD_'+attr_name in cls.__dict__:
             for answer in getattr(cls, '_pyD_'+attr_name)(*terms):
-                yield Literal(pred_name, answer).lua
+                yield answer
             return
         try: # interface to other database
             for answer in cls._pyD_query(pred_name, terms):
@@ -214,7 +226,7 @@ class metaMixin(type):
                     # try accessing the attribute of the first term in literal
                     check_attribute(X.id)
                     Y1 = getattr(X.id, attr_name)
-                    if Y1: yield Literal(pred_name, (X.id, Y1)).lua
+                    if Y1: yield (X.id, Y1)
                 elif cls.has_SQLAlchemy:
                     if cls.session:
                         q = cls.session.query(cls)
@@ -223,7 +235,7 @@ class metaMixin(type):
                             q = q.filter(getattr(cls, attr_name) == Y.id)
                         for r in q:
                             Y1 = getattr(r, attr_name)
-                            if Y1 : yield Literal(pred_name, (r, Y1)).lua
+                            if Y1 : yield (r, Y1)
                 else:
                     # python object with Mixin
                     for X in metaMixin.__refs__[cls]:
@@ -231,7 +243,7 @@ class metaMixin(type):
                         check_attribute(X)
                         Y1 = getattr(X, attr_name)
                         if Y1 and (not Y.is_const() or Y1==Y.id):
-                            yield Literal(pred_name, (X, Y1)).lua
+                            yield (X, Y1)
                 return
             else:
                 raise AttributeError ("%s could not be resolved" % pred_name)
