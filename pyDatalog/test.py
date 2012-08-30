@@ -408,6 +408,7 @@ def test():
     Y = pyDatalog.Variable()
     assert (A.c[X]=='a') == [(a, 'a')]
     assert X == [a]
+    assert X.v() == a
     assert ((A.c[a]==X) >= X) == 'a'
     assert ((A.c[a]==X) & (A.c[a]==X) >= X) == 'a'
     assert ((A.c[a]==X) & (A.c[b]==X) >= X) == None
