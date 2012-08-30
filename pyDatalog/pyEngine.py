@@ -46,6 +46,8 @@ Trace = False # True --> show new facts when they are established
 Debug = False # for deeper traces
 Auto_print = False # True => automatically prints the result of a query
 
+Python_resolvers = {} # dictionary  of python functions that can resolve a predicate
+
 # DATA TYPES
 
 # Internalize objects based on an identifier.
@@ -677,6 +679,13 @@ def _(self):
     return self._cls
 Pred._class = _
 
+def fact_candidate(subgoal, result):
+    result = [make_const(r) if not isinstance(r, Const) else r for r in result]
+    result = make_literal(subgoal.literal.pred.id.split('/')[0], result)
+    env = unify(subgoal.literal, result)
+    if env != None:
+        fact(subgoal, result)
+
 def search(subgoal):
     if Debug: print("search : %s" % str(subgoal.literal))
     literal = subgoal.literal
@@ -684,7 +693,11 @@ def search(subgoal):
     names = literal.pred.id.split('/')[0].split('[')[0].split('.')
     attr_name = names[1] if 1 < len(names) else ''
     
-    if not _class or (attr_name and not '_pyD_'+attr_name in _class.__dict__): 
+    if literal.pred.id in Python_resolvers:
+        for result in Python_resolvers[literal.pred.id](*(literal.terms)):
+            fact_candidate(subgoal, result)
+        return
+    elif not _class or (attr_name and not '_pyD_'+attr_name in _class.__dict__): 
         # it is not a literal defined by a python function --> use datalog clauses to resolve it
         if literal.pred.prim:
             return literal.pred.prim(literal, subgoal)
@@ -741,8 +754,7 @@ def search(subgoal):
                         if aggregate.add(r):
                             break
                     k = aggregate.fact(k)
-                    if k and (not literal.terms[-1].is_const() or k[-1] == literal.terms[-1]):
-                        fact(subgoal, Literal(literal.pred, k))
+                    fact_candidate(subgoal, k)
             return
         elif literal.pred.db: # has a datalog definition
             #TODO test if there is a conflicting python definition ?
@@ -758,9 +770,7 @@ def search(subgoal):
         print("Warning : unknown predicate : %s" % literal.pred.id)
     else:
         for result in iterator:
-            env = unify(literal, result)
-            if env != None:
-                fact(subgoal, result)
+            fact_candidate(subgoal, result)
             
 # Sets up and calls the subgoal search procedure, and then extracts
 # the answers into an easily used table.  The table has the name of

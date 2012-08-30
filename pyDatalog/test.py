@@ -421,6 +421,17 @@ def test():
     assert (A.c[a]=='a') & (A.b[a]=='a')
     assert not ((A.c[a]=='a') & (A.b[a]=='f'))
 
+    """ python resolvers                                              """
+    
+    @pyDatalog.predicate()
+    def p(X,Y):
+        yield (1,2)
+        yield (2,3)
+    
+    assert pyDatalog.ask('p(X,Y)') == set([(1, 2), (2, 3)])
+    assert pyDatalog.ask('p(1,Y)') == set([(1, 2)])
+    assert pyDatalog.ask('p(1,2)') == set([(1, 2)])
+    
     """ error detection                                              """
     
     @pyDatalog.program()
