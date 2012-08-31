@@ -363,7 +363,7 @@ class Symbol(Expression):
         if isinstance(other, type(lambda: None)):
             other = Lambda(other)
         name = '=' + str(self) + operator + str(other)
-        if isinstance(other, (int, six.string_types, list, tuple)):
+        if other is None or isinstance(other, (int, six.string_types, list, tuple)):
             literal = Literal(name, [self])
             expr = pyEngine.make_operand('constant', other)
         else: 
@@ -422,17 +422,15 @@ class Operation(Expression):
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
         
-        self.lhs = lhs
-        if isinstance(lhs, six.string_types) or isinstance(lhs, int):
-            self.lhs = Symbol(lhs)
-        elif isinstance(lhs, type(lambda: None)):
-            self.lhs = Lambda(lhs)
-            
-        self.rhs = rhs
-        if isinstance(rhs, six.string_types) or isinstance(rhs, int):
-            self.rhs = Symbol(rhs)
-        elif isinstance(rhs, type(lambda: None)):
-            self.rhs = Lambda(rhs)
+        def _convert(operand):
+            if operand is None or isinstance(operand, (six.string_types, int)):
+                return Symbol(operand)
+            elif isinstance(operand, type(lambda: None)):
+                return Lambda(operand)
+            return operand
+        
+        self.lhs = _convert(lhs)
+        self.rhs = _convert(rhs)
         
     def _variables(self):
         temp = self.lhs._variables()
@@ -532,8 +530,6 @@ class Literal(LazyListOfList):
         for a in h_terms:
             if isinstance(a, Symbol):
                 tbl.append(a._pyD_lua)
-            elif isinstance(a, six.string_types):
-                tbl.append(pyEngine.make_const(a))
             elif isinstance(a, Literal):
                 raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, terms), None, None)
             elif isinstance(a, Aggregate):
@@ -671,14 +667,19 @@ class Function(Expression):
     def lua_expr(self, variables):
         return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
 
-    def __eq__(self, other):
-        if (not isinstance(other, (six.string_types, int, Symbol, Aggregate)) 
+    def _compare(self, operator, other):
+        if (not (isinstance(other, (six.string_types, int, Symbol, Aggregate)) or other is None) 
             and all([isinstance(key, (six.string_types, int, Symbol)) for key in self.keys])):
             raise pyDatalog.DatalogError("The right hand side of a function literal must be a constant or variable", None, None)
-        terms = list(self.keys)
-        terms.append(other)
-        l = Literal(self.name+'==', terms, prearity=len(self.keys))
-        return l
+        assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
+        return Literal(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
+    
+    def __eq__(self, other): return self._compare('==', other)
+    def __ne__(self, other): return self._compare('!=', other)
+    def __lt__(self, other): return self._compare('<', other)
+    def __le__(self, other): return self._compare('<=', other)
+    def __ge__(self, other): return self._compare('>=', other)
+    def __gt__(self, other): return self._compare('>', other)
     
     def __pos__(self):
         raise pyDatalog.DatalogError("bad operand type for unary +: 'Function'. Please consider adding parenthesis", None, None)

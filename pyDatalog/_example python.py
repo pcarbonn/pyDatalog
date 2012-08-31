@@ -29,8 +29,8 @@ class Employee(pyDatalog.Mixin):   # --> Employee inherits the pyDatalog capabil
         Employee.salary_class[X] = Employee.salary[X]//1000
         
         # all the indirect managers Y of employee X are derived from his manager, recursively
-        Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Y)
-        Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Z) & Employee.indirect_manager(Z,Y)
+        Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Y) & (Y != None)
+        Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Z) & Employee.indirect_manager(Z,Y) & (Y != None)
         
         # count the number of reports of X
         (Employee.report_count[X] == len(Y)) <= Employee.indirect_manager(Y,X)
@@ -57,8 +57,8 @@ print(X.v()) # prints Mary
 Employee.indirect_manager(Mary, X)
 print(X) # prints [John]
 
-# Who are the employees of John with a salary class of 5 ?
-result = (Employee.salary_class[X] == 5) & Employee.indirect_manager(X, John)
+# Who are the employees of John with a salary below 6000 ?
+result = (Employee.salary[X] < 6000) & Employee.indirect_manager(X, John)
 print(result) # prints [(Sam,)]
 print(X) # prints [Sam]
 print((Employee.salary_class[X] == 5) & Employee.indirect_manager(X, John) >= X) # Sam

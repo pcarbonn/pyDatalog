@@ -116,7 +116,7 @@ class Const(Interned):
         if not _id in cls.registry: # don't use setdefault to avoid creating unnecessary objects
             o = object.__new__(cls) # o is the ref that keeps it alive
             o.id = _id
-            o.key = add_size( 'c' + str(o.id) if isinstance(o.id, six.string_types) or isinstance(o.id, int) 
+            o.key = add_size( 'c' + str(o.id) if isinstance(o.id, (six.string_types, int)) 
                     else 'o' + str(id(o)) )
             cls.registry[_id] = o
         return cls.registry[_id]

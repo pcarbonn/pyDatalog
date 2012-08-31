@@ -24,8 +24,8 @@ pyDatalog.load("+ (salary['Sam'] == 5900)")
 pyDatalog.load("salary_class[X] = salary[X]//1000")
     
 # all the indirect managers of employee X are derived from his manager, recursively
-pyDatalog.load("indirect_manager(X,Y) <= (manager[X] == Y)")
-pyDatalog.load("indirect_manager(X,Y) <= (manager[X] == Z) & indirect_manager(Z,Y)")
+pyDatalog.load("indirect_manager(X,Y) <= (manager[X] == Y) & (Y != None)")
+pyDatalog.load("indirect_manager(X,Y) <= (manager[X] == Z) & indirect_manager(Z,Y) & (Y != None)")
 
 # count the number of reports of X
 pyDatalog.load("(report_count[X] == len(Y)) <= indirect_manager(Y,X)")
@@ -41,8 +41,8 @@ print(pyDatalog.ask("salary[X] == 6300")) # prints set([('Mary', 6300)])
 # who are the indirect managers of Mary ?
 print(pyDatalog.ask("indirect_manager('Mary', X)")) # prints set([('Mary', 'John')])
 
-# Who are the employees of John with a salary class of 5 ?
-print(pyDatalog.ask("(salary_class[X] == 5) & indirect_manager(X, 'John')")) # prints set([('Sam',)])
+# Who are the employees of John with a salary below 6000 ?
+print(pyDatalog.ask("(salary[X] < 6000) & indirect_manager(X, 'John')")) # prints set([('Sam',)])
 
 # who is his own indirect manager ?
 print(pyDatalog.ask("indirect_manager('X', X)")) # prints None
