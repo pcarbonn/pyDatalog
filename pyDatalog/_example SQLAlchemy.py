@@ -17,7 +17,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
-engine = create_engine('sqlite:///:memory:', echo=True) # create database in memory
+engine = create_engine('sqlite:///:memory:', echo=False) # create database in memory
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -49,8 +49,8 @@ class Employee(Base): # --> Employee inherits from the Base class
         Employee.salary_class[X] = Employee.salary[X]//1000
         
         # all the indirect managers of employee X are derived from his manager, recursively
-        Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Y)
-        Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Z) & Employee.indirect_manager(Z,Y)
+        Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Y) & (Y != None)
+        Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Z) & Employee.indirect_manager(Z,Y) & (Y != None)
         
         # count the number of reports of X
         (Employee.report_count[X] == len(Y)) <= Employee.indirect_manager(Y,X)
@@ -85,8 +85,8 @@ print(X) # prints [Employee: Mary]
 Employee.indirect_manager(Mary, X)
 print(X) # prints [Employee: John]
 
-# Who are the employees of John with a salary class of 5 ?
-result = (Employee.salary_class[X] == 5) & Employee.indirect_manager(X, John)
+# Who are the employees of John with a salary below 6000 ?
+result = (Employee.salary[X] < 6000) & Employee.indirect_manager(X, John)
 print(result) # prints [(Employee: Sam,)]
 print(X) # prints [Employee: Sam]
 

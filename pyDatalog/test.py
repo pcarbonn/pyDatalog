@@ -429,6 +429,30 @@ def test():
     assert (A.c[a]=='a') & (A.b[a]=='a')
     assert not ((A.c[a]=='a') & (A.b[a]=='f'))
 
+    """ filters on python classes                                        """
+    assert (A.b[X]!=Y) == [(a, None), (b, None)]
+    assert (A.b[X]!='a') == [(b, 'a')]
+    assert (A.b[X]!='z') == [(a, 'z'), (b, 'z')]
+    assert (A.b[a]!='a') == []
+    assert (A.b[b]!='a') == [(b, 'a')]
+    assert ((A.b[b]!='a') & (A.b[b]!='z')) == [()]
+
+    assert (A.b[X]<Y) == [(a, None), (b, None)]
+    assert (A.b[X]<'a') == []
+    assert (A.b[X]<'z') == [(a, 'z'), (b, 'z')]
+    assert (A.b[a]<'b') == [(a, 'b')]
+    assert (A.b[b]<'a') == []
+    assert ((A.b[b]<'z') & (A.b[b]!='z')) == [()]
+
+    assert (A.b[X]<='a') == [(a, 'a')]
+    assert (A.b[X]<='z') == [(a, 'z'), (b, 'z')]
+    assert (A.b[a]<='b') == [(a, 'b')]
+    assert (A.b[b]<='a') == []
+    assert ((A.b[b]<='z') & (A.b[b]!='z')) == [()]
+
+    assert (A.b[X]>'a') == [(b, 'a')]
+    assert (A.b[X]>='a') == [(a, 'a'), (b, 'a')]
+
     """ python resolvers                                              """
     
     @pyDatalog.predicate()
