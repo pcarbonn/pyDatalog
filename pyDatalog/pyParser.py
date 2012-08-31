@@ -23,8 +23,8 @@ This work is derived from Pythologic, (C) 2004 Shai Berger,
 in accordance with the Python Software Foundation licence.
 (See http://code.activestate.com/recipes/303057/ and
 http://www.python.org/download/releases/2.0.1/license/ )
-
 """
+
 """
 Design principle:
 Instead of writing our own parser, we use python's parser.  The datalog code is first compiled in python byte code, 
@@ -677,7 +677,7 @@ class Function(Expression):
             raise pyDatalog.DatalogError("The right hand side of a function literal must be a constant or variable", None, None)
         terms = list(self.keys)
         terms.append(other)
-        l = Literal(self.name, terms, prearity=len(self.keys))
+        l = Literal(self.name+'==', terms, prearity=len(self.keys))
         return l
     
     def __pos__(self):
@@ -788,23 +788,12 @@ class Min_aggregate(Aggregate):
     def add(self, row):
         self._value = row[-self.arity].id if self._value is None else self._value
 
-class Max_aggregate(Aggregate):
+class Max_aggregate(Min_aggregate):
     """ represents max(X, key=(Y,Z))"""
-    # TODO refactor : inherit from Min_aggregate
-    def sort_result(self, result):
-        # first sort per Z1,Z2
-        for i in range(len(self.args[1])):
-            result.sort(key=lambda literal, i=i: literal[-i-1].id,
-                reverse = not self.args[1][-i-1]._pyD_negated)
-        # then sort per X1,X2
-        result.sort(key=lambda literal, self=self: [id(term) for term in literal[:len(result)-self.arity]])
-        pass
-    
-    def reset(self):
-        self._value = None
-        
-    def add(self, row):
-        self._value = row[-self.arity].id if self._value is None else self._value
+    def __init__(self, args):
+        Min_aggregate.__init__(self, args)
+        for a in self.args[1]:
+            a._pyD_negated = not(a._pyD_negated)
 
 class Rank_aggregate(Aggregate):
     """ represents rank(for_each=(Z), order_by(T))"""

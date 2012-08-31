@@ -22,7 +22,6 @@ This work is derived from Pythologic, (C) 2004 Shai Berger,
 in accordance with the Python Software Foundation licence.
 (See http://code.activestate.com/recipes/303057/ and
 http://www.python.org/download/releases/2.0.1/license/ )
-
 """
 
 """
@@ -184,7 +183,7 @@ class metaMixin(type):
         def _getattr(self, attribute):
             """ responds to instance.method by asking datalog engine """
             if not attribute == '__iter__' and not attribute.startswith('_sa_'):
-                predicate_name = "%s.%s[1]" % (self.__class__.__name__, attribute)
+                predicate_name = "%s.%s[1]==" % (self.__class__.__name__, attribute)
                 literal = Literal(predicate_name, (self, Symbol("X")))
                 if literal.lua.pred.db or literal.lua.pred.prim:
                     result = literal.lua.ask(False)
@@ -202,8 +201,9 @@ class metaMixin(type):
     def pyDatalog_search(cls, literal):
         """Called by pyEngine to resolve a prefixed literal for a subclass of Mixin."""
         terms = literal.terms
-        pred_name = literal.pred.id.split('/')[0]
+        pred_name = literal.pred.id.split('/')[0] # remove arity
         attr_name = pred_name.split('[')[0].split('.')[1]
+        comparison_operator = (pred_name.split(']')[1:2]+[None])[0] # what's after ']' or None
 
         # TODO check prearity
         def check_attribute(X):
@@ -226,7 +226,7 @@ class metaMixin(type):
                     # try accessing the attribute of the first term in literal
                     check_attribute(X.id)
                     Y1 = getattr(X.id, attr_name)
-                    if Y1: yield (X.id, Y1)
+                    yield (X.id, Y1)
                 elif cls.has_SQLAlchemy:
                     if cls.session:
                         q = cls.session.query(cls)
@@ -235,14 +235,14 @@ class metaMixin(type):
                             q = q.filter(getattr(cls, attr_name) == Y.id)
                         for r in q:
                             Y1 = getattr(r, attr_name)
-                            if Y1 : yield (r, Y1)
+                            yield (r, Y1)
                 else:
                     # python object with Mixin
                     for X in metaMixin.__refs__[cls]:
                         X=X()
                         check_attribute(X)
                         Y1 = getattr(X, attr_name)
-                        if Y1 and (not Y.is_const() or Y1==Y.id):
+                        if not Y.is_const() or Y1==Y.id:
                             yield (X, Y1)
                 return
             else:

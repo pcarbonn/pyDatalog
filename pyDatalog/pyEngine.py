@@ -17,7 +17,6 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc.  51 Franklin St, Fifth Floor, Boston, MA 02110-1301
 USA
-
 """
 
 """
@@ -464,47 +463,6 @@ def relevant_clauses(literal):
         #result= [ literal.pred.db[id_] for id_ in result ] + [ literal.pred.db[id_] for id_ in literal.pred.clauses]
         return list(result) + list(literal.pred.clauses)
     
-# DATABASE CLONING
-
-# A database can be saved and then later restored.  With copy and
-# revert, one can use one copy of a database multiple times to revert
-# to a previous database.  These two functions are not exposed in the
-# C API.
-
-# Returns a fresh copy of the current database or copies the one
-# given as an argument.
-
-""" TODO
-local function copy(src)
-    local clone = {}
-    for k,v in pairs(src or db) do
-        clone[k] = dup(v)
-    end
-    return clone
-end
-
-# Reverts datalog to a previously cloned database.  The database is
-# copied so that the clone can be used more than once.
-
-local function revert(clone)
-    db = copy(clone)
-end
-
-# DATABASE STORE
-
-# A database can be saved and then later restored.
-
-local store = {}
-
-local function save()
-    table.insert(store, copy())
-end
-
-local function restore()
-    db = table.remove(store)
-    db = db or {}
-end
-"""
 # PROVER
 
 """

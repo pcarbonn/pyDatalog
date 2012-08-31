@@ -52,7 +52,7 @@ def test():
         assert ask(p(X)) == set([('a',)])
         assert ask(p(Y)) == set([('a',)])
         assert ask(p(b)) == None
-        # TODO assert ask(p(a) & p(b)) == None
+        assert ask(p(a) & p(b)) == None
         
         + p(b)
         assert ask(p(X), _fast=True) == set([('a',), ('b',)])
@@ -69,6 +69,10 @@ def test():
         
         + p(1)
         assert ask(p(1)) == set([(1,)])
+        
+        + n(None)
+        assert ask(n(X)) == set([(None,)])
+        assert ask(n(None)) == set([(None,)])
         
         # spaces and uppercase in strings
         + farmer('Moshe dayan')
@@ -135,12 +139,16 @@ def test():
         
     """ in                                                         """
     
+    pyDatalog.assert_fact('is_list', (1,2))
+
     @pyDatalog.program()
     def _in(): 
         _in(X) <= (X in [1,2])
         assert ask(_in(1)) == set([(1,)])
         assert ask(_in(X)) == set([(1,), (2,)])
         
+        _in2(X) <= is_list(Y) & (X in Y)
+        assert ask(_in2(X)) == set([(1,), (2,)])
                 
     """ recursion                                                         """
     
