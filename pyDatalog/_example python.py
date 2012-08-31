@@ -51,6 +51,7 @@ print(John.salary_class) # prints 6
 X = pyDatalog.Variable()
 Employee.salary[X] == 6300 # notice the similarity to a pyDatalog query
 print(X) # prints [Mary]
+print(X.v()) # prints Mary
 
 # who are the indirect managers of Mary ?
 Employee.indirect_manager(Mary, X)
@@ -60,6 +61,7 @@ print(X) # prints [John]
 result = (Employee.salary_class[X] == 5) & Employee.indirect_manager(X, John)
 print(result) # prints [(Sam,)]
 print(X) # prints [Sam]
+print((Employee.salary_class[X] == 5) & Employee.indirect_manager(X, John) >= X) # Sam
 
 # verify that the manager of Mary is John
 assert Employee.manager[Mary]==John
