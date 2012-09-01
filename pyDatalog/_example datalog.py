@@ -48,7 +48,7 @@ print(pyDatalog.ask("(salary[X] < 6000) & indirect_manager(X, 'John')")) # print
 print(pyDatalog.ask("indirect_manager('X', X)")) # prints None
 
 # who has 2 reports ?
-print pyDatalog.ask("report_count[X] == 2") # prints set([('John', 2)])
+print(pyDatalog.ask("report_count[X] == 2")) # prints set([('John', 2)])
 
 # what is the total salary of the employees of John ? 
 pyDatalog.load("(Budget[X] == sum(N, for_each=Y)) <= (indirect_manager(Y, X)) & (salary[Y]==N)")
