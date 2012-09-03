@@ -162,8 +162,10 @@ pyEngine.pyDatalog = pyDatalog
 
 """ ****************** python Mixin ***************** """
 
-class Variable(pyParser.LazyList):
-    pass
+class Variable(pyParser.VarSymbol, pyParser.LazyList):
+    def __init__(self):
+        pyParser.LazyList.__init__(self)
+        pyParser.VarSymbol.__init__(self, 'X%i' % id(self))
 pyDatalog.Variable = Variable
 
 """Keep a dictionary of classes with datalog capabilities.  This list is used by pyEngine to resolve prefixed literals."""
