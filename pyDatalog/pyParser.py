@@ -36,16 +36,19 @@ Methods exposed by this file:
 * add_program(func)
 * ask(code)
 
-Classes contained in this file:
+Classes hierarchy contained in this file:
+* ProgramContext : class to safely differentiate between In-line queries and pyDatalog program / ask(), using ProgramMode global variable
 * _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
-* LazyList : a subclassable list that is populated when it is accessed
+* LazyList : a subclassable list that is populated when it is accessed. Mixin for pyDatalog.Variable.
+    * LazyListOfList : Mixin for Literal and Body
 * Expression : base class for objects that can be part of an inequality or operation
-* Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
-* Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
-* Lambda : represents a lambda function, used in expressions
-* Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
+    * VarSymbol : represents they symbol of a variable. Mixin for pyDatalog.Variable
+        * Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
+    * Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
+    * Lambda : represents a lambda function, used in expressions
+    * Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
+    * Function : represents f[X]
 * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
-* Function : represents f[X]
 * Aggregate : represents calls to aggregation method, e.g. min(X)
 
 """
@@ -69,6 +72,18 @@ try:
 except ValueError:
     import pyEngine
 pyDatalog = None #circ: later set by pyDatalog to avoid circular import
+
+""" global variable to differentiate between in-line queries and pyDatalog program / ask"""
+ProgramMode = False
+
+class ProgramContext(object):
+    """class to safely use ProgramMode within the "with" statement"""
+    def __enter__(self):
+        global ProgramMode
+        ProgramMode = True
+    def __exit__(self, exc_type, exc_value, traceback):
+        global ProgramMode
+        ProgramMode = False
  
 """                             Parser methods                                                   """
 
@@ -137,7 +152,8 @@ def load(code, newglobals={}, defined=set([]), function='load', catch_error=True
     for name in set(code.co_names).difference(defined): # for names that are not defined
         add_symbols((name,), newglobals)
     try:
-        six.exec_(code, newglobals)
+        with ProgramContext():
+            six.exec_(code, newglobals)
     except pyDatalog.DatalogError as e:
         e.function = function
         exc_info = sys.exc_info()
@@ -186,14 +202,15 @@ def add_program(func):
     return _NoCallFunction()
 
 def ask(code, _fast=None):
-    tree = ast.parse(code, 'ask', 'eval')
-    tree = _transform_ast().visit(tree)
-    code = compile(tree, 'ask', 'eval')
-    newglobals = {}
-    add_symbols(code.co_names, newglobals)
-    parsed_code = eval(code, newglobals)
-    parsed_code = parsed_code.literal() if isinstance(parsed_code, Body) else parsed_code
-    return pyEngine.toAnswer(parsed_code.lua, parsed_code.lua.ask(_fast))
+    with ProgramContext():
+        tree = ast.parse(code, 'ask', 'eval')
+        tree = _transform_ast().visit(tree)
+        code = compile(tree, 'ask', 'eval')
+        newglobals = {}
+        add_symbols(code.co_names, newglobals)
+        parsed_code = eval(code, newglobals)
+        parsed_code = parsed_code.literal() if isinstance(parsed_code, Body) else parsed_code
+        return pyEngine.toAnswer(parsed_code.lua, parsed_code.lua.ask(_fast))
 
 """                             Parser classes                                                   """
 
@@ -286,11 +303,8 @@ class Expression(object):
     def __rfloordiv__(self, other):
         return Operation(other, '//', self)
     
-class Symbol(Expression):
-    """
-    can be constant, variable or predicate name
-    ask() creates a query
-    created when analysing the datalog program
+class VarSymbol(Expression):
+    """ represents the symbol of a variable, both inline and in pyDatalog program 
     """
     def __init__ (self, name):
         self._pyD_name = name
@@ -306,6 +320,54 @@ class Symbol(Expression):
         else:
             self._pyD_lua = pyEngine.make_const(name)
         
+    def _make_expression_literal(self, operator, other):
+        """private function to create a literal for comparisons"""
+        if isinstance(other, type(lambda: None)):
+            other = Lambda(other)
+        name = '=' + str(self) + operator + str(other)
+        if other is None or isinstance(other, (int, six.string_types, list, tuple)):
+            literal = Literal(name, [self])
+            expr = pyEngine.make_operand('constant', other)
+        else: 
+            if not isinstance(other, (Symbol, Expression)):
+                raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
+            literal = Literal(name, [self] + list(other._variables().values()))
+            expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
+            literal.pre_calculations = other._precalculation()
+        pyEngine.add_expr_to_predicate(literal.lua.pred, operator, expr)
+        return literal
+
+    def __neg__(self):
+        """ called when compiling -X """
+        neg = Symbol(self._pyD_name)
+        neg._pyD_negated = True
+        return neg
+    
+    def _in(self, values):
+        """ called when compiling (X in (1,2)) """
+        return self._make_expression_literal('in', values)
+    
+    def __coerce__(self, other):
+        return None
+    
+    def lua_expr(self, variables):
+        if self._pyD_type == 'variable':
+            return pyEngine.make_operand('variable', variables.index(self._pyD_name))
+        else:
+            return pyEngine.make_operand('constant', self._pyD_name)
+    
+    def _variables(self):
+        if self._pyD_type == 'variable':
+            return OrderedDict({self._pyD_name : self})
+        else:
+            return OrderedDict()
+
+class Symbol(VarSymbol):
+    """
+    can be constant, variable or predicate name
+    ask() creates a query
+    created when analysing the datalog program
+    """
     def __call__ (self, *args, **kwargs):
         """ called when compiling p(args) """
         "time to create a literal !"
@@ -358,36 +420,6 @@ class Symbol(Expression):
         else:
             return Literal(self._pyD_name, args)
 
-    def _make_expression_literal(self, operator, other):
-        """private function to create a literal for comparisons"""
-        if isinstance(other, type(lambda: None)):
-            other = Lambda(other)
-        name = '=' + str(self) + operator + str(other)
-        if other is None or isinstance(other, (int, six.string_types, list, tuple)):
-            literal = Literal(name, [self])
-            expr = pyEngine.make_operand('constant', other)
-        else: 
-            if not isinstance(other, (Symbol, Expression)):
-                raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
-            literal = Literal(name, [self] + list(other._variables().values()))
-            expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
-            literal.pre_calculations = other._precalculation()
-        pyEngine.add_expr_to_predicate(literal.lua.pred, operator, expr)
-        return literal
-
-    def __neg__(self):
-        """ called when compiling -X """
-        neg = Symbol(self._pyD_name)
-        neg._pyD_negated = True
-        return neg
-    
-    def _in(self, values):
-        """ called when compiling (X in (1,2)) """
-        return self._make_expression_literal('in', values)
-    
-    def __coerce__(self, other):
-        return None
-    
     def __getattr__(self, name):
         """ called when compiling class.attribute """
         return Symbol(self._pyD_name + '.' + name)
@@ -395,18 +427,6 @@ class Symbol(Expression):
     def __getitem__(self, keys):
         """ called when compiling name[keys] """
         return Function(self._pyD_name, keys)
-    
-    def lua_expr(self, variables):
-        if self._pyD_type == 'variable':
-            return pyEngine.make_operand('variable', variables.index(self._pyD_name))
-        else:
-            return pyEngine.make_operand('constant', self._pyD_name)
-    
-    def _variables(self):
-        if self._pyD_type == 'variable':
-            return OrderedDict({self._pyD_name : self})
-        else:
-            return OrderedDict()
 
     def __str__(self):
         return str(self._pyD_name)
@@ -416,7 +436,7 @@ class Symbol(Expression):
         function = Function(self._pyD_name, keys)
         # following statement translates it into (f[X]==V) <= (V==expression)
         (function == function.symbol) <= (function.symbol == value)
-
+        
 class Operation(Expression):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
     def __init__(self, lhs, operator, rhs):
@@ -476,11 +496,10 @@ class Literal(LazyListOfList):
         self.pre_calculations = Body()
         
         # TODO cleanup by redifining self.args, .HasSymbols, .hasVariables, .prefix
-        symbols = [term for term in terms if isinstance(term, (Symbol, pyEngine.Const, pyEngine.Var, pyEngine.Fresh_var))]
-        if not symbols and 1< len(self.predicate_name.split('.')):
+        if not ProgramMode: # in-line, thus
             self.todo = self
             self.args = terms
-            cls = self.predicate_name.split('.')[0]
+            cls = self.predicate_name.split('.')[0] if 1< len(self.predicate_name.split('.')) else ''
             terms, env = [], {}
             for i, arg in enumerate(self.args):
                 if isinstance(arg, pyDatalog.Variable):
@@ -490,7 +509,7 @@ class Literal(LazyListOfList):
                     variable = env.get(id(arg), Symbol('X%i' % id(arg)))
                     env[id(arg)] = variable
                     terms.append(variable)
-                elif i==0 and arg.__class__.__name__ != cls:
+                elif i==0 and cls and arg.__class__.__name__ != cls:
                     raise TypeError("Object is incompatible with the class that is queried.")
                 else:
                     terms.append(arg)
@@ -552,7 +571,8 @@ class Literal(LazyListOfList):
 
     def __pos__(self):
         " unary + means insert into database as fact "
-        assert not self.args # '+' cannot be used with literal containing pyDatalog.Variable instances
+        global ProgramMode
+        assert ProgramMode, "'+' cannot be used to assert facts in python programs"
         pyDatalog._assert_fact(self)
 
     def __neg__(self):
@@ -568,7 +588,8 @@ class Literal(LazyListOfList):
 
     def __le__(self, body):
         " head <= body"
-        assert not self.args # '<=' cannot be used with literal containing pyDatalog.Variable instances
+        global ProgramMode
+        #TODO assert ProgramMode # '<=' cannot be used with literal containing pyDatalog.Variable instances
         if isinstance(body, Literal):
             newBody = body.pre_calculations & body
         else:

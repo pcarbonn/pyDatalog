@@ -208,16 +208,16 @@ def test():
     # Factorial
     pyDatalog.clear()
     @pyDatalog.program()
-    def _(): 
+    def factorial(): 
         (factorial[N] == F) <= (N < 2) & (F==1)
-        (factorial[N] == F) <= (N > 1) & (N1 == N-1) & (F == N*factorial[N1])
+        (factorial[N] == F) <= ((N > 1) & (N1 == N-1)) & (F == N*factorial[N1])
         assert ask(factorial[1] == F) == set([(1, 1)])
         assert ask(factorial[4] == F) == set([(4, 24)])
     
     # Fibonacci
     pyDatalog.clear()
     @pyDatalog.program()
-    def _(): 
+    def fibonacci(): 
         (fibonacci[N] == F) <= (N == 0) & (F==0)
         (fibonacci[N] == F) <= (N == 1) & (F==1)
         (fibonacci[N] == F) <= (N > 1) & (N1 == N-1) & (N2 == N-2) & (F == fibonacci[N1]+fibonacci[N2])
@@ -255,6 +255,7 @@ def test():
     @pyDatalog.program()
     def function(): 
         + (f[a]==b)
+        assert ask(f[X]==Y) == set([('a', 'b')])
         assert ask(f[a]==b) == set([('a', 'b')])
     
         + (f[a]==c)
@@ -268,6 +269,9 @@ def test():
         
         g[X] = f[X]+f[X]
         assert(ask(g[a]==X)) == set([('a', 'cc')])
+        
+        #h[X,Y] <= (f[X]Y)
+        #print (ask(h[X,'c']))
         
     """ aggregates                                                         """
     pyDatalog.clear()
@@ -397,6 +401,12 @@ def test():
         assert ask(b_run_sum[X,Y]==4) == set([('b', 'b', 4)])
         assert ask(b_run_sum[a,y]==Y) == None
 
+    """ simple in-line queries                                        """
+    X = pyDatalog.Variable()
+    assert ((X==1) >= X) == 1
+    assert ((X==1) & (X!=2) >= X) == 1
+    assert set(X._in((1,2))) == set([(1,),(2,)])
+
     """ interface with python classes                                        """
 
     class A(pyDatalog.Mixin):
@@ -415,15 +425,15 @@ def test():
     X = pyDatalog.Variable()
     Y = pyDatalog.Variable()
     assert (A.c[X]=='a') == [(a, 'a')]
-    assert X == [a]
+    assert list(X) == [a]
     assert X.v() == a
     assert ((A.c[a]==X) >= X) == 'a'
     assert ((A.c[a]==X) & (A.c[a]==X) >= X) == 'a'
     assert ((A.c[a]==X) & (A.c[b]==X) >= X) == None
     (A.c[X]=='b') & (A.b[X]=='a')
-    assert X == []
+    assert list(X) == []
     (A.c[X]=='a') & (A.b[X]=='a')
-    assert X == [a]
+    assert list(X) == [a]
     result = (A.c[X]=='a') & (A.b[X]=='a')
     assert result == [(a,)]
     assert (A.c[a]=='a') & (A.b[a]=='a')
@@ -434,7 +444,7 @@ def test():
     assert (A.b[X]!='a') == [(b, 'a')]
     assert (A.b[X]!='z') == [(a, 'z'), (b, 'z')]
     assert (A.b[a]!='a') == []
-    assert (A.b[b]!='a') == [(b, 'a')]
+    assert list(A.b[b]!='a') == [(b, 'a')]
     assert ((A.b[b]!='a') & (A.b[b]!='z')) == [()]
 
     assert (A.b[X]<Y) == [(a, None), (b, None)]
@@ -452,6 +462,9 @@ def test():
 
     assert (A.b[X]>'a') == [(b, 'a')]
     assert (A.b[X]>='a') == [(a, 'a'), (b, 'a')]
+
+    # more complex queries
+    assert ((Y=='a') & (A.b[X]!=Y)) == [('a', b)] # order of appearance of the variables !
 
     """ python resolvers                                              """
     
