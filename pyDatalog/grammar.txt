@@ -7,7 +7,7 @@ datalog_statement ::= ('+' | '-') fact
 
 fact ::= literal_without_variable
 
-head ::= literal | '(' function '==' ('len' | 'sum' | 'concat' | 'min' | 'max') '(' arguments ')' ')'
+head ::= literal | '(' function '==' ('len' | 'sum' | 'concat' | 'min' | 'max' | 'rank' | 'running_sum' ) '(' arguments ')' ')'
 body ::= ( '~' ? ) ( literal 
            | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')'
            | '(' variable 'in' range ')'
@@ -35,3 +35,5 @@ expression ::= (constant
 simple_predicate ::= [a-fA-F_] [0-9a-fA-F_]*
 constant ::= [a-f] [0-9a-fA-F_]* | ["'] char ["']
 variable::= [A-F_] [0-9a-fA-F_]*
+
+in_line_query ::= literal ( '&' literal)* ( '>=' variable )?
