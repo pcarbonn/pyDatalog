@@ -95,6 +95,7 @@ class _transform_ast(ast.NodeTransformer):
     """ does some transformation of the Abstract Syntax Tree of the datalog program """
     def visit_Call(self, node):
         """rename builtins to allow customization"""
+        self.generic_visit(node)
         if hasattr(node.func, 'id'):
             node.func.id = '__sum__' if node.func.id == 'sum' else node.func.id
             node.func.id = '__len__' if node.func.id == 'len' else node.func.id
@@ -277,6 +278,9 @@ class Expression(object):
         return self._make_expression_literal('>=', other)
     def __gt__(self, other):
         return self._make_expression_literal('>', other)
+    def _in(self, values):
+        """ called when compiling (X in (1,2)) """
+        return self._make_expression_literal('in', values)
     
     def __add__(self, other):
         return Operation(self, '+', other)
@@ -308,7 +312,7 @@ class VarSymbol(Expression):
     def __init__ (self, name):
         self._pyD_name = name
         self._pyD_negated = False # for aggregate with sort in descending order
-        if isinstance(name, int) or not name or name[0] not in string.ascii_uppercase + '_':
+        if isinstance(name, (int, list, tuple)) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_type = 'constant'
             self._pyD_lua = pyEngine.make_const(name)
         else:
@@ -337,10 +341,6 @@ class VarSymbol(Expression):
         neg = Symbol(self._pyD_name)
         neg._pyD_negated = True
         return neg
-    
-    def _in(self, values):
-        """ called when compiling (X in (1,2)) """
-        return self._make_expression_literal('in', values)
     
     def __coerce__(self, other):
         return None
@@ -454,7 +454,7 @@ class Function(Expression):
             return Literal(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
         literal = Literal(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
         if '.' not in self.name or literal.lua.pred.db or literal.lua.pred.clauses : # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
-            return literal & pyEngine.compare(self.symbol, operator, other)
+            return literal & pyEngine.compare2(self.symbol, operator, other)
         elif isinstance(other, Operation): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
             Y2 = Function.newSymbol()
             return (Y2 == other) & Literal(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
@@ -486,7 +486,7 @@ class Operation(Expression):
         self.operator = operator
         
         def _convert(operand):
-            if operand is None or isinstance(operand, (six.string_types, int)):
+            if operand is None or isinstance(operand, (six.string_types, int, list, tuple)):
                 return Symbol(operand)
             elif isinstance(operand, type(lambda: None)):
                 return Lambda(operand)

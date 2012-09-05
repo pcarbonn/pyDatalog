@@ -916,6 +916,8 @@ def make_lambda(lambda_object, operands):
 def compare(l,op,r):
     return l in r if op=='in' else l==r if op=='==' else l!=r if op=='!=' else l<r if op=='<' \
         else l<=r if op=='<=' else l>=r if op=='>=' else l>r if op=='>' else None
+def compare2(l,op,r):
+    return l._in(r) if op=='in' else compare(l,op,r)
 
 # this functions adds an expression to an existing predicate
 
