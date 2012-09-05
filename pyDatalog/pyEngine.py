@@ -912,6 +912,11 @@ class Lambda(object):
 def make_lambda(lambda_object, operands):
     return Lambda(lambda_object, operands)
 
+# generic comparison function
+def compare(l,op,r):
+    return l in r if op=='in' else l==r if op=='==' else l!=r if op=='!=' else l<r if op=='<' \
+        else l<=r if op=='<=' else l>=r if op=='>=' else l>r if op=='>' else None
+
 # this functions adds an expression to an existing predicate
 
 def add_expr_to_predicate(pred, operator, expression):
@@ -924,20 +929,15 @@ def add_expr_to_predicate(pred, operator, expression):
                 return
             args.append(term.id)
             
-        X = literal.pred.expression.eval(args)
-        if literal.pred.operator == "=" and (not x.is_const() or x.id == X):
-            args.insert(0,X)
+        Y = literal.pred.expression.eval(args)
+        if literal.pred.operator == "=" and (not x.is_const() or x.id == Y):
+            args.insert(0,Y)
             yield args
-        elif ((literal.pred.operator == "<" and x.is_const() and x.id < X)
-          or  (literal.pred.operator == ">" and x.is_const() and x.id > X)
-          or  (literal.pred.operator == "<=" and x.is_const() and x.id <= X)
-          or  (literal.pred.operator == ">=" and x.is_const() and x.id >= X)
-          or  (literal.pred.operator == "!=" and x.is_const() and x.id != X)
-          or  (literal.pred.operator == "in" and x.is_const() and x.id in X)):
+        elif x.is_const() and compare(x.id, literal.pred.operator, Y) :
             args.insert(0,x.id)
             yield args
         elif (literal.pred.operator == "in" and not x.is_const()):
-            for v in X:
+            for v in Y:
                 values = list(args) # makes a copy
                 values.insert(0,v)
                 yield values

@@ -207,10 +207,6 @@ class metaMixin(type):
         attr_name = pred_name.split('[')[0].split('.')[1]
         operator = (pred_name.split(']')[1:2]+[None])[0] # what's after ']' or None
         
-        def compare(l,op,r):
-            return l==r if op=='==' else l!=r if op=='!=' else l<r if op=='<' \
-                else l<=r if op=='<=' else l>=r if op=='>=' else l>r if op=='>' else None
-
         # TODO check prearity
         def check_attribute(X):
             if attr_name not in X.__dict__ and attr_name not in cls.__dict__:
@@ -233,17 +229,17 @@ class metaMixin(type):
                     # try accessing the attribute of the first term in literal
                     check_attribute(X.id)
                     Y1 = getattr(X.id, attr_name)
-                    if not Y.is_const() or not operator or compare(Y1,operator,Y.id):
+                    if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
                         yield (X.id, Y.id if Y.is_const() else Y1 if operator=='==' else None)
                 elif cls.has_SQLAlchemy:
                     if cls.session:
                         q = cls.session.query(cls)
                         check_attribute(cls)
                         if Y.is_const():
-                            q = q.filter(compare(getattr(cls, attr_name), operator, Y.id))
+                            q = q.filter(pyEngine.compare(getattr(cls, attr_name), operator, Y.id))
                         for r in q:
                             Y1 = getattr(r, attr_name)
-                            if not Y.is_const() or not operator or compare(Y1,operator,Y.id):
+                            if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
                                     yield (r, Y.id if Y.is_const() else Y1 if operator=='==' else None)
                 else:
                     # python object with Mixin
@@ -251,7 +247,7 @@ class metaMixin(type):
                         X=X()
                         check_attribute(X)
                         Y1 = getattr(X, attr_name)
-                        if not Y.is_const() or not operator or compare(Y1,operator,Y.id):
+                        if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
                             yield (X, Y.id if Y.is_const() else Y1 if operator=='==' else None)
                 return
             else:
