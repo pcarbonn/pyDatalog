@@ -234,7 +234,7 @@ def test():
     @pyDatalog.program()
     def factorial(): 
         (factorial[N] == F) <= (N < 2) & (F==1)
-        (factorial[N] == F) <= ((N > 1) & (N1 == N-1)) & (F == N*factorial[N1])
+        (factorial[N] == F) <= (N > 1) & (F == N*factorial[N-1])
         assert ask(factorial[1] == F) == set([(1, 1)])
         assert ask(factorial[4] == F) == set([(4, 24)])
     
@@ -244,7 +244,7 @@ def test():
     def fibonacci(): 
         (fibonacci[N] == F) <= (N == 0) & (F==0)
         (fibonacci[N] == F) <= (N == 1) & (F==1)
-        (fibonacci[N] == F) <= (N > 1) & (N1 == N-1) & (N2 == N-2) & (F == fibonacci[N1]+fibonacci[N2])
+        (fibonacci[N] == F) <= (N > 1) & (F == fibonacci[N-1]+fibonacci[N-2])
         assert ask(fibonacci[1] == F) == set([(1, 1)])
         assert ask(fibonacci[4] == F) == set([(4, 3)])
         assert ask(fibonacci[18] == F) == set([(18, 2584)])

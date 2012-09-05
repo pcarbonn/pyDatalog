@@ -444,7 +444,15 @@ class Function(Expression):
         if not isinstance(keys, tuple):
             keys = (keys,)
         self.name = "%s[%i]" % (name, len(keys))
-        self.keys = keys
+        self.keys, self.precalculation = [], Body()
+        for key in keys:
+            if isinstance(key, Operation):
+                Y = Function.newSymbol()
+                self.keys.append(Y)
+                self.precalculation = self.precalculation & (Y == key)
+            else:
+                self.keys.append(key)
+                
         self.symbol = Function.newSymbol()
         self.dummy_variable_name = '_pyD_X%i' % Function.Counter
         
@@ -477,7 +485,7 @@ class Function(Expression):
         return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
 
     def _precalculation(self): 
-        literal = (self == self.symbol)
+        literal = self.precalculation & (self == self.symbol)
         return Body(literal)
     
 class Operation(Expression):
