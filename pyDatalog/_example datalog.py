@@ -42,7 +42,7 @@ print(pyDatalog.ask("salary[X] == 6300")) # prints set([('Mary', 6300)])
 print(pyDatalog.ask("indirect_manager('Mary', X)")) # prints set([('Mary', 'John')])
 
 # Who are the employees of John with a salary below 6000 ?
-print(pyDatalog.ask("(salary_class[X] == 5) & indirect_manager(X, 'John')")) # prints set([('Sam',)])
+print(pyDatalog.ask("(salary[X] < 6000) & indirect_manager(X, 'John')")) # prints set([('Sam', 5900)])
 
 # who is his own indirect manager ?
 print(pyDatalog.ask("indirect_manager('X', X)")) # prints None

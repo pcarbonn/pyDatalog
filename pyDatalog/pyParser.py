@@ -435,26 +435,31 @@ class Symbol(VarSymbol):
 class Function(Expression):
     """ represents predicate[a, b]"""
     Counter = 0
+    @classmethod
+    def newSymbol(cls):
+        Function.Counter += 1
+        return Symbol('_pyD_X%i' % Function.Counter)
+        
     def __init__(self, name, keys):
         if not isinstance(keys, tuple):
             keys = (keys,)
         self.name = "%s[%i]" % (name, len(keys))
         self.keys = keys
-        self.dummy_variable_name = '_X%i' % Function.Counter
-        Function.Counter += 1
-        
-        self.symbol = Symbol(self.dummy_variable_name)
-        self.symbol._pyD_type = 'variable'
-        self.symbol._pyD_lua = pyEngine.make_var(self.dummy_variable_name)
+        self.symbol = Function.newSymbol()
+        self.dummy_variable_name = '_pyD_X%i' % Function.Counter
         
     def _make_expression_literal(self, operator, other):
-        if (not (isinstance(other, (six.string_types, int, Symbol, Aggregate)) or other is None) 
-            and all([isinstance(key, (six.string_types, int, Symbol)) for key in self.keys])):
-            raise pyDatalog.DatalogError("The right hand side of a function literal must be a constant or variable", None, None)
         assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
-        if '.' not in self.name and operator != '==': # p[X]<Y transformed into (p[X]=Y1) & (Y1<Y)
-            return Literal(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys)) & (self.symbol < other)
-        return Literal(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
+        if operator == '==' and not isinstance(other, Operation):
+            return Literal(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
+        literal = Literal(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
+        if '.' not in self.name or literal.lua.pred.db or literal.lua.pred.clauses : # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
+            return literal & pyEngine.compare(self.symbol, operator, other)
+        elif isinstance(other, Operation): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
+            Y2 = Function.newSymbol()
+            return (Y2 == other) & Literal(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
+        else: 
+            return Literal(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
     
     def __eq__(self, other): return self._make_expression_literal('==', other)
     
