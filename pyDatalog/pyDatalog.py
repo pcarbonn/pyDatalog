@@ -33,6 +33,7 @@ methods for direct access to datalog knowledge base:
   * predicate() : decorator function to create a predicate resolver in python
   * load(code, catch_error=False) : loads the clauses contained in the code string
   * ask(code) : returns the result of the query contained in the code string
+  * variables(n) : convenience function to create multiple variables in one statement
   * clear() : resets the datalog database
 DatalogError class
 Answer class defines the object returned by ask()
