@@ -687,6 +687,7 @@ def search(subgoal):
             merge(base_subgoal)
             Fast = True # TODO why is it needed ??  Side effects !
             search(base_subgoal)
+            Fast = False # TODO
             result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
             
             if result:
