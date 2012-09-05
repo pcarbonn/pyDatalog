@@ -563,7 +563,9 @@ def test():
     test_error("manager[X]==Y <= (X==Y)")
     test_error("p(X) <= X==1 & X==2")
     test_error("p(X) <= (manager[X]== min(X))")
-    # TODO error : (X<1), (X,Y), (1<X) unbound
+    test_error("ask(X<1)")
+    test_error("ask(X<Y)")
+    test_error("ask(1<Y)")
         
     print("Test completed successfully.")
 

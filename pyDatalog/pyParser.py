@@ -265,7 +265,7 @@ class Expression(object):
     
     def __eq__(self, other):
         if self._pyD_type == 'variable' and not isinstance(other, Symbol):
-            return self._make_expression_literal('=', other)
+            return self._make_expression_literal('==', other)
         else:
             return Literal("=", (self, other))
     def __ne__(self, other):
