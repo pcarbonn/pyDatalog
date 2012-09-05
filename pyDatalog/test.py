@@ -132,6 +132,7 @@ def test():
         assert ask((X==1) & (X<=1)) == set([(1,)])
         assert ask((X==1) & (X>1)) == None
         assert ask((X==1) & (X>=1)) == set([(1,)])
+        assert ask(X in (1,)) == set([(1,)])
 
     """ clauses                                                         """
     
@@ -163,12 +164,17 @@ def test():
 
     @pyDatalog.program()
     def _in(): 
+        assert ((X==1) & (X in (1,2))) == [(1,)]
         _in(X) <= (X in [1,2])
         assert ask(_in(1)) == set([(1,)])
+        assert ask(_in(9)) == None
         assert ask(_in(X)) == set([(1,), (2,)])
         
         _in2(X) <= is_list(Y) & (X in Y)
         assert ask(_in2(X)) == set([(1,), (2,)])
+
+        assert ask((Y==(1,2)) & (X==1) & (X in Y)) == set([((1, 2), 1)])
+        assert ask((Y==(1,2)) & (X==1) & (X in Y+(3,))) == set([((1, 2), 1)])
                 
     """ recursion                                                         """
     
@@ -188,14 +194,12 @@ def test():
         s(X) <= (X == a)
         assert ask(s(X)) == set([('a',)])
         s(X) <= (X == 1)
-        #print((ask(s(X))))
         assert ask(s(X)) == set([(1,), ('a',)])
         
         s(X, Y) <= p(X) & (X == Y)
         assert ask(s(a, a)) == set([('a', 'a')])
         assert ask(s(a, b)) == None
         assert ask(s(X,a)) == set([('a', 'a')])
-        #print((ask(s(X, Y))))
         assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),(1, 1)])
         # TODO  make this work
         # s <= (X == Y)   
@@ -303,12 +307,15 @@ def test():
         assert ask(f[a]>'c') == None
         assert ask(f[a]<='c') == set([('c',)])
         assert ask(f[a]>'c') == None
+        assert ask(f[a] in ['c',]) == set([('c',)])
 
         assert ask(f[X]==Y+'') == None
         assert ask((Y=='c') &(f[X]==Y+'')) == set([('c', 'a', 'c')])
         assert ask((Y=='c') &(f[X]<=Y+'')) == set([('c', 'a', 'c')])
         assert ask((Y=='c') &(f[X]<Y+'')) == None
         assert ask((Y=='c') &(f[X]<'d'+Y+'')) == set([('c', 'a', 'c')])
+        assert ask((Y==('a','c')) & (f[X] in Y)) == set([(('a', 'c'), 'a', 'c')])
+        assert ask((Y==('a','c')) & (f[X] in (Y+('z',)))) == set([(('a', 'c'), 'a', 'c')])
         
     """ aggregates                                                         """
     pyDatalog.clear()
@@ -502,6 +509,13 @@ def test():
 
     assert (A.c[X]<='a') == [(a, 'a')]
     assert (A.c[X]<='a'+'') == [(a, 'a')]
+
+    assert (A.c[X]._in(('a',))) == [(a, 'a')]
+    assert (A.c[X]._in(('a',)+('z',))) == [(a, 'a')]
+    assert ((Y==('a',)) & (A.c[X]._in(Y))) == [(('a',), a, 'a')] # TODO make ' in ' work
+    
+    assert ((Y==('a',)) & (A.c[X]._in(Y+('z',)))) == [(('a',), a, 'a')] # TODO make ' in ' work
+    assert (A.c[X]._in(('z',))) == []
 
     # more complex queries
     assert ((Y=='a') & (A.b[X]!=Y)) == [('a', b)] # order of appearance of the variables !
