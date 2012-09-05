@@ -51,6 +51,7 @@ def test():
         assert ask(p(a)) == set([('a',)])
         assert ask(p(X)) == set([('a',)])
         assert ask(p(Y)) == set([('a',)])
+        assert ask(p(_X)) == set([('a',)])
         assert ask(p(b)) == None
         assert ask(p(a) & p(b)) == None
         

@@ -309,16 +309,12 @@ class VarSymbol(Expression):
     def __init__ (self, name):
         self._pyD_name = name
         self._pyD_negated = False # for aggregate with sort in descending order
-        if isinstance(name, int):
+        if isinstance(name, int) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_type = 'constant'
-        elif (not name or name[0] not in string.ascii_uppercase):
-            self._pyD_type = 'constant'
+            self._pyD_lua = pyEngine.make_const(name)
         else:
             self._pyD_type = 'variable'
-        if self._pyD_type == 'variable':
             self._pyD_lua = pyEngine.make_var(name)
-        else:
-            self._pyD_lua = pyEngine.make_const(name)
         
     def _make_expression_literal(self, operator, other):
         """private function to create a literal for comparisons"""
