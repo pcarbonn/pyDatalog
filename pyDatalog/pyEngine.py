@@ -134,7 +134,7 @@ def make_const(_id):
 class Pred(Interned):
     registry = weakref.WeakValueDictionary()
     def __new__(cls, *args, **kwargs):
-        assert 1 < len(args)
+        assert 1 < len(args) # args : pred_name, arity, aggregate
         assert isinstance(args[0], six.string_types)
         _id = '%s/%i' % args[:2]
         if not _id in cls.registry: # don't use setdefault to avoid creating unnecessary objects
@@ -154,7 +154,7 @@ class Pred(Interned):
         for clause in list(self.clauses):
             retract(clause)
     
-    def __init__(self, pred_name, arity, aggregate):
+    def __init__(self, pred_name, arity, aggregate): # required to define arity of Pred()
         pass
     def __str__(self): return "%s()" % get_name(self)
 def make_pred(pred_name, arity, aggregate=None):
@@ -233,7 +233,6 @@ def get_tag(literal):
     if not hasattr(literal, 'tag'):
         literal.tag = add_size(literal.pred.id)
         env = {}
-        temp = []
         literal.tag += ''.join([add_size(term.get_tag(i, env)) for i, term in enumerate(literal.terms)])
     return literal.tag
      
@@ -301,9 +300,6 @@ def _(self, const, env):
     env[self] = const
     return env
 Var.unify_const = _
-def _(self, const, env):
-    env[self] = const
-    return env
 Fresh_var.unify_const = _
 
 Var.unify = lambda self, term, env : term.unify_var(self, env)
@@ -319,15 +315,11 @@ Fresh_var.unify_var = _
 # efficient implementation of this operation.
 
 def is_in(term, literal):
-    for term2 in literal.terms:
-        if term2 == term:
-            return True
-    return False
+    return any([term2==term for term2 in literal.terms])
 
 # These methods are used to handle a set of facts.
 def is_member(literal, tbl):
-    id_ = get_key(literal)
-    return tbl.get(id_)
+    return tbl.get(get_key(literal))
 
 def adjoin(literal, tbl):
     tbl[get_key(literal)] = literal
@@ -346,7 +338,8 @@ class Clause(object):
     def __init__(self, head, body):
         self.head = head
         self.body = body
-    def __str__(self):  return "%s <= %s" % (str(self.head), '&'.join([str(literal) for literal in self.body])) 
+    def __str__(self):  
+        return "%s <= %s" % (str(self.head), '&'.join([str(literal) for literal in self.body])) 
 def make_clause(head, body):
     return Clause(head, body)
 
@@ -382,14 +375,11 @@ def rename_clause(clause):
 # A clause is safe if every variable in its head is in its body.
 
 def is_safe(clause):
-    for term in clause.head.terms:
-        if not term.is_safe(clause): return False
-    return True
+    return all([term.is_safe(clause) for term in clause.head.terms])
 Const.is_safe = lambda self, clause : True
+
 def _(self, clause):
-    for bodi in clause.body:
-        if is_in(self, bodi): return True
-    return False
+    return any([is_in(self, bodi) for bodi in clause.body])
 Var.is_safe = _
 Fresh_var.is_safe = _
 
@@ -453,10 +443,7 @@ def relevant_clauses(literal):
     for i, term in enumerate(literal.terms):
         if term.is_const():
             facts = literal.pred.index[i].get(term) or set({})
-            if result == None:
-                result = facts
-            else:
-                result = result.intersection(facts)
+            result = facts if result == None else result.intersection(facts)
     if result == None: # no constants found
         return list(literal.pred.db.values())
     else:
@@ -479,13 +466,10 @@ It should be noted that a simplified version of the algorithm of
 supported. 
 """
 
-# The subgoal table
-
-# local subgoals
-subgoals = {}
-
 # The subgoal table is a map from the variant tag of a subgoal's
 # literal to a subgoal.
+
+subgoals = {}
 
 def find(literal):
     tag = get_tag(literal)
@@ -517,7 +501,8 @@ def resolve(clause, literal):
     if len(clause.body) == 0: # this never happens, in fact
         return None 
     env = unify(clause.body[0], rename(literal))
-    if env == None: return None
+    if env == None: 
+        return None
     return make_clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
  
 # A stack of thunks used to avoid the stack overflow problem
@@ -558,8 +543,7 @@ def complete(thunk, post_thunk):
 def invoke(thunk):
     global tasks, subgoals
     if Fast: return thunk()
-    tasks = []
-    tasks.append(Thunk(thunk))
+    tasks = [Thunk(thunk),]
     while tasks or Stack:
         while tasks:
             tasks.pop(0).do() # get the thunk and execute it
@@ -701,7 +685,7 @@ def search(subgoal):
             #result = ask(base_literal)
             base_subgoal = make_subgoal(base_literal)
             merge(base_subgoal)
-            Fast = True
+            Fast = True # TODO why is it needed ??  Side effects !
             search(base_subgoal)
             result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
             

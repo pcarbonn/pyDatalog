@@ -118,8 +118,7 @@ class _transform_ast(ast.NodeTransformer):
                 None, # starargs
                 None # kwargs
                 )
-        newNode = ast.fix_missing_locations(newNode)
-        return newNode
+        return ast.fix_missing_locations(newNode)
 
 def load(code, newglobals={}, defined=set([]), function='load', catch_error=True):
     """ code : a string or list of string 
@@ -157,8 +156,7 @@ def load(code, newglobals={}, defined=set([]), function='load', catch_error=True
             six.exec_(code, newglobals)
     except pyDatalog.DatalogError as e:
         e.function = function
-        exc_info = sys.exc_info()
-        traceback = exc_info[2]
+        traceback = sys.exc_info()[2]
         e.lineno = 1
         while True:
             if traceback.tb_frame.f_code.co_name == '<module>':
@@ -191,12 +189,8 @@ def add_program(func):
         code = func.__code__
     except:
         raise TypeError("function or method argument expected")
-    if PY3:
-        newglobals = func.__globals__.copy()
-        func_name = func.__name__
-    else:
-        newglobals = func.func_globals.copy()
-        func_name = func.func_name
+    newglobals = func.__globals__.copy() if PY3 else func.func_globals.copy()
+    func_name = func.__name__ if PY3 else func.func_name
     defined = set(code.co_varnames).union(set(newglobals.keys())) # local variables and global variables
 
     load(source_code, newglobals, defined, function=func_name)
@@ -379,34 +373,28 @@ class Symbol(VarSymbol):
         elif self._pyD_name == '__sum__':
             if isinstance(args[0], Symbol):
                 check(kwargs, (('key', 'for_each'),))
-                args = (args[0], kwargs.get('for_each', kwargs.get('key')))
-                return Sum_aggregate(args)
+                return Sum_aggregate((args[0], kwargs.get('for_each', kwargs.get('key'))))
             else:
                 return sum(args)
         elif self._pyD_name == 'concat':
             check(kwargs, (('key','order_by'),('sep',)))
-            args = (args[0], kwargs.get('order_by',kwargs.get('key')), kwargs['sep'])
-            return Concat_aggregate(args)
+            return Concat_aggregate((args[0], kwargs.get('order_by',kwargs.get('key')), kwargs['sep']))
         elif self._pyD_name == '__min__':
             if isinstance(args[0], Symbol):
                 check(kwargs, (('key', 'order_by'),))
-                args = (args[0], kwargs.get('order_by',kwargs.get('key')),)
-                return Min_aggregate(args)
+                return Min_aggregate((args[0], kwargs.get('order_by',kwargs.get('key')),))
             else:
                 return min(args)
         elif self._pyD_name == '__max__':
             if isinstance(args[0], Symbol):
                 check(kwargs, (('key', 'order_by'),))
-                args = (args[0], kwargs.get('order_by',kwargs.get('key')),)
-                return Max_aggregate(args)
+                return Max_aggregate((args[0], kwargs.get('order_by',kwargs.get('key')),))
             else:
                 return max(args)
         elif self._pyD_name == 'rank':
-            args = (kwargs['for_each'], kwargs['order_by'])
-            return Rank_aggregate(args)
+            return Rank_aggregate((kwargs['for_each'], kwargs['order_by']))
         elif self._pyD_name == 'running_sum':
-            args = (args[0], kwargs['for_each'], kwargs['order_by'])
-            return Running_sum(args)
+            return Running_sum((args[0], kwargs['for_each'], kwargs['order_by']))
         elif self._pyD_name == '__len__':
             if isinstance(args[0], Symbol):
                 return Len_aggregate(args[0])
@@ -469,7 +457,8 @@ class Function(Expression):
         else: 
             return Literal(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
     
-    def __eq__(self, other): return self._make_expression_literal('==', other)
+    def __eq__(self, other):
+        return self._make_expression_literal('==', other)
     
     def __pos__(self):
         raise pyDatalog.DatalogError("bad operand type for unary +: 'Function'. Please consider adding parenthesis", None, None)
@@ -485,8 +474,7 @@ class Function(Expression):
         return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
 
     def _precalculation(self): 
-        literal = self.precalculation & (self == self.symbol)
-        return Body(literal)
+        return self.precalculation & (self == self.symbol)
     
 class Operation(Expression):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
@@ -634,8 +622,7 @@ class Literal(LazyListOfList):
     def __invert__(self):
         """unary ~ means negation """
         # TODO test with python queries
-        negated_literal = Literal('~' + self.predicate_name, self.terms)
-        return negated_literal
+        return Literal('~' + self.predicate_name, self.terms)
 
     def __le__(self, body):
         " head <= body"
@@ -693,8 +680,7 @@ class Body(LazyListOfList):
     def __str__(self):
         if self.hasVariables:
             return LazyListOfList.__str__(self)
-        literals = list(map (str, self.literals))
-        return ' & '.join(literals)
+        return ' & '.join(list(map (str, self.literals)))
 
     def literal(self):
         # return a literal that can be queried to resolve the body
