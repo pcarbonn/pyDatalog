@@ -128,6 +128,10 @@ def test():
         assert ask((X==1) & (Y==X)) == set([(1,1)]) 
         assert ask((X==1) & (Y==X+1)) == set([(1,2)])
         assert ask((X==1) & (Y==X+1) & (X<Y)) == set([(1,2)])
+        assert ask((X==1) & (X<1)) == None
+        assert ask((X==1) & (X<=1)) == set([(1,)])
+        assert ask((X==1) & (X>1)) == None
+        assert ask((X==1) & (X>=1)) == set([(1,)])
 
     """ clauses                                                         """
     
@@ -294,6 +298,17 @@ def test():
     def function_comparison(): 
         assert ask(f[X]==Y) == set([('a', 'c')])
         assert ask(f[a]<'d') == set([('c',)])
+        assert ask(f[a]>'a') == set([('c',)])
+        assert ask(f[a]>='c') == set([('c',)])
+        assert ask(f[a]>'c') == None
+        assert ask(f[a]<='c') == set([('c',)])
+        assert ask(f[a]>'c') == None
+
+        assert ask(f[X]==Y+'') == None
+        assert ask((Y=='c') &(f[X]==Y+'')) == set([('c', 'a', 'c')])
+        assert ask((Y=='c') &(f[X]<=Y+'')) == set([('c', 'a', 'c')])
+        assert ask((Y=='c') &(f[X]<Y+'')) == None
+        assert ask((Y=='c') &(f[X]<'d'+Y+'')) == set([('c', 'a', 'c')])
         
     """ aggregates                                                         """
     pyDatalog.clear()
@@ -461,9 +476,6 @@ def test():
     assert (A.c[a]=='a') & (A.b[a]=='a')
     assert not ((A.c[a]=='a') & (A.b[a]=='f'))
     
-    #assert (A.c[X]<='a') == [(a, 'a')]
-    #assert (A.c[X]<='a'+'') == [(a, 'a')]
-
     """ filters on python classes                                        """
     assert (A.b[X]!=Y) == [(a, None), (b, None)]
     assert (A.b[X]!='a') == [(b, 'a')]
@@ -487,6 +499,9 @@ def test():
 
     assert (A.b[X]>'a') == [(b, 'a')]
     assert (A.b[X]>='a') == [(a, 'a'), (b, 'a')]
+
+    assert (A.c[X]<='a') == [(a, 'a')]
+    assert (A.c[X]<='a'+'') == [(a, 'a')]
 
     # more complex queries
     assert ((Y=='a') & (A.b[X]!=Y)) == [('a', b)] # order of appearance of the variables !
