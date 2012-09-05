@@ -131,7 +131,10 @@ class Answer(object):
         return set(self.answers) == other if self.answers else other is None
     def __str__(self):
         return str(set(self.answers))
-    
+
+def variables(n):
+    return [pyDatalog.Variable() for i in range(n)]
+
 #utility functions, also used by pyParser
 
 def _assert_fact(literal):
