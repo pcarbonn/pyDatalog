@@ -658,7 +658,7 @@ def search(subgoal):
         return
     elif not _class or (attr_name and not '_pyD_'+attr_name in _class.__dict__): 
         # it is not a literal defined by a python function --> use datalog clauses to resolve it
-        if literal.pred.prim:
+        if literal.pred.prim: # X==Y, X < Y+Z
             return literal.pred.prim(literal, subgoal)
         elif hasattr(literal.pred, 'base_pred'): # this is a negated literal
             for term in literal.terms:
@@ -715,7 +715,7 @@ def search(subgoal):
                     k = aggregate.fact(k)
                     fact_candidate(subgoal, k)
             return
-        elif literal.pred.db: # has a datalog definition
+        elif literal.pred.db: # has a datalog definition, e.g. p(X), p[X]==Y
             #TODO test if there is a conflicting python definition ?
             for clause in relevant_clauses(literal):
                 renamed = rename_clause(clause)
@@ -723,7 +723,7 @@ def search(subgoal):
                 if env != None: # lua considers {} as true
                     schedule(Add_clause(subgoal, subst_in_clause(renamed, env)))
             return
-    try:
+    try: # a.p[X]==Y, a.p[X]<y
         iterator = _class.pyDatalog_search(literal)
     except AttributeError:
         print("Warning : unknown predicate : %s" % literal.pred.id)
@@ -925,14 +925,16 @@ def add_expr_to_predicate(pred, operator, expression):
     def expression_iter(literal):
         x = literal.terms[0]
         args = []
+        assert operator in ('==', 'in') or x.is_const(), "Error: left hand side of comparison must be bound: %s" % literal.pred.id
         for term in literal.terms[1:]:
             if not term.is_const():
                 #unbound: can't raise error if right side is unbound, because split(a,b,c) would fail (see test.py)
+                assert operator == '==', "Error: right hand side of comparison must be unbound: %s" % literal.pred.id
                 return
             args.append(term.id)
             
         Y = literal.pred.expression.eval(args)
-        if literal.pred.operator == "=" and (not x.is_const() or x.id == Y):
+        if literal.pred.operator == "==" and (not x.is_const() or x.id == Y):
             args.insert(0,Y)
             yield args
         elif x.is_const() and compare(x.id, literal.pred.operator, Y) :
