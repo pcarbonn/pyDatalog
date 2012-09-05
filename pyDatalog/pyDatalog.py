@@ -52,17 +52,17 @@ import sys
 import weakref
 
 try:
-    from . import __init__
+    from . import version
     from . import pyEngine
     from . import pyParser
     from .pyParser import Symbol, Expression, Lambda, Literal, Body
 except ValueError:
-    import __init__
+    import version
     import pyEngine
     import pyParser
     from pyParser import Symbol, Expression, Lambda, Literal, Body
     
-print("pyDatalog version %s" % __init__.__version__)
+print("pyDatalog version %s" % version.__version__)
 
 try:
     from sqlalchemy.ext.declarative import DeclarativeMeta
