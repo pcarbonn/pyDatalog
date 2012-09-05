@@ -101,6 +101,14 @@ def test():
         - q(a,c)
         assert ask(q(a, Y)) == set([('a', 'b')])
         
+    """ (in)equality                                             """
+
+    @pyDatalog.program()
+    def equality():
+        assert ask(X==1) == set([(1,)]) 
+        assert ask(X==Y) == None
+        assert ask(X==Y+1) == None
+
     """ Conjunctive queries                                             """
 
     @pyDatalog.program()
@@ -114,6 +122,13 @@ def test():
         assert ask(q(X, Y)) == set([('a', 'b')])
         assert ask(q(X, Y) & p(X)) == set([('a', 'b')])
     
+    @pyDatalog.program()
+    def equality2():
+        assert ask((X==1) & (X<X+1)) == set([(1,)]) 
+        assert ask((X==1) & (Y==X)) == set([(1,1)]) 
+        assert ask((X==1) & (Y==X+1)) == set([(1,2)])
+        assert ask((X==1) & (Y==X+1) & (X<Y)) == set([(1,2)])
+
     """ clauses                                                         """
     
     @pyDatalog.program()
@@ -510,6 +525,7 @@ def test():
     test_error("manager[X]==Y <= (X==Y)")
     test_error("p(X) <= X==1 & X==2")
     test_error("p(X) <= (manager[X]== min(X))")
+    # TODO error : (X<1), (X,Y), (1<X) unbound
         
     print("Test completed successfully.")
 
