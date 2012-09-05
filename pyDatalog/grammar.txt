@@ -5,24 +5,26 @@ datalog_statement ::= ('+' | '-') fact
   | head '<=' body
   | function '=' expression
 
-fact ::= literal_without_variable
+fact ::= head_without_variable
 
-head ::= literal | '(' function '==' ('len' | 'sum' | 'concat' | 'min' | 'max' | 'rank' | 'running_sum' ) '(' arguments ')' ')'
+head ::= literal 
+      | '(' function '==' (variable | constant) ')'
+      | '(' function '==' ('len' | 'sum' | 'concat' | 'min' | 'max' | 'rank' | 'running_sum' ) '(' arguments ')' ')'
+      
 body ::= ( '~' ? ) ( literal 
-           | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')'
-           | '(' variable 'in' range ')'
-         ) 
+           | '(' (variable | function) ('<' | '<=' | '==' | '~=' | '>='  | '>' | 'in' ) expression ')'
+           ) 
          ( '&' ( '~' ? ) ( literal 
-                 | '(' variable ('<' | '<=' | '==' | '~=' | '>='  | '>') expression ')' 
-                 | '(' variable 'in' range ')' )
+           | '(' (variable | function) ('<' | '<=' | '==' | '~=' | '>='  | '>' | 'in' ) expression ')'
+           )
          )*
 
-literal ::= predicate '(' (variable | constant) (',' (variable | constant))* ')'
-  | '(' function '==' (variable | constant) ')'
+literal ::= predicate '(' (  (variable | constant) (',' (variable | constant))*  )? ')'
+
   
 predicate ::= simple_predicate | simple_predicate '.' simple_predicate
 
-function ::= predicate '[' (variable | constant) (',' (variable | constant))*  ']'
+function ::= predicate '[' (variable | constant | expression) (',' (variable | constant | expression))*  ']'
 
 expression ::= (constant 
   | variable 
@@ -35,5 +37,3 @@ expression ::= (constant
 simple_predicate ::= [a-fA-F_] [0-9a-fA-F_]*
 constant ::= [a-f] [0-9a-fA-F_]* | ["'] char ["']
 variable::= [A-F_] [0-9a-fA-F_]*
-
-in_line_query ::= literal ( '&' literal)* ( '>=' variable )?
