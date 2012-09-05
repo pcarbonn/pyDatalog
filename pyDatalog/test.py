@@ -286,8 +286,14 @@ def test():
         g[X] = f[X]+f[X]
         assert(ask(g[a]==X)) == set([('a', 'cc')])
         
-        #h[X,Y] <= (f[X]Y)
-        #print (ask(h[X,'c']))
+        h(X,Y) <= (f[X]==Y)
+        assert (ask(h(X,'c'))) == set([('a', 'c')])
+        assert (ask(h(X,Y))) == set([('a', 'c')])
+
+    @pyDatalog.program()
+    def function_comparison(): 
+        assert ask(f[X]==Y) == set([('a', 'c')])
+        assert ask(f[a]<'d') == set([('c',)])
         
     """ aggregates                                                         """
     pyDatalog.clear()
@@ -454,6 +460,9 @@ def test():
     assert result == [(a,)]
     assert (A.c[a]=='a') & (A.b[a]=='a')
     assert not ((A.c[a]=='a') & (A.b[a]=='f'))
+    
+    #assert (A.c[X]<='a') == [(a, 'a')]
+    #assert (A.c[X]<='a'+'') == [(a, 'a')]
 
     """ filters on python classes                                        """
     assert (A.b[X]!=Y) == [(a, None), (b, None)]

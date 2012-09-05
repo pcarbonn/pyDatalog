@@ -268,7 +268,7 @@ class Expression(object):
         else:
             return Literal("=", (self, other))
     def __ne__(self, other):
-        return self._make_expression_literal('~=', other)
+        return self._make_expression_literal('!=', other)
     def __le__(self, other):
         return self._make_expression_literal('<=', other)
     def __lt__(self, other):
@@ -447,25 +447,16 @@ class Function(Expression):
         self.symbol._pyD_type = 'variable'
         self.symbol._pyD_lua = pyEngine.make_var(self.dummy_variable_name)
         
-    def _variables(self):
-        return {self.dummy_variable_name : self.symbol}
-
-    def lua_expr(self, variables):
-        return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
-
-    def _compare(self, operator, other):
+    def _make_expression_literal(self, operator, other):
         if (not (isinstance(other, (six.string_types, int, Symbol, Aggregate)) or other is None) 
             and all([isinstance(key, (six.string_types, int, Symbol)) for key in self.keys])):
             raise pyDatalog.DatalogError("The right hand side of a function literal must be a constant or variable", None, None)
         assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
+        if '.' not in self.name and operator != '==': # p[X]<Y transformed into (p[X]=Y1) & (Y1<Y)
+            return Literal(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys)) & (self.symbol < other)
         return Literal(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
     
-    def __eq__(self, other): return self._compare('==', other)
-    def __ne__(self, other): return self._compare('!=', other)
-    def __lt__(self, other): return self._compare('<', other)
-    def __le__(self, other): return self._compare('<=', other)
-    def __ge__(self, other): return self._compare('>=', other)
-    def __gt__(self, other): return self._compare('>', other)
+    def __eq__(self, other): return self._make_expression_literal('==', other)
     
     def __pos__(self):
         raise pyDatalog.DatalogError("bad operand type for unary +: 'Function'. Please consider adding parenthesis", None, None)
@@ -473,7 +464,14 @@ class Function(Expression):
     def __neg__(self):
         raise pyDatalog.DatalogError("bad operand type for unary -: 'Function'. Please consider adding parenthesis", None, None)
     
-    def _precalculation(self):
+    # following methods are used when the function is used in an expression
+    def _variables(self):
+        return {self.dummy_variable_name : self.symbol}
+
+    def lua_expr(self, variables):
+        return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
+
+    def _precalculation(self): 
         literal = (self == self.symbol)
         return Body(literal)
     
