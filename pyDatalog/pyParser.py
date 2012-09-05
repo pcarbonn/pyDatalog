@@ -44,10 +44,10 @@ Classes hierarchy contained in this file:
 * Expression : base class for objects that can be part of an inequality or operation
     * VarSymbol : represents they symbol of a variable. Mixin for pyDatalog.Variable
         * Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
+    * Function : represents f[X]
     * Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
     * Lambda : represents a lambda function, used in expressions
     * Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
-    * Function : represents f[X]
 * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
 * Aggregate : represents calls to aggregation method, e.g. min(X)
 
@@ -260,8 +260,7 @@ class LazyListOfList(LazyList):
     
 class Expression(object):
     def _precalculation(self):
-        # by default, there is no precalculation needed to evaluate an expression
-        return Body()
+        return Body() # by default, there is no precalculation needed to evaluate an expression
     
     def __eq__(self, other):
         if self._pyD_type == 'variable' and not isinstance(other, Symbol):
@@ -433,6 +432,51 @@ class Symbol(VarSymbol):
         # following statement translates it into (f[X]==V) <= (V==expression)
         (function == function.symbol) <= (function.symbol == value)
         
+class Function(Expression):
+    """ represents predicate[a, b]"""
+    Counter = 0
+    def __init__(self, name, keys):
+        if not isinstance(keys, tuple):
+            keys = (keys,)
+        self.name = "%s[%i]" % (name, len(keys))
+        self.keys = keys
+        self.dummy_variable_name = '_X%i' % Function.Counter
+        Function.Counter += 1
+        
+        self.symbol = Symbol(self.dummy_variable_name)
+        self.symbol._pyD_type = 'variable'
+        self.symbol._pyD_lua = pyEngine.make_var(self.dummy_variable_name)
+        
+    def _variables(self):
+        return {self.dummy_variable_name : self.symbol}
+
+    def lua_expr(self, variables):
+        return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
+
+    def _compare(self, operator, other):
+        if (not (isinstance(other, (six.string_types, int, Symbol, Aggregate)) or other is None) 
+            and all([isinstance(key, (six.string_types, int, Symbol)) for key in self.keys])):
+            raise pyDatalog.DatalogError("The right hand side of a function literal must be a constant or variable", None, None)
+        assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
+        return Literal(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
+    
+    def __eq__(self, other): return self._compare('==', other)
+    def __ne__(self, other): return self._compare('!=', other)
+    def __lt__(self, other): return self._compare('<', other)
+    def __le__(self, other): return self._compare('<=', other)
+    def __ge__(self, other): return self._compare('>=', other)
+    def __gt__(self, other): return self._compare('>', other)
+    
+    def __pos__(self):
+        raise pyDatalog.DatalogError("bad operand type for unary +: 'Function'. Please consider adding parenthesis", None, None)
+    
+    def __neg__(self):
+        raise pyDatalog.DatalogError("bad operand type for unary -: 'Function'. Please consider adding parenthesis", None, None)
+    
+    def _precalculation(self):
+        literal = (self == self.symbol)
+        return Body(literal)
+    
 class Operation(Expression):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
     def __init__(self, lhs, operator, rhs):
@@ -663,52 +707,6 @@ class Body(LazyListOfList):
         literal.ask()
         self._list = literal._list
     
-class Function(Expression):
-    """ represents predicate[a, b]"""
-    Counter = 0
-    def __init__(self, name, keys):
-        if not isinstance(keys, tuple):
-            keys = (keys,)
-        self.name = "%s[%i]" % (name, len(keys))
-        self.keys = keys
-        self.dummy_variable_name = '_X%i' % Function.Counter
-        Function.Counter += 1
-        
-        self.symbol = Symbol(self.dummy_variable_name)
-        self.symbol._pyD_type = 'variable'
-        self.symbol._pyD_lua = pyEngine.make_var(self.dummy_variable_name)
-        
-    def _variables(self):
-        return {self.dummy_variable_name : self.symbol}
-
-    def lua_expr(self, variables):
-        return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
-
-    def _compare(self, operator, other):
-        if (not (isinstance(other, (six.string_types, int, Symbol, Aggregate)) or other is None) 
-            and all([isinstance(key, (six.string_types, int, Symbol)) for key in self.keys])):
-            raise pyDatalog.DatalogError("The right hand side of a function literal must be a constant or variable", None, None)
-        assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
-        return Literal(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
-    
-    def __eq__(self, other): return self._compare('==', other)
-    def __ne__(self, other): return self._compare('!=', other)
-    def __lt__(self, other): return self._compare('<', other)
-    def __le__(self, other): return self._compare('<=', other)
-    def __ge__(self, other): return self._compare('>=', other)
-    def __gt__(self, other): return self._compare('>', other)
-    
-    def __pos__(self):
-        raise pyDatalog.DatalogError("bad operand type for unary +: 'Function'. Please consider adding parenthesis", None, None)
-    
-    def __neg__(self):
-        raise pyDatalog.DatalogError("bad operand type for unary -: 'Function'. Please consider adding parenthesis", None, None)
-    
-    def _precalculation(self):
-        literal = (self == self.symbol)
-        return Body(literal)
-
-        
 class Aggregate(object):
     """ represents aggregation_method(X,Y), e.g. 'sum(Y,key=Z)' in '(a[X]==sum(Y,key=Z))'"""
     """ provide defaults methods that may need to be overriden for some aggregation methods"""
