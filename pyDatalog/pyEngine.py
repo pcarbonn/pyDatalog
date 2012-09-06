@@ -59,15 +59,17 @@ Python_resolvers = {} # dictionary  of python functions that can resolve a predi
 # string used to name a constant.
 
 
-class Interned (object):
+class Interned(object):
     # beware, they should be one registry per class --> copy the following line in the child class !!
     # registry = weakref.WeakValueDictionary() 
+    notFound = object()
     def __new__(cls, *args, **kwargs):
         assert 0 < len(args)
-        if not args[0] in cls.registry: # don't use setdefault to avoid creating unnecessary objects
+        o = cls.registry.get(args[0], Interned.notFound)
+        if o is Interned.notFound:
             o = object.__new__(cls, *args, **kwargs) # o is the ref that keeps it alive
             cls.registry[args[0]] = o
-        return cls.registry[args[0]]
+        return o
     def __eq__(self, other):
         return self is other
     def __hash__(self): return id(self)
@@ -84,12 +86,13 @@ def add_size(s):
 class Var(Interned):
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
-        if not _id in cls.registry: # don't use setdefault to avoid creating unnecessary objects
+        o = cls.registry.get(_id, Interned.notFound)
+        if o is Interned.notFound:
             o = object.__new__(cls) # o is the ref that keeps it alive
             o.id = _id
             o.key = add_size('v' + _id)
             cls.registry[_id] = o
-        return cls.registry[_id]
+        return o
     def is_const(self):
         return False
     def __str__(self): return self.id 
@@ -113,13 +116,14 @@ def mk_fresh_var():
 class Const(Interned):
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
-        if not _id in cls.registry: # don't use setdefault to avoid creating unnecessary objects
+        o = cls.registry.get(_id, Interned.notFound)
+        if o is Interned.notFound: 
             o = object.__new__(cls) # o is the ref that keeps it alive
             o.id = _id
             o.key = add_size( 'c' + str(o.id) if isinstance(o.id, (six.string_types, int)) 
                     else 'o' + str(id(o)) )
             cls.registry[_id] = o
-        return cls.registry[_id]
+        return o
     def is_const(self):
         return True
     def __str__(self): return "'%s'" % self.id 
@@ -137,7 +141,8 @@ class Pred(Interned):
         assert 1 < len(args) # args : pred_name, arity, aggregate
         assert isinstance(args[0], six.string_types)
         _id = '%s/%i' % args[:2]
-        if not _id in cls.registry: # don't use setdefault to avoid creating unnecessary objects
+        o = cls.registry.get(_id, Interned.notFound)
+        if o is Interned.notFound: 
             o = object.__new__(cls, *args, **kwargs) # o is the ref that keeps it alive
             o.id = _id
             o.db = {}
@@ -148,7 +153,7 @@ class Pred(Interned):
             o.expression = None
             o.aggregate = args[2]
             cls.registry[_id] = o
-        return cls.registry[_id]
+        return o
     
     def reset_clauses(self):
         for clause in list(self.clauses):
