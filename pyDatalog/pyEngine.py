@@ -638,6 +638,7 @@ def search(subgoal):
     if Debug: print("search : %s" % str(subgoal.literal))
     literal = subgoal.literal
     _class = literal.pred._class()
+    arity = int(literal.pred.id.split('/')[1])
     names = literal.pred.id.split('/')[0].split('[')[0].split('.')
     attr_name = names[1] if 1 < len(names) else ''
     
@@ -645,7 +646,7 @@ def search(subgoal):
         for result in Python_resolvers[literal.pred.id](*(literal.terms)):
             fact_candidate(subgoal, result)
         return
-    elif not _class or (attr_name and not '_pyD_'+attr_name in _class.__dict__): 
+    elif not _class or (attr_name and not '_pyD_%s%i' % (attr_name, arity) in _class.__dict__): 
         # it is not a literal defined by a python function --> use datalog clauses to resolve it
         if literal.pred.prim: # X==Y, X < Y+Z
             return literal.pred.prim(literal, subgoal)
