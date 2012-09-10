@@ -638,6 +638,8 @@ def search(subgoal):
     if Debug: print("search : %s" % str(subgoal.literal))
     literal = subgoal.literal
     _class = literal.pred._class()
+    assert not _class or not literal.terms[0].is_const() or isinstance(literal.terms[0].id, _class), \
+        "TypeError: First argument of %s must be a %s, not a %s " % (str(literal), _class.__name__, type(literal.terms[0].id).__name__)
     
     if literal.pred.id in Python_resolvers:
         for result in Python_resolvers[literal.pred.id](*(literal.terms)):
