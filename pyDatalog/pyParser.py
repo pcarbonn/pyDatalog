@@ -308,10 +308,10 @@ class VarSymbol(Expression):
         self._pyD_negated = False # for aggregate with sort in descending order
         if isinstance(name, (int, list, tuple)) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_type = 'constant'
-            self._pyD_lua = pyEngine.make_const(name)
+            self._pyD_lua = pyEngine.Const(name)
         else:
             self._pyD_type = 'variable'
-            self._pyD_lua = pyEngine.make_var(name)
+            self._pyD_lua = pyEngine.Var(name)
         
     def _make_expression_literal(self, operator, other):
         """private function to create a literal for comparisons"""
@@ -575,7 +575,7 @@ class Literal(LazyListOfList):
                     h_terms.extend(arg)
             h_prearity = len(h_terms) # (X,Y,Z)
             
-            # create the second predicate # TODO use make_pred instead
+            # create the second predicate # TODO use Pred() instead
             l = Literal(predicate_name, base_terms, prearity, self.aggregate)
             pyDatalog.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
             # TODO check that l.pred.aggregate_method is correct
@@ -593,9 +593,9 @@ class Literal(LazyListOfList):
             elif isinstance(a, Aggregate):
                 raise pyDatalog.DatalogError("Syntax error: Incorrect use of '%s' aggregation." % a.method, None, None)
             else:
-                tbl.append(pyEngine.make_const(a))
+                tbl.append(pyEngine.Const(a))
         # now create the literal for the head of a clause
-        self.lua = pyEngine.make_literal(h_predicate_name, tbl, h_prearity, aggregate)
+        self.lua = pyEngine.Literal(h_predicate_name, tbl, h_prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
 
     def ask(self):
@@ -741,7 +741,7 @@ class Aggregate(object):
         return self._value
     
     def fact(self,k):
-        return k + [pyEngine.make_const(self.value)]
+        return k + [pyEngine.Const(self.value)]
        
     def __le__(self,other):
         raise pyDatalog.DatalogError("Syntax error: Invalid use of Aggregate function. Please consider using parenthesis around aggregate definition.")
@@ -845,7 +845,7 @@ class Rank_aggregate(Aggregate):
     def add(self, row):
         # retain the value if (X,) == (Z,)
         if row[self.group_by] == row[self.for_each]:
-            self._value = list(row[self.group_by]) + [pyEngine.make_const(self.count),]
+            self._value = list(row[self.group_by]) + [pyEngine.Const(self.count),]
             return self._value
         self.count += 1
         
@@ -886,6 +886,6 @@ class Running_sum(Rank_aggregate):
     def add(self,row):
         self.count += row[self.to_add].id # TODO
         if row[:self.to_add] == row[self.for_each]:
-            self._value = list(row[:self.to_add]) + [pyEngine.make_const(self.count),]
+            self._value = list(row[:self.to_add]) + [pyEngine.Const(self.count),]
             return self._value
         
