@@ -207,9 +207,8 @@ class metaMixin(type):
     def pyDatalog_search(cls, literal):
         """Called by pyEngine to resolve a prefixed literal for a subclass of Mixin."""
         terms = literal.terms
-        pred_name = literal.pred.id.split('/')[0] # remove arity
-        attr_name = pred_name.split('[')[0].split('.')[1]
-        operator = (pred_name.split(']')[1:2]+[None])[0] # what's after ']' or None
+        attr_name = literal.pred.suffix
+        operator = (literal.pred.name.split(']')[1:2]+[None])[0] # what's after ']' or None
         
         # TODO check prearity
         def check_attribute(X):
@@ -219,13 +218,13 @@ class metaMixin(type):
         if terms[0].is_const() and terms[0].id is None: return
         if terms[0].is_const() and terms[0].id.__class__ != cls:
             raise TypeError("Object is incompatible with the class that is queried.")
-        method_name = '_pyD_%s%i'% (attr_name, int(literal.pred.id.split('/')[1]))
+        method_name = '_pyD_%s%i'% (attr_name, int(literal.pred.arity))
         if method_name in cls.__dict__:
             for answer in getattr(cls, method_name)(*terms):
                 yield answer
             return
         try: # interface to other database
-            for answer in cls._pyD_query(pred_name, terms):
+            for answer in cls._pyD_query(literal.pred.name, terms):
                 yield answer
         except:
             if len(terms)==2:
@@ -256,7 +255,7 @@ class metaMixin(type):
                             yield (X, Y.id if Y.is_const() else Y1 if operator=='==' else None)
                 return
             else:
-                raise AttributeError ("%s could not be resolved" % pred_name)
+                raise AttributeError ("%s could not be resolved" % literal.pred.name)
 
 # following syntax to declare Mixin is used for compatibility with python 2 and 3
 Mixin = metaMixin('Mixin', (object,), {})

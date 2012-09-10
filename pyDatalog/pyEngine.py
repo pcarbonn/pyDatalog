@@ -145,10 +145,16 @@ class Pred(Interned):
         if o is Interned.notFound: 
             o = object.__new__(cls, *args, **kwargs) # o is the ref that keeps it alive
             o.id = _id
+            o.name = args[0]
+            o.arity = args[1]
+            o.prearity = None
+            words = o.name.split('.')
+            o.prefix, o.suffix = (words[0], words[1].split('[')[0]) if 1 < len(words) else ('','')
+
             o.db = {}
             o.clauses = set([])
             # one index per term. An index is a dictionary of sets
-            o.index = [{} for i in range(int(o.id.split('/')[-1]))]
+            o.index = [{} for i in range(int(o.arity))]
             o.prim = None
             o.expression = None
             o.aggregate = args[2]
@@ -161,14 +167,9 @@ class Pred(Interned):
     
     def __init__(self, pred_name, arity, aggregate): # required to define arity of Pred()
         pass
-    def __str__(self): return "%s()" % get_name(self)
+    def __str__(self): return "%s()" % self.name
 def make_pred(pred_name, arity, aggregate=None):
     return Pred(pred_name, arity, aggregate)
-
-def get_name(pred):
-    return '/'.join(pred.id.split('/')[:-1]) # Who knows, it could contain slashes !?
-def get_arity(pred):
-    return pred.id.split('/')[-1]
 
 # Duplicates a predicate.  Used to clone databases.
 class Fresh_pred(object):
@@ -196,9 +197,10 @@ class Literal(object):
                 self.pred.base_pred = make_pred(pred[1:], len(terms))
         else:
             self.pred = pred
+            assert self.pred.prearity == prearity or len(terms), "Error: Incorrect mix of predicates and functions : %s" & str(self)
         self.terms = terms
-        self.prearity = prearity or len(terms) # TODO save in pred, not in literal
-    def __str__(self): return "%s(%s)" % (get_name(self.pred), ','.join([str(term) for term in self.terms])) 
+        self.pred.prearity = prearity or len(terms)
+    def __str__(self): return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
 def make_literal(pred_name, terms, prearity=None, aggregate=None):
     return Literal(pred_name, terms, prearity, aggregate)
 
@@ -219,10 +221,10 @@ def get_id(literal):
 def get_key(literal):
     if not hasattr(literal, 'key'):
         terms = literal.terms
-        if len(terms) == literal.prearity:
+        if literal.pred.prearity and len(terms) == literal.pred.prearity:
             literal.key = get_id(literal)
         else:
-            literal.key = add_size(literal.pred.id) + ''.join([terms[i].key for i in range(literal.prearity)])
+            literal.key = add_size(literal.pred.id) + ''.join([terms[i].key for i in range(literal.pred.prearity or len(terms))])
     return literal.key
     
 # Variant tag
@@ -250,7 +252,7 @@ Fresh_var.get_tag = lambda self, i, env : env[self] if self in env else env.setd
 
 def subst(literal, env):
     if len(env) == 0: return literal
-    return make_literal(literal.pred, [term.subst(env) for term in literal.terms], literal.prearity)
+    return make_literal(literal.pred, [term.subst(env) for term in literal.terms])
 
 Const.subst = lambda self, env : self
 Var.subst = lambda self, env : env.get(self, self)
@@ -618,9 +620,8 @@ def add_clause(subgoal, clause):
 def _(self):
     """determine the python class for a prefixed predicate (and cache it)"""
     if not hasattr(self, '_cls'): 
-        if '.' in self.id:
-            words = self.id.split('.')
-            self._cls = Class_dict.get(words[0], '')
+        if self.prefix:
+            self._cls = Class_dict.get(self.prefix, '')
         else:
             self._cls = ''
     return self._cls
@@ -628,7 +629,7 @@ Pred._class = _
 
 def fact_candidate(subgoal, result):
     result = [make_const(r) if not isinstance(r, Const) else r for r in result]
-    result = make_literal(subgoal.literal.pred.id.split('/')[0], result)
+    result = make_literal(subgoal.literal.pred.name, result)
     env = unify(subgoal.literal, result)
     if env != None:
         fact(subgoal, result)
@@ -637,15 +638,12 @@ def search(subgoal):
     if Debug: print("search : %s" % str(subgoal.literal))
     literal = subgoal.literal
     _class = literal.pred._class()
-    arity = int(literal.pred.id.split('/')[1])
-    names = literal.pred.id.split('/')[0].split('[')[0].split('.')
-    attr_name = names[1] if 1 < len(names) else ''
     
     if literal.pred.id in Python_resolvers:
         for result in Python_resolvers[literal.pred.id](*(literal.terms)):
             fact_candidate(subgoal, result)
         return
-    elif not _class or (attr_name and not '_pyD_%s%i' % (attr_name, arity) in _class.__dict__): 
+    elif not _class or (literal.pred.suffix and not '_pyD_%s%i' % (literal.pred.suffix, literal.pred.arity) in _class.__dict__): 
         # it is not a literal defined by a python function --> use datalog clauses to resolve it
         if literal.pred.prim: # X==Y, X < Y+Z
             return literal.pred.prim(literal, subgoal)
@@ -676,12 +674,11 @@ def search(subgoal):
             return
         elif literal.pred.aggregate:
             aggregate = literal.pred.aggregate
-            base_pred_name = get_name(literal.pred)+'!' # TODO performance : store in literal.pred
             base_terms = list(literal.terms)
             del base_terms[-1]
             # TODO deal with pred[X,Y]=aggregate(X)
             base_terms.extend([ make_var('V%i' % i) for i in range(aggregate.arity)])
-            base_literal = Literal(base_pred_name, base_terms)
+            base_literal = Literal(literal.pred.name + '!', base_terms)
     
             #TODO thunking to avoid possible stack overflow
             global Fast, subgoals, tasks, Stack
@@ -740,7 +737,7 @@ Literal.ask = _
 
 def toAnswer(literal, answers):
     if 0 < len(answers):
-        answer = pyDatalog.Answer(get_name(literal.pred), get_arity(literal.pred), answers)
+        answer = pyDatalog.Answer(literal.pred.name, literal.pred.arity, answers)
     else:
         answer = None
     if Auto_print: 
