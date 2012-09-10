@@ -216,8 +216,6 @@ class metaMixin(type):
                 raise AttributeError("%s does not have %s attribute" % (cls.__name__, attr_name))
 
         if terms[0].is_const() and terms[0].id is None: return
-        if terms[0].is_const() and terms[0].id.__class__ != cls:
-            raise TypeError("Object is incompatible with the class that is queried.")
         method_name = '_pyD_%s%i'% (attr_name, int(literal.pred.arity))
         if method_name in cls.__dict__:
             for answer in getattr(cls, method_name)(*terms):

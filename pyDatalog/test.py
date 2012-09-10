@@ -519,6 +519,23 @@ def test():
     # more complex queries
     assert ((Y=='a') & (A.b[X]!=Y)) == [('a', b)] # order of appearance of the variables !
 
+    """ subclass                                              """
+
+    class Z(A):
+        def __init__(self, z):
+            super(A, self).__init__()
+            self.z = z
+        def __repr__(self):
+            return self.z
+        @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
+        def _():
+            (Z.w[X]==N) <= (Z.z[X]!=N)
+    
+    z = Z('z')
+    assert z.z == 'z'
+    assert (Z.z[X]=='z') == [(z, 'z')]
+    assert list(X) == [z]
+            
     """ python resolvers                                              """
     
     @pyDatalog.predicate()
@@ -565,6 +582,7 @@ def test():
     test_error("ask(X<1)")
     test_error("ask(X<Y)")
     test_error("ask(1<Y)")
+    test_error("ask( (A.c[X]==Y) & (Z.c[X]==Y))")
         
     print("Test completed successfully.")
 
