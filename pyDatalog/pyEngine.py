@@ -624,81 +624,88 @@ def fact_candidate(subgoal, result):
 def search(subgoal):
     if Debug: print("search : %s" % str(subgoal.literal))
     literal = subgoal.literal
+    terms = literal.terms
     _class = literal.pred._class()
-    assert not _class or not literal.terms[0].is_const() or isinstance(literal.terms[0].id, _class), \
-        "TypeError: First argument of %s must be a %s, not a %s " % (str(literal), _class.__name__, type(literal.terms[0].id).__name__)
+    method_name = '_pyD_%s%i'% (literal.pred.suffix, int(literal.pred.arity))
+    
+    if _class and terms[0].is_const() and terms[0].id is None: return
+    assert not _class or not terms[0].is_const() or isinstance(terms[0].id, _class), \
+        "TypeError: First argument of %s must be a %s, not a %s " % (str(literal), _class.__name__, type(terms[0].id).__name__)
     
     if literal.pred.id in Python_resolvers:
-        for result in Python_resolvers[literal.pred.id](*(literal.terms)):
+        for result in Python_resolvers[literal.pred.id](*terms):
             fact_candidate(subgoal, result)
         return
-    elif not _class or (literal.pred.suffix and not '_pyD_%s%i' % (literal.pred.suffix, literal.pred.arity) in _class.__dict__): 
-        # it is not a literal defined by a python function --> use datalog clauses to resolve it
-        if literal.pred.prim: # X==Y, X < Y+Z
-            return literal.pred.prim(literal, subgoal)
-        elif hasattr(literal.pred, 'base_pred'): # this is a negated literal
-            for term in literal.terms:
-                if not term.is_const(): # all terms of a negated predicate must be bound
-                    raise RuntimeError('Terms of a negated literal must be bound : %s' % str(literal))
-            base_literal = Literal(literal.pred.base_pred, literal.terms)
-            """ the rest of the processing essentially performs the following, 
-            but in its own environment, and with precautions to avoid stack overflow :
-                result = ask(base_literal)
-                if result is None or 0 == len(result.answers):
-                    return fact(subgoal, literal)
-            """
-            def _search(base_literal, subgoal, literal): # first-level thunk for ask(base_literal)
-                
-                #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
-                # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-                
-                base_subgoal = make_subgoal(base_literal)
-    
-                complete(lambda base_subgoal=base_subgoal: merge(base_subgoal) or search(base_subgoal),
-                         lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
-                            fact(subgoal, literal) if 0 == len(list(base_subgoal.facts.values())) else None)
-                    
-            schedule(Thunk(lambda base_literal=base_literal, subgoal=subgoal, literal=literal: 
-                           _search(base_literal, subgoal, literal)))
-            return
-        elif literal.pred.aggregate:
-            aggregate = literal.pred.aggregate
-            base_terms = list(literal.terms)
-            del base_terms[-1]
-            # TODO deal with pred[X,Y]=aggregate(X)
-            base_terms.extend([ Var('V%i' % i) for i in range(aggregate.arity)])
-            base_literal = Literal(literal.pred.name + '!', base_terms)
-    
-            #TODO thunking to avoid possible stack overflow
-            global Fast, subgoals, tasks, Stack
-            Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop() when tasks is empty
-            subgoals, tasks = {}, []
-            #result = ask(base_literal)
-            base_subgoal = make_subgoal(base_literal)
-            merge(base_subgoal)
-            Fast = True # TODO why is it needed ??  Side effects !
-            search(base_subgoal)
-            Fast = False # TODO
-            result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
+    elif _class and literal.pred.suffix and method_name in _class.__dict__:
+        for result in getattr(_class, method_name)(*terms):
+            fact_candidate(subgoal, result)
+        return        
+    elif literal.pred.prim: # X==Y, X < Y+Z
+        return literal.pred.prim(literal, subgoal)
+    elif hasattr(literal.pred, 'base_pred'): # this is a negated literal
+        for term in terms:
+            if not term.is_const(): # all terms of a negated predicate must be bound
+                raise RuntimeError('Terms of a negated literal must be bound : %s' % str(literal))
+        base_literal = Literal(literal.pred.base_pred, terms)
+        """ the rest of the processing essentially performs the following, 
+        but in its own environment, and with precautions to avoid stack overflow :
+            result = ask(base_literal)
+            if result is None or 0 == len(result.answers):
+                return fact(subgoal, literal)
+        """
+        def _search(base_literal, subgoal, literal): # first-level thunk for ask(base_literal)
             
-            if result:
-                aggregate.sort_result(result)
-                for k, v in groupby(result, aggregate.key):
-                    aggregate.reset()
-                    for r in v:
-                        if aggregate.add(r):
-                            break
-                    k = aggregate.fact(k)
-                    fact_candidate(subgoal, k)
-            return
-        elif literal.pred.db: # has a datalog definition, e.g. p(X), p[X]==Y
-            #TODO test if there is a conflicting python definition ?
-            for clause in relevant_clauses(literal):
-                renamed = rename_clause(clause)
-                env = unify(literal, renamed.head)
-                if env != None: # lua considers {} as true
-                    schedule(Add_clause(subgoal, subst_in_clause(renamed, env)))
-            return
+            #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
+            # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
+            
+            base_subgoal = make_subgoal(base_literal)
+
+            complete(lambda base_subgoal=base_subgoal: merge(base_subgoal) or search(base_subgoal),
+                     lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
+                        fact(subgoal, literal) if 0 == len(list(base_subgoal.facts.values())) else None)
+                
+        schedule(Thunk(lambda base_literal=base_literal, subgoal=subgoal, literal=literal: 
+                       _search(base_literal, subgoal, literal)))
+        return
+    elif literal.pred.aggregate:
+        aggregate = literal.pred.aggregate
+        base_terms = list(terms)
+        del base_terms[-1]
+        # TODO deal with pred[X,Y]=aggregate(X)
+        base_terms.extend([ Var('V%i' % i) for i in range(aggregate.arity)])
+        base_literal = Literal(literal.pred.name + '!', base_terms)
+
+        #TODO thunking to avoid possible stack overflow
+        global Fast, subgoals, tasks, Stack
+        Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop() when tasks is empty
+        subgoals, tasks = {}, []
+        #result = ask(base_literal)
+        base_subgoal = make_subgoal(base_literal)
+        merge(base_subgoal)
+        Fast = True # TODO why is it needed ??  Side effects !
+        search(base_subgoal)
+        Fast = False # TODO
+        result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
+        
+        if result:
+            aggregate.sort_result(result)
+            for k, v in groupby(result, aggregate.key):
+                aggregate.reset()
+                for r in v:
+                    if aggregate.add(r):
+                        break
+                k = aggregate.fact(k)
+                fact_candidate(subgoal, k)
+        return
+    elif literal.pred.db: # has a datalog definition, e.g. p(X), p[X]==Y
+        #TODO test if there is a conflicting python definition ?
+        for clause in relevant_clauses(literal):
+            renamed = rename_clause(clause)
+            env = unify(literal, renamed.head)
+            if env != None: # lua considers {} as true
+                schedule(Add_clause(subgoal, subst_in_clause(renamed, env)))
+        return
+
     if not _class:
         print("Warning : unknown predicate : %s" % literal.pred.id)
     else:
