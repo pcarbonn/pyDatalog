@@ -445,13 +445,15 @@ class Function(Expression):
         self.dummy_variable_name = '_pyD_X%i' % Function.Counter
         
     def _make_expression_literal(self, operator, other):
+        if isinstance(other, type(lambda: None)):
+            other = Lambda(other)
         assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
-        if operator == '==' and not isinstance(other, Operation):
+        if operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y
             return Literal(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
         literal = Literal(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
         if '.' not in self.name or literal.lua.pred.db or literal.lua.pred.clauses : # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
             return literal & pyEngine.compare2(self.symbol, operator, other)
-        elif isinstance(other, Operation): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
+        elif isinstance(other, (Operation, Function, Lambda)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
             Y2 = Function.newSymbol()
             return (Y2 == other) & Literal(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
         else: 

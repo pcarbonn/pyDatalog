@@ -308,6 +308,10 @@ def test():
         assert ask(f[a]<='c') == set([('c',)])
         assert ask(f[a]>'c') == None
         assert ask(f[a] in ['c',]) == set([('c',)])
+        
+        assert ask((f[X]=='c') & (f[Y]==f[X])) == set([('a', 'a', 'c', 'c')])
+        assert ask((f[X]=='c') & (f[Y]==f[X]+'')) == set([('a', 'a', 'c', 'c')])
+        assert ask((f[X]=='c') & (f[Y]==(lambda X : 'c'))) == set([('a', 'a', 'c')])
 
         assert ask(f[X]==Y+'') == None
         assert ask((Y=='c') &(f[X]==Y+'')) == set([('c', 'a', 'c')])
