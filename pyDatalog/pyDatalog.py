@@ -215,12 +215,6 @@ class metaMixin(type):
             if attr_name not in X.__dict__ and attr_name not in cls.__dict__:
                 raise AttributeError("%s does not have %s attribute" % (cls.__name__, attr_name))
 
-        if terms[0].is_const() and terms[0].id is None: return
-        method_name = '_pyD_%s%i'% (attr_name, int(literal.pred.arity))
-        if method_name in cls.__dict__:
-            for answer in getattr(cls, method_name)(*terms):
-                yield answer
-            return
         try: # interface to other database
             for answer in cls._pyD_query(literal.pred.name, terms):
                 yield answer
@@ -257,6 +251,7 @@ class metaMixin(type):
 
 # following syntax to declare Mixin is used for compatibility with python 2 and 3
 Mixin = metaMixin('Mixin', (object,), {})
+pyDatalog.Mixin = Mixin
 
 """ When creating a Mixin object without SQLAlchemy, add it to the list of instances,
     so that it can be included in the result of queries"""
