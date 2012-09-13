@@ -640,7 +640,13 @@ def search(subgoal):
         for result in getattr(_class, method_name)(*terms):
             fact_candidate(subgoal, result)
         return        
-    elif literal.pred.prim: # X==Y, X < Y+Z
+    try: # call class._pyD_query
+        for result in _class._pyD_query(literal.pred.name, terms):
+            fact_candidate(subgoal, result)
+        return
+    except:
+        pass
+    if literal.pred.prim: # X==Y, X < Y+Z
         return literal.pred.prim(literal, subgoal)
     elif hasattr(literal.pred, 'base_pred'): # this is a negated literal
         for term in terms:
@@ -705,17 +711,16 @@ def search(subgoal):
             if env != None: # lua considers {} as true
                 schedule(Add_clause(subgoal, subst_in_clause(renamed, env)))
         return
-
-    if not _class:
-        print("Warning : unknown predicate : %s" % literal.pred.id)
-    else:
-        try: # a.p[X]==Y, a.p[X]<y
+    if _class: # a.p[X]==Y, a.p[X]<y
+        try: 
             iterator = _class.pyDatalog_search(literal)
         except AttributeError:
-            print("Warning : unknown predicate : %s" % literal.pred.id)
+            pass
         else:
             for result in iterator:
                 fact_candidate(subgoal, result)
+            return
+    print("Warning : unknown predicate : %s" % literal.pred.id)
             
 # Sets up and calls the subgoal search procedure, and then extracts
 # the answers into an easily used table.  The table has the name of
