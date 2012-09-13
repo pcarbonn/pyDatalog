@@ -215,39 +215,35 @@ class metaMixin(type):
             if attr_name not in X.__dict__ and attr_name not in cls.__dict__:
                 raise AttributeError("%s does not have %s attribute" % (cls.__name__, attr_name))
 
-        try: # interface to other database
-            for answer in cls._pyD_query(literal.pred.name, terms):
-                yield answer
-        except:
-            if len(terms)==2:
-                X, Y = terms[0], terms[1]
-                if X.is_const():
-                    # try accessing the attribute of the first term in literal
-                    check_attribute(X.id)
-                    Y1 = getattr(X.id, attr_name)
-                    if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
-                        yield (X.id, Y.id if Y.is_const() else Y1 if operator=='==' else None)
-                elif cls.has_SQLAlchemy:
-                    if cls.session:
-                        q = cls.session.query(cls)
-                        check_attribute(cls)
-                        if Y.is_const():
-                            q = q.filter(pyEngine.compare(getattr(cls, attr_name), operator, Y.id))
-                        for r in q:
-                            Y1 = getattr(r, attr_name)
-                            if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
-                                    yield (r, Y.id if Y.is_const() else Y1 if operator=='==' else None)
-                else:
-                    # python object with Mixin
-                    for X in metaMixin.__refs__[cls]:
-                        X=X()
-                        check_attribute(X)
-                        Y1 = getattr(X, attr_name)
+        if len(terms)==2:
+            X, Y = terms[0], terms[1]
+            if X.is_const():
+                # try accessing the attribute of the first term in literal
+                check_attribute(X.id)
+                Y1 = getattr(X.id, attr_name)
+                if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
+                    yield (X.id, Y.id if Y.is_const() else Y1 if operator=='==' else None)
+            elif cls.has_SQLAlchemy:
+                if cls.session:
+                    q = cls.session.query(cls)
+                    check_attribute(cls)
+                    if Y.is_const():
+                        q = q.filter(pyEngine.compare(getattr(cls, attr_name), operator, Y.id))
+                    for r in q:
+                        Y1 = getattr(r, attr_name)
                         if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
-                            yield (X, Y.id if Y.is_const() else Y1 if operator=='==' else None)
-                return
+                                yield (r, Y.id if Y.is_const() else Y1 if operator=='==' else None)
             else:
-                raise AttributeError ("%s could not be resolved" % literal.pred.name)
+                # python object with Mixin
+                for X in metaMixin.__refs__[cls]:
+                    X=X()
+                    check_attribute(X)
+                    Y1 = getattr(X, attr_name)
+                    if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
+                        yield (X, Y.id if Y.is_const() else Y1 if operator=='==' else None)
+            return
+        else:
+            raise AttributeError ("%s could not be resolved" % literal.pred.name)
 
 # following syntax to declare Mixin is used for compatibility with python 2 and 3
 Mixin = metaMixin('Mixin', (object,), {})
