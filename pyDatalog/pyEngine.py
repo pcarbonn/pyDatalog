@@ -36,6 +36,7 @@ Some differences between python and lua:
 """
 import copy
 from itertools import groupby
+import re
 import six
 import weakref
 
@@ -143,6 +144,8 @@ class Pred(Interned):
             o.prearity = None
             words = o.name.split('.')
             o.prefix, o.suffix = (words[0], words[1].split('[')[0]) if 1 < len(words) else ('','')
+            words = pred_name.split(']')
+            o.comparison = words[1] if 1 < len(words) else '' # for f[X]<Y
 
             o.db = {}
             o.clauses = set([])
@@ -153,6 +156,13 @@ class Pred(Interned):
             o.aggregate = aggregate
             cls.registry[_id] = o
         return o
+    
+    def _class(self):
+        """determine the python class for a prefixed predicate (and caches it)"""
+        # cannot be done at initialization, because the global Class_dict is not filled in yet
+        if not hasattr(self, '_cls'): 
+            self._cls = Class_dict.get(self.prefix, '') if self.prefix else None
+        return self._cls
     
     def reset_clauses(self):
         for clause in list(self.clauses):
@@ -189,6 +199,23 @@ class Literal(object):
             assert self.pred.prearity == prearity or len(terms), "Error: Incorrect mix of predicates and functions : %s" & str(self)
         self.terms = terms
         self.pred.prearity = prearity or len(terms)
+    
+    def renamed(self, new_name):
+        new = Literal(new_name, list(self.terms), prearity=self.pred.prearity, aggregate=self.pred.aggregate)
+        new.pred.prim = self.pred.prim
+        new.pred.expression = self.pred.expression
+        new.pred.aggregate = self.pred.aggregate
+        return new
+        
+    def rebased(self, parent_class): # returns a new literal prefixed by parent class
+        pred = self.pred
+        if not parent_class or not pred._class() or parent_class == pred._class(): 
+            return self
+        return self.renamed(re.sub('^((~)?)'+pred._class().__name__+'.', r'\1'+parent_class.__name__+'.', pred.name))
+    
+    def equalized(self): # returns a new literal with '==' instead of comparison
+        return self.renamed(self.pred.name.replace(self.pred.comparison, '=='))
+    
     def __str__(self): return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
 
 # A literal's id is computed on demand, but then cached.  It is used
@@ -333,8 +360,6 @@ class Clause(object):
         self.body = body
     def __str__(self):  
         return "%s <= %s" % (str(self.head), '&'.join([str(literal) for literal in self.body])) 
-def make_clause(head, body):
-    return Clause(head, body)
 
 # A clause's id is computed on demand, but then cached.
 
@@ -348,11 +373,12 @@ def get_clause_id(clause):
     return clause.id
     
 # Clause substitution in which the substitution is applied to each
-# each literal that makes up the clause.
+# literal that makes up the clause.
 
-def subst_in_clause(clause, env):
+def subst_in_clause(clause, env, parent_class=None):
     if len(env) == 0: return clause
-    return make_clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body])
+    return Clause(subst(clause.head, env).rebased(parent_class),
+                       [subst(bodi, env).rebased(parent_class) for bodi in clause.body])
     
 # Renames the variables in a clause.  Every variable in the head is
 # in the body, so the head can be ignored while generating an
@@ -496,7 +522,7 @@ def resolve(clause, literal):
     env = unify(clause.body[0], rename(literal))
     if env == None: 
         return None
-    return make_clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
+    return Clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
  
 # A stack of thunks used to avoid the stack overflow problem
 # by delaying the evaluation of some functions
@@ -580,7 +606,6 @@ class Waiter(object):
 def rule(subgoal, clause, selected):
     sg = find(selected)
     if sg != None:
-        if Debug: print("Rule, subgoal found : %s" % str(sg.literal))
         sg.waiters.append(Waiter(subgoal, clause))
         todo = []
         for fact in list(sg.facts.values()):
@@ -590,7 +615,6 @@ def rule(subgoal, clause, selected):
         for t in todo:
             schedule(Add_clause(subgoal, t))
     else:
-        if Debug: print("Rule, subgoal not found : %s" % str(subgoal.literal))
         sg = make_subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
         merge(sg)
@@ -605,54 +629,38 @@ def add_clause(subgoal, clause):
 # Search for derivations of the literal associated with this subgoal.
 
 def _(self):
-    """determine the python class for a prefixed predicate (and cache it)"""
-    if not hasattr(self, '_cls'): 
-        if self.prefix:
-            self._cls = Class_dict.get(self.prefix, '')
-        else:
-            self._cls = ''
-    return self._cls
-Pred._class = _
+    " iterator of the parent classes that have pyDatalog capabilities"
+    if self._class():
+        for cls in self._cls.__mro__:
+            if cls.__name__ in Class_dict and cls not in (pyDatalog.Mixin,):
+                yield cls
+    else:
+        yield None
+Pred.parent_classes = _
 
-def fact_candidate(subgoal, result):
+def fact_candidate(subgoal, class0, result):
     result = [Const(r) if not isinstance(r, Const) else r for r in result]
+    if class0 and result[0].id and not isinstance(result[0].id, class0): 
+        return
     result = Literal(subgoal.literal.pred.name, result)
     env = unify(subgoal.literal, result)
     if env != None:
         fact(subgoal, result)
 
 def search(subgoal):
-    if Debug: print("search : %s" % str(subgoal.literal))
-    literal = subgoal.literal
-    terms = literal.terms
-    _class = literal.pred._class()
-    method_name = '_pyD_%s%i'% (literal.pred.suffix, int(literal.pred.arity))
+    literal0 = subgoal.literal
+    class0 = literal0.pred._class()
+    terms = literal0.terms
     
-    if _class and terms[0].is_const() and terms[0].id is None: return
-    assert not _class or not terms[0].is_const() or isinstance(terms[0].id, _class), \
-        "TypeError: First argument of %s must be a %s, not a %s " % (str(literal), _class.__name__, type(terms[0].id).__name__)
-    
-    if literal.pred.id in Python_resolvers:
-        for result in Python_resolvers[literal.pred.id](*terms):
-            fact_candidate(subgoal, result)
-        return
-    elif _class and literal.pred.suffix and method_name in _class.__dict__:
-        for result in getattr(_class, method_name)(*terms):
-            fact_candidate(subgoal, result)
-        return        
-    try: # call class._pyD_query
-        for result in _class._pyD_query(literal.pred.name, terms):
-            fact_candidate(subgoal, result)
-        return
-    except:
-        pass
-    if literal.pred.prim: # X==Y, X < Y+Z
-        return literal.pred.prim(literal, subgoal)
-    elif hasattr(literal.pred, 'base_pred'): # this is a negated literal
+    if class0 and terms[0].is_const() and terms[0].id is None: return
+    assert not class0 or not terms[0].is_const() or isinstance(terms[0].id, class0), \
+        "TypeError: First argument of %s must be a %s, not a %s " % (str(literal0), class0.__name__, type(terms[0].id).__name__)
+    if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
+        if Debug : print("pyDatalog will search negation of %s" % literal0)
         for term in terms:
             if not term.is_const(): # all terms of a negated predicate must be bound
-                raise RuntimeError('Terms of a negated literal must be bound : %s' % str(literal))
-        base_literal = Literal(literal.pred.base_pred, terms)
+                raise RuntimeError('Terms of a negated literal must be bound : %s' % str(literal0))
+        base_literal = Literal(literal0.pred.base_pred, terms)
         """ the rest of the processing essentially performs the following, 
         but in its own environment, and with precautions to avoid stack overflow :
             result = ask(base_literal)
@@ -670,57 +678,101 @@ def search(subgoal):
                      lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
                         fact(subgoal, literal) if 0 == len(list(base_subgoal.facts.values())) else None)
                 
-        schedule(Thunk(lambda base_literal=base_literal, subgoal=subgoal, literal=literal: 
+        schedule(Thunk(lambda base_literal=base_literal, subgoal=subgoal, literal=literal0: 
                        _search(base_literal, subgoal, literal)))
         return
-    elif literal.pred.aggregate:
-        aggregate = literal.pred.aggregate
-        base_terms = list(terms)
-        del base_terms[-1]
-        # TODO deal with pred[X,Y]=aggregate(X)
-        base_terms.extend([ Var('V%i' % i) for i in range(aggregate.arity)])
-        base_literal = Literal(literal.pred.name + '!', base_terms)
 
-        #TODO thunking to avoid possible stack overflow
-        global Fast, subgoals, tasks, Stack
-        Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop() when tasks is empty
-        subgoals, tasks = {}, []
-        #result = ask(base_literal)
-        base_subgoal = make_subgoal(base_literal)
-        merge(base_subgoal)
-        Fast = True # TODO why is it needed ??  Side effects !
-        search(base_subgoal)
-        Fast = False # TODO
-        result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
+    for _class in literal0.pred.parent_classes():
+        literal = literal0.rebased(_class)
+        method_name = '_pyD_%s%i'% (literal.pred.suffix, int(literal.pred.arity)) # TODO special method for comparison
         
-        if result:
-            aggregate.sort_result(result)
-            for k, v in groupby(result, aggregate.key):
-                aggregate.reset()
-                for r in v:
-                    if aggregate.add(r):
-                        break
-                k = aggregate.fact(k)
-                fact_candidate(subgoal, k)
-        return
-    elif literal.pred.db: # has a datalog definition, e.g. p(X), p[X]==Y
-        #TODO test if there is a conflicting python definition ?
-        for clause in relevant_clauses(literal):
-            renamed = rename_clause(clause)
-            env = unify(literal, renamed.head)
-            if env != None: # lua considers {} as true
-                schedule(Add_clause(subgoal, subst_in_clause(renamed, env)))
-        return
-    if _class: # a.p[X]==Y, a.p[X]<y
+        if literal.pred.id in Python_resolvers:
+            if Debug : print("pyDatalog uses python resolvers for %s" % literal)
+            for result in Python_resolvers[literal.pred.id](*terms):
+                fact_candidate(subgoal, class0, result)
+            return
+        elif _class and literal.pred.suffix and method_name in _class.__dict__:
+            if Debug : print("pyDatalog uses class resolvers for %s" % literal)
+            for result in getattr(_class, method_name)(*terms):
+                fact_candidate(subgoal, class0, result)
+            return        
+        try: # call class._pyD_query
+            for result in _class._pyD_query(literal.pred.name, terms):
+                fact_candidate(subgoal, class0, result)
+            if Debug : print("pyDatalog has used _pyD_query resolvers for %s" % literal)
+            return
+        except:
+            pass
+        if literal.pred.prim: # X==Y, X < Y+Z
+            if Debug : print("pyDatalog uses comparison primitive for %s" % literal)
+            return literal.pred.prim(literal, subgoal)
+        elif literal.pred.aggregate:
+            if Debug : print("pyDatalog uses aggregate primitive for %s" % literal)
+            aggregate = literal.pred.aggregate
+            base_terms = list(terms)
+            del base_terms[-1]
+            base_terms.extend([ Var('V%i' % i) for i in range(aggregate.arity)])
+            base_literal = Literal(literal.pred.name + '!', base_terms)
+    
+            #TODO thunking to avoid possible stack overflow
+            global Fast, subgoals, tasks, Stack
+            Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop() when tasks is empty
+            subgoals, tasks = {}, []
+            #result = ask(base_literal)
+            base_subgoal = make_subgoal(base_literal)
+            merge(base_subgoal)
+            Fast = True # TODO why is it needed ??  Side effects !
+            search(base_subgoal)
+            Fast = False # TODO
+            result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
+            
+            if result:
+                aggregate.sort_result(result)
+                for k, v in groupby(result, aggregate.key):
+                    aggregate.reset()
+                    for r in v:
+                        if aggregate.add(r):
+                            break
+                    k = aggregate.fact(k)
+                    fact_candidate(subgoal, class0, k)
+            return
+        elif literal.pred.db: # has a datalog definition, e.g. p(X), p[X]==Y
+            for clause in relevant_clauses(literal):
+                renamed = rename_clause(clause)
+                env = unify(literal, renamed.head)
+                if env != None:
+                    clause = subst_in_clause(renamed, env, class0)
+                    if Debug : print("pyDatalog will use clause : %s" % clause)
+                    schedule(Add_clause(subgoal, clause))
+            return
+        elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
+            literal1 = literal.equalized()
+            if literal1.pred.db: # equality has a datalog definition
+                Y1 = Fresh_var()
+                literal1.terms[-1] = Y1
+                # TODO literal2, clause
+                literal2 = Literal('='+Y1.id, (Y1, terms[-1]))
+                literal2.pred.operator = literal.pred.comparison
+                add_expr_to_predicate(literal2.pred, literal.pred.comparison, literal0.pred.expression)
+                clause = Clause(literal, (literal1, literal2))
+                renamed = rename_clause(clause)
+                env = unify(literal, renamed.head)
+                if env != None:
+                    if Debug : print("pyDatalog will use clause for comparison: %s" % renamed)
+                    schedule(Add_clause(subgoal, subst_in_clause(renamed, env, class0)))
+                return
+            
+    if class0: # a.p[X]==Y, a.p[X]<y
         try: 
-            iterator = _class.pyDatalog_search(literal)
+            iterator = class0.pyDatalog_search(literal)
+            for result in iterator:
+                fact_candidate(subgoal, class0, result)
+            if Debug : print("pyDatalog has used pyDatalog_search for %s" % literal)
         except AttributeError:
             pass
         else:
-            for result in iterator:
-                fact_candidate(subgoal, result)
             return
-    print("Warning : unknown predicate : %s" % literal.pred.id)
+    raise AttributeError("Predicate without definition: %s" % literal0.pred.id)
             
 # Sets up and calls the subgoal search procedure, and then extracts
 # the answers into an easily used table.  The table has the name of
@@ -923,7 +975,7 @@ def add_expr_to_predicate(pred, operator, expression):
                 return
             args.append(term.id)
             
-        Y = literal.pred.expression.eval(args)
+        Y = literal.pred.expression.eval(args) if literal.pred.expression else args[0]
         if literal.pred.operator == "==" and (not x.is_const() or x.id == Y):
             args.insert(0,Y)
             yield args

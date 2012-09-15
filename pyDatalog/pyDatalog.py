@@ -139,11 +139,11 @@ def variables(n):
 #utility functions, also used by pyParser
 
 def _assert_fact(literal):
-    clause = pyEngine.make_clause(literal.lua, [])
+    clause = pyEngine.Clause(literal.lua, [])
     pyEngine.assert_(clause)
     
 def _retract_fact(literal):
-    clause = pyEngine.make_clause(literal.lua, [])
+    clause = pyEngine.Clause(literal.lua, [])
     pyEngine.retract(clause)
 
 def add_clause(head,body):
@@ -151,7 +151,7 @@ def add_clause(head,body):
         tbl = [a.lua for a in body.literals]
     else: # body is a literal
         tbl = (body.lua,)
-    clause = pyEngine.make_clause(head.lua, tbl)
+    clause = pyEngine.Clause(head.lua, tbl)
     return pyEngine.assert_(clause)
     
 #circ: share functions with pyParser and avoid circular import
@@ -191,9 +191,8 @@ class metaMixin(type):
             if not attribute == '__iter__' and not attribute.startswith('_sa_'):
                 predicate_name = "%s.%s[1]==" % (self.__class__.__name__, attribute)
                 literal = Literal(predicate_name, (self, Symbol("X")))
-                if literal.lua.pred.db or literal.lua.pred.prim:
-                    result = literal.lua.ask(False)
-                    return result[0][-1] if result else None
+                result = literal.lua.ask(False)
+                return result[0][-1] if result else None                    
             raise AttributeError
         cls.__getattr__ = _getattr   
     
