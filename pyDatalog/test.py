@@ -33,9 +33,6 @@ def test():
     """)
     assert pyDatalog.ask('p(a)') == set([('a',)])
     
-    pyDatalog.clear()
-    assert pyDatalog.ask('p(a)') == None
-    
     pyDatalog.assert_fact('p', 'a', 'b')
     assert pyDatalog.ask('p(a, "b")') == set([('a', 'b')])
     
@@ -513,11 +510,11 @@ def test():
     assert (A.c[X]<='a') == [(a, 'a')]
     assert (A.c[X]<='a'+'') == [(a, 'a')]
 
-    assert (A.c[X]._in(('a',))) == [(a, 'a')]
-    assert (A.c[X]._in(('a',)+('z',))) == [(a, 'a')]
-    assert ((Y==('a',)) & (A.c[X]._in(Y))) == [(('a',), a, 'a')] # TODO make ' in ' work
+    assert (A.c[X]._in(('a',))) == [(a, ('a',))]
+    assert (A.c[X]._in(('a',)+('z',))) == [(a, ('a','z'))]
+    assert ((Y==('a',)) & (A.c[X]._in(Y))) == [(('a',), a)] # TODO make ' in ' work
     
-    assert ((Y==('a',)) & (A.c[X]._in(Y+('z',)))) == [(('a',), a, 'a')] # TODO make ' in ' work
+    assert ((Y==('a',)) & (A.c[X]._in(Y+('z',)))) == [(('a',), ('a', 'z'), a)] # TODO make ' in ' work
     assert (A.c[X]._in(('z',))) == []
 
     # more complex queries
@@ -527,7 +524,7 @@ def test():
 
     class Z(A):
         def __init__(self, z):
-            super(A, self).__init__()
+            super(Z, self).__init__(z+'a')
             self.z = z
         def __repr__(self):
             return self.z
@@ -539,6 +536,11 @@ def test():
     assert z.z == 'z'
     assert (Z.z[X]=='z') == [(z, 'z')]
     assert list(X) == [z]
+    
+    assert (Z.b[X]==Y) == [(z, 'za')]
+    assert (Z.c[X]==Y) == [(z, 'za')]
+    assert (z.b) == 'za'
+    assert (z.c) == 'za'
             
     """ python resolvers                                              """
     
@@ -578,6 +580,7 @@ def test():
             _error = True
         assert _error
 
+    test_error('ask(z(a))')
     test_error("+ farmer(farmer(moshe))")
     test_error("+ manager[Mary]==John")
     test_error("manager[X]==Y <= (X==Y)")
