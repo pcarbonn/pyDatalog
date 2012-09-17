@@ -61,6 +61,10 @@ def test():
         - p(b) # retract a unary fact
         assert ask(p(X)) == set([('a',)])
         
+        - p(a)
+        assert ask(p(X)) == None
+        + p(a)
+        
         # strings and integers
         + p('c')
         assert ask(p(c)) == set([('c',)])
