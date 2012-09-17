@@ -736,7 +736,7 @@ def search(subgoal):
                     k = aggregate.fact(k)
                     fact_candidate(subgoal, class0, k)
             return
-        elif literal.pred.db: # has a datalog definition, e.g. p(X), p[X]==Y
+        elif literal.pred.id in db: # has a datalog definition, e.g. p(X), p[X]==Y
             for clause in relevant_clauses(literal):
                 renamed = rename_clause(clause)
                 env = unify(literal, renamed.head)
