@@ -9,7 +9,7 @@ It has 4 parts :
     4. Query the objects using the datalog engine
 """
 
-import pyDatalog # or: from pyDatalog import pyDatalog
+from pyDatalog import pyDatalog
 
 """ 1.initialize the ORM  """
 from sqlalchemy import create_engine
@@ -114,6 +114,6 @@ pyDatalog.load("(lowest[1] == min(X, order_by=N)) <= (Employee.salary[X]==N)")
 print(pyDatalog.ask("lowest[1]==X")) # prints set([(1, Employee: Sam)])
 
 # start the datalog console, for interactive querying of employee
-import console # or: from pyDatalog import console
+from pyDatalog import console
 console = console.datalogConsole(locals=locals())
 console.interact('Type exit() when done.')

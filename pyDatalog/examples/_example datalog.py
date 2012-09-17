@@ -7,7 +7,7 @@ It has 3 parts:
     3. Query the datalog engine
 """
 
-import pyDatalog # or: from pyDatalog import pyDatalog
+from pyDatalog import pyDatalog
 
 """ 1. create facts for 2 employees in the datalog engine """
 # John is the manager of Mary, who is the manager of Sam
@@ -59,6 +59,6 @@ pyDatalog.load("(Lowest[1] == min(X, order_by=N)) <= (salary[X]==N)")
 print(pyDatalog.ask("Lowest[1]==N")) # prints set([(1, 'Sam')])
 
 # start the datalog console, for interactive querying 
-import console # or: from pyDatalog import console
+from pyDatalog import console
 console = console.datalogConsole(locals=locals())
 console.interact('Type exit() when done.')
