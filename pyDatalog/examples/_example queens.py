@@ -1,5 +1,5 @@
 
-import pyDatalog # or from pyDatalog import pyDatalog
+from pyDatalog import pyDatalog
 import time
 
 pyDatalog.clear()
