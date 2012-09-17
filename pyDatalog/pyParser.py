@@ -605,10 +605,13 @@ class Literal(LazyListOfList):
         self.todo = None
         if self.args and self._list: 
             transposed = list(zip(*(self._list))) # transpose result
+            result = []
             for i, arg in enumerate(self.args):
                 if isinstance(arg, pyDatalog.Variable) and len(arg._list)==0:
                     arg._list.extend(transposed[i])
                     arg.todo = None
+                    result.append(transposed[i])
+            self._list = zip(*result) if result else [()]
 
     def __pos__(self):
         " unary + means insert into database as fact "

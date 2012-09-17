@@ -472,7 +472,7 @@ def test():
     b = A('b')
     assert a.c == 'a'
     X, Y = pyDatalog.variables(2)
-    assert (A.c[X]=='a') == [(a, 'a')]
+    assert (A.c[X]=='a') == [(a,)]
     assert list(X) == [a]
     assert X.v() == a
     assert ((A.c[a]==X) >= X) == 'a'
@@ -484,41 +484,44 @@ def test():
     assert list(X) == [a]
     result = (A.c[X]=='a') & (A.b[X]=='a')
     assert result == [(a,)]
-    assert (A.c[a]=='a') & (A.b[a]=='a')
-    assert not ((A.c[a]=='a') & (A.b[a]=='f'))
+    assert (A.c[a] == 'a') == [()]
+    assert (A.b[a] == 'a') == [()]
+    assert (A.c[a]=='a') & (A.b[a]=='a') == [()]
+    assert (A.b[a]=='f') == []
+    assert ((A.c[a]=='a') & (A.b[a]=='f')) == []
     
     """ filters on python classes                                        """
     assert (A.b[X]!=Y) == [(a, None), (b, None)]
-    assert (A.b[X]!='a') == [(b, 'a')]
-    assert (A.b[X]!='z') == [(a, 'z'), (b, 'z')]
+    assert (A.b[X]!='a') == [(b,)]
+    assert (A.b[X]!='z') == [(a,), (b,)]
     assert (A.b[a]!='a') == []
-    assert list(A.b[b]!='a') == [(b, 'a')]
+    assert list(A.b[b]!='a') == [()]
     assert ((A.b[b]!='a') & (A.b[b]!='z')) == [()]
 
     assert (A.b[X]<Y) == [(a, None), (b, None)]
     assert (A.b[X]<'a') == []
-    assert (A.b[X]<'z') == [(a, 'z'), (b, 'z')]
-    assert (A.b[a]<'b') == [(a, 'b')]
+    assert (A.b[X]<'z') == [(a,), (b,)]
+    assert (A.b[a]<'b') == [()]
     assert (A.b[b]<'a') == []
     assert ((A.b[b]<'z') & (A.b[b]!='z')) == [()]
 
-    assert (A.b[X]<='a') == [(a, 'a')]
-    assert (A.b[X]<='z') == [(a, 'z'), (b, 'z')]
-    assert (A.b[a]<='b') == [(a, 'b')]
+    assert (A.b[X]<='a') == [(a,)]
+    assert (A.b[X]<='z') == [(a,), (b,)]
+    assert (A.b[a]<='b') == [()]
     assert (A.b[b]<='a') == []
     assert ((A.b[b]<='z') & (A.b[b]!='z')) == [()]
 
-    assert (A.b[X]>'a') == [(b, 'a')]
-    assert (A.b[X]>='a') == [(a, 'a'), (b, 'a')]
+    assert (A.b[X]>'a') == [(b,)]
+    assert (A.b[X]>='a') == [(a,), (b,)]
 
-    assert (A.c[X]<='a') == [(a, 'a')]
-    assert (A.c[X]<='a'+'') == [(a, 'a')]
+    assert (A.c[X]<='a') == [(a,)]
+    assert (A.c[X]<='a'+'') == [(a,)]
 
-    assert (A.c[X]._in(('a',))) == [(a, ('a',))]
-    assert (A.c[X]._in(('a',)+('z',))) == [(a, ('a','z'))]
+    assert (A.c[X]._in(('a',))) == [(a,)]
+    assert (A.c[X]._in(('a',)+('z',))) == [(a,)]
     assert ((Y==('a',)) & (A.c[X]._in(Y))) == [(('a',), a)] # TODO make ' in ' work
     
-    assert ((Y==('a',)) & (A.c[X]._in(Y+('z',)))) == [(('a',), ('a', 'z'), a)] # TODO make ' in ' work
+    assert ((Y==('a',)) & (A.c[X]._in(Y+('z',)))) == [(('a',), a)] # TODO make ' in ' work
     assert (A.c[X]._in(('z',))) == []
 
     # more complex queries
@@ -538,7 +541,7 @@ def test():
     
     z = Z('z')
     assert z.z == 'z'
-    assert (Z.z[X]=='z') == [(z, 'z')]
+    assert (Z.z[X]=='z') == [(z,)]
     assert list(X) == [z]
     
     assert (Z.b[X]==Y) == [(z, 'za')]

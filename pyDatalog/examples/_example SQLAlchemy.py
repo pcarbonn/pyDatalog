@@ -80,7 +80,7 @@ print(John.salary_class) # prints 6
 X = pyDatalog.Variable()
 Employee.salary[X] == 6300 # notice the similarity to a pyDatalog query
 print(X) # prints [Employee: Mary]
-print(X.v()) # prints Mary
+print(X.v()) # prints Employee:Mary
 
 # who are the indirect managers of Mary ?
 Employee.indirect_manager(Mary, X)
