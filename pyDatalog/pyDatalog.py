@@ -252,7 +252,9 @@ pyDatalog.Mixin = Mixin
     so that it can be included in the result of queries"""
 def __init__(self):
     if not self.__class__.has_SQLAlchemy:
-        metaMixin.__refs__[self.__class__].append(weakref.ref(self))
+        for cls in self.__class__.__mro__:
+            if cls.__name__ in Class_dict and cls not in (pyDatalog.Mixin, object):
+                metaMixin.__refs__[cls].append(weakref.ref(self))
 Mixin.__init__ = __init__
 
 """ ****************** support for SQLAlchemy ***************** """
