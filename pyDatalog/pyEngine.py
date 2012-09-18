@@ -200,21 +200,23 @@ class Literal(object):
         self.terms = terms
         self.pred.prearity = prearity or len(terms)
     
-    def renamed(self, new_name):
-        new = Literal(new_name, list(self.terms), prearity=self.pred.prearity, aggregate=self.pred.aggregate)
-        new.pred.prim = self.pred.prim
-        new.pred.expression = self.pred.expression
-        new.pred.aggregate = self.pred.aggregate
+    def _renamed(self, new_name):
+        _id = '%s/%i' % (new_name, len(self.terms))
+        pred= Pred.registry.get(_id, new_name)
+        new = Literal(pred, list(self.terms), prearity=self.pred.prearity)
+        #new.pred.prim = self.pred.prim
+        #new.pred.expression = self.pred.expression
+        #new.pred.aggregate = self.pred.aggregate
         return new
         
-    def rebased(self, parent_class): # returns a new literal prefixed by parent class
+    def rebased(self, parent_class): # returns a literal prefixed by parent class
         pred = self.pred
         if not parent_class or not pred._class() or parent_class == pred._class(): 
             return self
-        return self.renamed(re.sub('^((~)?)'+pred._class().__name__+'.', r'\1'+parent_class.__name__+'.', pred.name))
+        return self._renamed(re.sub('^((~)?)'+pred._class().__name__+'.', r'\1'+parent_class.__name__+'.', pred.name))
     
     def equalized(self): # returns a new literal with '==' instead of comparison
-        return self.renamed(self.pred.name.replace(self.pred.comparison, '=='))
+        return self._renamed(self.pred.name.replace(self.pred.comparison, '=='))
     
     def __str__(self): return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
 
@@ -632,7 +634,7 @@ def _(self):
     " iterator of the parent classes that have pyDatalog capabilities"
     if self._class():
         for cls in self._cls.__mro__:
-            if cls.__name__ in Class_dict and cls not in (pyDatalog.Mixin,):
+            if cls.__name__ in Class_dict and cls not in (pyDatalog.Mixin, object):
                 yield cls
     else:
         yield None
@@ -956,10 +958,10 @@ def make_lambda(lambda_object, operands):
 
 # generic comparison function
 def compare(l,op,r):
-    return l in r if op=='in' else l==r if op=='==' else l!=r if op=='!=' else l<r if op=='<' \
+    return l in r if op=='in' else l not in r if op=='not in' else l==r if op=='==' else l!=r if op=='!=' else l<r if op=='<' \
         else l<=r if op=='<=' else l>=r if op=='>=' else l>r if op=='>' else None
 def compare2(l,op,r):
-    return l._in(r) if op=='in' else compare(l,op,r)
+    return l._in(r) if op=='in' else l._not_in(r) if op=='not in' else compare(l,op,r)
 
 # this functions adds an expression to an existing predicate
 

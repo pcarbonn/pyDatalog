@@ -134,6 +134,10 @@ def test():
         assert ask((X==1) & (X>1)) == None
         assert ask((X==1) & (X>=1)) == set([(1,)])
         assert ask(X in (1,)) == set([(1,)])
+        assert ask((X==1) & (X not in (2,))) == set([(1,)])
+        assert ask((X==1) & ~(X in (2,))) == set([(1,)])
+        assert ask((X==1) & (X not in (1,))) == None
+        assert ask((X==1) & ~(X in (1,))) == None
 
     """ clauses                                                         """
     
@@ -321,6 +325,11 @@ def test():
         assert ask((Y=='c') &(f[X]<'d'+Y+'')) == set([('c', 'a', 'c')])
         assert ask((Y==('a','c')) & (f[X] in Y)) == set([(('a', 'c'), 'a', 'c')])
         assert ask((Y==('a','c')) & (f[X] in (Y+('z',)))) == set([(('a', 'c'), 'a', 'c')])
+
+    @pyDatalog.program()
+    def function_negation(): 
+        assert ask((f[a]==X) & (~(X<'d'))) == None # TODO support direct negation of comparison
+        assert ask((f[a]==X) & (~(X in('d',)))) == set([('c',)]) # TODO support direct negation of comparison
         
     """ aggregates                                                         """
     pyDatalog.clear()
@@ -337,6 +346,7 @@ def test():
         assert ask(a_sum[a]==2) == set([('a', 2)])
         assert ask(a_sum[X]==4) == set([('b', 4)])
         assert ask(a_sum[c]==X) == None
+        assert ask((a_sum[X]==2) & (p(X, Z, Y))) == set([('a', 'c', 1), ('a', 'b', 1)])
 
         (a_sum2[X] == sum(Y, for_each=X)) <= p(X, Z, Y)
         assert ask(a_sum2[a]==X) == set([('a', 1)])
@@ -467,6 +477,7 @@ def test():
         @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
         def _():
             (A.c[X]==N) <= (A.b[X]==N)
+            (A.len[X]==len(N)) <= (A.b[X]==N)
             
     a = A('a')
     b = A('b')
@@ -526,6 +537,9 @@ def test():
 
     # more complex queries
     assert ((Y=='a') & (A.b[X]!=Y)) == [('a', b)] # order of appearance of the variables !
+    
+    assert (A.len[X]==Y) == [(b, 1), (a, 1)]
+    assert (A.len[a]==Y) == [(1,)]
 
     """ subclass                                              """
 
@@ -538,6 +552,25 @@ def test():
         @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
         def _():
             (Z.w[X]==N) <= (Z.z[X]!=N)
+        @classmethod
+        def _pyD_x1(cls, X):
+            if X.is_const() and X.id.z == 'z':
+                yield (self,)
+            else:
+                for X in pyDatalog.metaMixin.__refs__[cls]:
+                    if X().z == 'z':
+                        yield (X(),)
+        @classmethod
+        def _pyD_query(cls, pred_name, args):
+            if pred_name == 'Z.pred':
+                if args[0].is_const() and args[0].id.z != 'z':
+                    yield (self,)
+                else:
+                    for X in pyDatalog.metaMixin.__refs__[cls]:
+                        if X().z != 'z':
+                            yield (X(),)
+            else:
+                raise AttributeError
     
     z = Z('z')
     assert z.z == 'z'
@@ -548,6 +581,13 @@ def test():
     assert (Z.c[X]==Y) == [(z, 'za')]
     assert (z.b) == 'za'
     assert (z.c) == 'za'
+    
+    w = Z('w')
+    assert(Z.x(X)) == [(z,)]
+    assert(Z.pred(X)) == [(w,)]
+
+    assert (Z.len[X]==Y) == [(w, 1), (z, 1)]
+    assert (Z.len[z]==Y) == [(1,)]
             
     """ python resolvers                                              """
     
@@ -597,6 +637,7 @@ def test():
     test_error("ask(X<Y)")
     test_error("ask(1<Y)")
     test_error("ask( (A.c[X]==Y) & (Z.c[X]==Y))")
+    test_error("ask( (A.u[X]==Y)")
         
     print("Test completed successfully.")
 

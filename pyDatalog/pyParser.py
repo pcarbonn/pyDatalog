@@ -108,11 +108,11 @@ class _transform_ast(ast.NodeTransformer):
         self.generic_visit(node)
         if 1 < len(node.comparators): 
             raise pyDatalog.DatalogError("Syntax error: please verify parenthesis around (in)equalities", node.lineno, None) 
-        if not isinstance(node.ops[0], ast.In): return node
+        if not isinstance(node.ops[0], (ast.In, ast.NotIn)): return node
         var = node.left # X, an _ast.Name object
         comparators = node.comparators[0] # (1,2), an _ast.Tuple object
         newNode = ast.Call(
-                ast.Attribute(var, '_in', var.ctx), # func
+                ast.Attribute(var, '_in' if isinstance(node.ops[0], ast.In) else '_not_in', var.ctx), # func
                 [comparators], # args
                 [], # keywords
                 None, # starargs
@@ -275,6 +275,9 @@ class Expression(object):
     def _in(self, values):
         """ called when compiling (X in (1,2)) """
         return self._make_expression_literal('in', values)
+    def _not_in(self, values):
+        """ called when compiling (X not in (1,2)) """
+        return self._make_expression_literal('not in', values)
     
     def __add__(self, other):
         return Operation(self, '+', other)
@@ -611,7 +614,7 @@ class Literal(LazyListOfList):
                     arg._list.extend(transposed[i])
                     arg.todo = None
                     result.append(transposed[i])
-            self._list = zip(*result) if result else [()]
+            self._list = list(zip(*result)) if result else [()]
 
     def __pos__(self):
         " unary + means insert into database as fact "
