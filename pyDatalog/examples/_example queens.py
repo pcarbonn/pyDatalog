@@ -9,9 +9,9 @@ def _():
 
     # when is it ok to have a queen in row X1 and another in row X2, separated by N columns
     # this is memoized !
-    ok(X1, N, X2) <= (X1 in range(8)) & (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
+    ok(X1, N, X2) <= (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
     
-    queens1(X0,X1) <= queens0(X0) & ok(X1,1,X0)
+    queens1(X0,X1) <= queens0(X0) & queens0(X1) & ok(X1,1,X0)
 
     queens2(X0,X1,X2) <= queens1(X0,X1) & queens1(X1,X2) & ok(X0,2,X2)
 
