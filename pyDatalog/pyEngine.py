@@ -64,13 +64,6 @@ class Interned(object):
     # beware, they should be one registry per class --> copy the following line in the child class !!
     # registry = weakref.WeakValueDictionary() 
     notFound = object()
-    def __new__(cls, *args, **kwargs):
-        assert 0 < len(args)
-        o = cls.registry.get(args[0], Interned.notFound)
-        if o is Interned.notFound:
-            o = object.__new__(cls, *args, **kwargs) # o is the ref that keeps it alive
-            cls.registry[args[0]] = o
-        return o
     def __eq__(self, other):
         return self is other
     def __hash__(self): return id(self)
@@ -169,19 +162,6 @@ class Pred(Interned):
             retract(clause)
     
     def __str__(self): return "%s()" % self.name
-
-# Duplicates a predicate.  Used to clone databases.
-class Fresh_pred(object):
-    def __init__(self, pred):
-        self.id = pred.id
-        self.db = copy.copy(pred.db) # TODO shallow or deep copy ?
-        self.index = copy.copy(pred.index)
-        self.clauses = copy.copy(pred.clauses)
-        self.prim = pred.prim
-        self.expression = pred.expression
-        self.aggregate = pred.aggregate
-def dup(pred):
-    return Fresh_pred(pred)
 
 # Literals
 
@@ -516,8 +496,6 @@ def make_subgoal(literal):
 # one less literal.
 
 def resolve(clause, literal):
-    if len(clause.body) == 0: # this never happens, in fact
-        return None 
     env = unify(clause.body[0], rename(literal))
     if env == None: 
         return None
@@ -761,15 +739,15 @@ def search(subgoal):
                     schedule(Add_clause(subgoal, renamed))
                 return
             
-    if class0: # a.p[X]==Y, a.p[X]<y
+    if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
         try: 
             iterator = class0.pyDatalog_search(literal)
-            for result in iterator:
-                fact_candidate(subgoal, class0, result)
-            if Debug : print("pyDatalog has used pyDatalog_search for %s" % literal)
         except AttributeError:
             pass
         else:
+            if Debug : print("pyDatalog uses pyDatalog_search for %s" % literal)
+            for result in iterator:
+                fact_candidate(subgoal, class0, result)
             return
     raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
             
@@ -893,11 +871,6 @@ def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
                     fact(subgoal, new)
     pred.prim = prim
     
-def add_iter_prim(name, arity, iter): # Not used
-    pred = Pred(name, arity)
-    add_iter_prim_to_predicate(pred, iter)
-    return insert(pred)
-
 # Support for expression
 
 # Expressions (such as X = Y-1) are represented by a predicate (P(X,Y)) with :

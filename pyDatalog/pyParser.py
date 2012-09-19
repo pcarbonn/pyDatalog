@@ -231,7 +231,7 @@ class LazyList(object):
         return str(self._value())
     def __repr__(self):
         return repr(self._value())
-    def reversed(self):
+    def __reversed__(self):
         return reversed(self._value())
     def __nonzero__(self):
         return bool(self._value())

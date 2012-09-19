@@ -109,6 +109,8 @@ def test():
         assert ask(X==1) == set([(1,)]) 
         assert ask(X==Y) == None
         assert ask(X==Y+1) == None
+        assert ask((X==2) & (Y==X/2)) == set([(2,1)])
+        assert ask((X==2) & (Y==X//2)) == set([(2,1)])
 
     """ Conjunctive queries                                             """
 
