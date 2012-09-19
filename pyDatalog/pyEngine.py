@@ -204,9 +204,6 @@ class Literal(object):
         _id = '%s/%i' % (new_name, len(self.terms))
         pred= Pred.registry.get(_id, new_name)
         new = Literal(pred, list(self.terms), prearity=self.pred.prearity)
-        #new.pred.prim = self.pred.prim
-        #new.pred.expression = self.pred.expression
-        #new.pred.aggregate = self.pred.aggregate
         return new
         
     def rebased(self, parent_class): # returns a literal prefixed by parent class
@@ -655,8 +652,6 @@ def search(subgoal):
     terms = literal0.terms
     
     if class0 and terms[0].is_const() and terms[0].id is None: return
-    assert not class0 or not terms[0].is_const() or isinstance(terms[0].id, class0), \
-        "TypeError: First argument of %s must be a %s, not a %s " % (str(literal0), class0.__name__, type(terms[0].id).__name__)
     if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
         if Debug : print("pyDatalog will search negation of %s" % literal0)
         for term in terms:
@@ -684,6 +679,8 @@ def search(subgoal):
                        _search(base_literal, subgoal, literal)))
         return
 
+    assert not class0 or not terms[0].is_const() or isinstance(terms[0].id, class0), \
+        "TypeError: First argument of %s must be a %s, not a %s " % (str(literal0), class0.__name__, type(terms[0].id).__name__)
     for _class in literal0.pred.parent_classes():
         literal = literal0.rebased(_class)
         method_name = '_pyD_%s%i'% (literal.pred.suffix, int(literal.pred.arity)) # TODO special method for comparison
@@ -774,7 +771,7 @@ def search(subgoal):
             pass
         else:
             return
-    raise AttributeError("Predicate without definition: %s" % literal0.pred.id)
+    raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
             
 # Sets up and calls the subgoal search procedure, and then extracts
 # the answers into an easily used table.  The table has the name of

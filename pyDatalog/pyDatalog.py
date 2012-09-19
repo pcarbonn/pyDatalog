@@ -178,7 +178,7 @@ pyEngine.Class_dict = Class_dict # TODO better way to share it with pyEngine.py 
 
 class metaMixin(type):
     """Metaclass used to define the behavior of a subclass of Mixin"""
-    __refs__ = defaultdict(list)
+    __refs__ = defaultdict(weakref.WeakSet)
     
     def __init__(cls, name, bases, dct):
         """when creating a subclass of Mixin, save the subclass in Class_dict. """
@@ -235,7 +235,6 @@ class metaMixin(type):
             else:
                 # python object with Mixin
                 for X in metaMixin.__refs__[cls]:
-                    X=X()
                     check_attribute(X)
                     Y1 = getattr(X, attr_name)
                     if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
@@ -254,7 +253,7 @@ def __init__(self):
     if not self.__class__.has_SQLAlchemy:
         for cls in self.__class__.__mro__:
             if cls.__name__ in Class_dict and cls not in (pyDatalog.Mixin, object):
-                metaMixin.__refs__[cls].append(weakref.ref(self))
+                metaMixin.__refs__[cls].add(self)
 Mixin.__init__ = __init__
 
 """ ****************** support for SQLAlchemy ***************** """

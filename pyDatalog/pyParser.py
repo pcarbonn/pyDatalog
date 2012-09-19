@@ -553,7 +553,9 @@ class Literal(LazyListOfList):
                     variable = env.get(id(arg), Symbol('X%i' % id(arg)))
                     env[id(arg)] = variable
                     terms.append(variable)
-                elif i==0 and cls and arg.__class__.__name__ != cls:
+                elif isinstance(arg, Symbol):
+                    terms.append(arg)
+                elif i==0 and cls and arg.__class__.__name__ != cls.replace('~',''):
                     raise TypeError("Object is incompatible with the class that is queried.")
                 else:
                     terms.append(arg)
