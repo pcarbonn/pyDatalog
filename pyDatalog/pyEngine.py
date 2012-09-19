@@ -375,7 +375,7 @@ def get_clause_id(clause):
 # literal that makes up the clause.
 
 def subst_in_clause(clause, env, parent_class=None):
-    if len(env) == 0: return clause
+    if len(env) == 0 and not parent_class: return clause
     return Clause(subst(clause.head, env).rebased(parent_class),
                        [subst(bodi, env).rebased(parent_class) for bodi in clause.body])
     
@@ -749,7 +749,6 @@ def search(subgoal):
             if literal1.pred.db: # equality has a datalog definition
                 Y1 = Fresh_var()
                 literal1.terms[-1] = Y1
-                # TODO literal2, clause
                 literal2 = Literal('='+Y1.id, (Y1, terms[-1]))
                 literal2.pred.operator = literal.pred.comparison
                 add_expr_to_predicate(literal2.pred, literal.pred.comparison, literal0.pred.expression)
@@ -757,8 +756,9 @@ def search(subgoal):
                 renamed = rename_clause(clause)
                 env = unify(literal, renamed.head)
                 if env != None:
+                    renamed = subst_in_clause(renamed, env, class0)
                     if Debug : print("pyDatalog will use clause for comparison: %s" % renamed)
-                    schedule(Add_clause(subgoal, subst_in_clause(renamed, env, class0)))
+                    schedule(Add_clause(subgoal, renamed))
                 return
             
     if class0: # a.p[X]==Y, a.p[X]<y

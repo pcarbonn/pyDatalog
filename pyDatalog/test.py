@@ -575,10 +575,12 @@ def test():
     z = Z('z')
     assert z.z == 'z'
     assert (Z.z[X]=='z') == [(z,)]
+    assert ((Z.z[X]=='z') & (Z.z[X]>'a')) == [(z,)]
     assert list(X) == [z]
     
     assert (Z.b[X]==Y) == [(z, 'za')]
     assert (Z.c[X]==Y) == [(z, 'za')]
+    assert ((Z.c[X]==Y) & (Z.c[X]>'a')) == [(z, 'za')]
     assert (z.b) == 'za'
     assert (z.c) == 'za'
     
