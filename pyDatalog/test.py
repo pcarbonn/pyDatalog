@@ -478,6 +478,25 @@ def test():
         def _():
             (A.c[X]==N) <= (A.b[X]==N)
             (A.len[X]==len(N)) <= (A.b[X]==N)
+        @classmethod
+        def _pyD_x1(cls, X):
+            if X.is_const() and X.id.b == 'za':
+                yield (X.id,)
+            else:
+                for X in pyDatalog.metaMixin.__refs__[cls]:
+                    if X.b == 'za':
+                        yield (X,)
+        @classmethod
+        def _pyD_query(cls, pred_name, args):
+            if pred_name == 'Z.pred':
+                if args[0].is_const() and args[0].id.b != 'za':
+                    yield (args[0].id,)
+                else:
+                    for X in pyDatalog.metaMixin.__refs__[cls]:
+                        if X.b != 'za':
+                            yield (X,)
+            else:
+                raise AttributeError
             
     a = A('a')
     b = A('b')
@@ -552,25 +571,6 @@ def test():
         @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
         def _():
             (Z.w[X]==N) <= (Z.z[X]!=N)
-        @classmethod
-        def _pyD_x1(cls, X):
-            if X.is_const() and X.id.z == 'z':
-                yield (self,)
-            else:
-                for X in pyDatalog.metaMixin.__refs__[cls]:
-                    if X().z == 'z':
-                        yield (X(),)
-        @classmethod
-        def _pyD_query(cls, pred_name, args):
-            if pred_name == 'Z.pred':
-                if args[0].is_const() and args[0].id.z != 'z':
-                    yield (self,)
-                else:
-                    for X in pyDatalog.metaMixin.__refs__[cls]:
-                        if X().z != 'z':
-                            yield (X(),)
-            else:
-                raise AttributeError
     
     z = Z('z')
     assert z.z == 'z'
@@ -583,8 +583,14 @@ def test():
     assert (z.c) == 'za'
     
     w = Z('w')
+    w = Z('w') # duplicated to test __refs__[cls]
     assert(Z.x(X)) == [(z,)]
+    assert not (~Z.x(z))
+    assert ~Z.x(w)
+    assert ~ (Z.z[w]=='z')
     assert(Z.pred(X)) == [(w,)]
+    assert(Z.pred(X) & ~ (Z.z[X]=='z')) == [(w,)]
+    assert(Z.x(X) & ~(Z.pred(X))) == [(z,)]
 
     assert (Z.len[X]==Y) == [(w, 1), (z, 1)]
     assert (Z.len[z]==Y) == [(1,)]
