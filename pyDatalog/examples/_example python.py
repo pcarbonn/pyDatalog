@@ -35,7 +35,7 @@ class Employee(pyDatalog.Mixin):   # --> Employee inherits the pyDatalog capabil
         # count the number of reports of X
         (Employee.report_count[X] == len(Y)) <= Employee.indirect_manager(Y,X)
 
-""" 2. create python objects for 2 employees """
+""" 2. create python objects for 3 employees """
 # John is the manager of Mary, who is the manager of Sam
 John = Employee('John', None, 6800)
 Mary = Employee('Mary', John, 6300)

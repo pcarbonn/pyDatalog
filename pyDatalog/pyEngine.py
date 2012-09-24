@@ -338,7 +338,10 @@ class Clause(object):
         self.head = head
         self.body = body
     def __str__(self):  
-        return "%s <= %s" % (str(self.head), '&'.join([str(literal) for literal in self.body])) 
+        return "%s <= %s" % (str(self.head), '&'.join([str(literal) for literal in self.body]))
+    def __neg__(self):
+        """retract clause"""
+        retract(self) 
 
 # A clause's id is computed on demand, but then cached.
 
@@ -403,6 +406,8 @@ def assert_(clause):
     if not is_safe(clause): return None  # An unsafe clause was detected.
     pred = clause.head.pred
     if not pred.prim:                   # Ignore assertions for primitives.
+        if pred.aggregate and get_clause_id(clause) in pred.db:
+            raise pyDatalog.DatalogError("Error: Duplicate definition of aggregate function.", None, None)
         retract(clause) # to ensure unicity of functions
         pred.db[get_clause_id(clause)] = clause
         if len(clause.body) == 0: # if it is a fact, update indexes
@@ -425,9 +430,7 @@ def retract(clause):
                 pred.index[i][term].remove(clause)
                 # TODO del pred.index[i][term] if the set is empty
         else:
-            if clause != pred.db[id_]:
-                raise pyDatalog.DatalogError("Error: Duplicate definition of aggregate function.", None, None)
-            pred.clauses.remove(clause)
+            pred.clauses.remove(pred.db[id_])
         del pred.db[id_]  # remove clause from pred.db
     """ TODO retract last fact removes pred ??  problem with assert function
     if len(pred.db) == 0 and pred.prim == None: # if no definition left
@@ -498,7 +501,7 @@ def make_subgoal(literal):
 def resolve(clause, literal):
     env = unify(clause.body[0], rename(literal))
     if env == None: 
-        return None
+        return None # dead code ?
     return Clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
  
 # A stack of thunks used to avoid the stack overflow problem
@@ -742,13 +745,12 @@ def search(subgoal):
     if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
         try: 
             iterator = class0.pyDatalog_search(literal)
-        except AttributeError:
-            pass
-        else:
             if Debug : print("pyDatalog uses pyDatalog_search for %s" % literal)
             for result in iterator:
                 fact_candidate(subgoal, class0, result)
             return
+        except AttributeError:
+            pass
     raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
             
 # Sets up and calls the subgoal search procedure, and then extracts
@@ -836,11 +838,6 @@ def match(literal, fact):
     env = {}
     for term, factterm in zip(literal.terms, fact.terms):
         if term != factterm:
-            try:
-                if eval(term.id) == eval(factterm.id):
-                    continue
-            except:
-                pass
             env = term.match(factterm, env)
             if env == None: return env
     return env
@@ -849,9 +846,9 @@ def _(self, const, env):
     if self not in env:
         env[self] = const
         return env
-    elif env[self] == const:
+    elif env[self] == const: # dead code ?
         return env
-    else:
+    else: # dead code ?
         return None
 Var.match = _
 Fresh_var.match = _
@@ -863,7 +860,7 @@ Fresh_var.match = _
 # predicate.
 
 def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
-    def prim(literal, subgoal, pred=pred, iter=iter):
+    def prim(literal, subgoal, pred=pred, iter=iter): # TODO consider merging with fact_candidate
         for terms in iter(literal):
             if len(terms) == len(literal.terms):
                 new = Literal(pred, [Const(term) for term in terms])
@@ -907,7 +904,7 @@ class Expression(object):
             return self.operand1.eval(env) / self.operand2.eval(env)
         elif self.operator == '//':
             return self.operand1.eval(env) // self.operand2.eval(env)
-        assert False
+        assert False # dead code
         
 def make_expression(operator, operand1, operand2):
     return Expression(operator, operand1, operand2)
