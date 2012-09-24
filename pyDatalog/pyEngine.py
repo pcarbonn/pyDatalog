@@ -635,9 +635,11 @@ def search(subgoal):
     if class0 and terms[0].is_const() and terms[0].id is None: return
     if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
         if Debug : print("pyDatalog will search negation of %s" % literal0)
+        """ 
         for term in terms:
             if not term.is_const(): # all terms of a negated predicate must be bound
                 raise RuntimeError('Terms of a negated literal must be bound : %s' % str(literal0))
+        """
         base_literal = Literal(literal0.pred.base_pred, terms)
         """ the rest of the processing essentially performs the following, 
         but in its own environment, and with precautions to avoid stack overflow :
@@ -654,6 +656,7 @@ def search(subgoal):
 
             complete(lambda base_subgoal=base_subgoal: merge(base_subgoal) or search(base_subgoal),
                      lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
+                        # TODO deal with variable terms in result 
                         fact(subgoal, literal) if 0 == len(list(base_subgoal.facts.values())) else None)
                 
         schedule(Thunk(lambda base_literal=base_literal, subgoal=subgoal, literal=literal0: 
