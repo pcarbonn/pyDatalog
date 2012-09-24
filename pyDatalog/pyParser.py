@@ -669,6 +669,7 @@ class Body(LazyListOfList):
     created by p(a,b) & q(c,d)
     operator '&' means 'and', and returns a Body
     """
+    Counter = 0
     def __init__(self, *args):
         LazyListOfList.__init__(self)
         self.literals = []
@@ -693,7 +694,7 @@ class Body(LazyListOfList):
             return LazyListOfList.__str__(self)
         return ' & '.join(list(map (str, self.literals)))
 
-    def literal(self):
+    def literal(self, permanent=False):
         # return a literal that can be queried to resolve the body
         env, args = OrderedDict(), []
         for literal in self.literals:
@@ -704,12 +705,20 @@ class Body(LazyListOfList):
                 if isinstance(arg, pyDatalog.Variable):
                     args.append(arg)
         # TODO cleanup : use args instead of env.values() ?
-        literal = Literal('_pyD_query', list(env.values()))
-        literal.lua.pred.reset_clauses()
+        if permanent:
+            literal = Literal('_pyD_query' + str(Body.Counter), list(env.values()))
+            Body.Counter = Body.Counter + 1
+        else:
+            literal = Literal('_pyD_query', list(env.values()))
+            literal.lua.pred.reset_clauses()
         literal <= self
         literal.args = args
         return literal 
         
+    def __invert__(self):
+        """unary ~ means negation """
+        return ~(self.literal(permanent=True))
+
     def ask(self):
         literal = self.literal()
         literal.ask()

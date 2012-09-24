@@ -292,6 +292,12 @@ def test():
 
     """ negation                                                     """    
     
+    @pyDatalog.program()
+    def _negation():
+        +p(a, b)
+        assert ask(~p(X, b)) == None
+        assert ask(~p(X, c)) == set([('X', 'c')])
+
     pyDatalog.load("""
         + even(0)
         even(N) <= (N > 0) & (N1==N-1) & odd(N1)
@@ -355,8 +361,9 @@ def test():
 
     @pyDatalog.program()
     def function_negation(): 
-        assert ask((f[a]==X) & (~(X<'d'))) == None # TODO support direct negation of comparison
-        assert ask((f[a]==X) & (~(X in('d',)))) == set([('c',)]) # TODO support direct negation of comparison
+        assert not(ask(~(f[a]<'d'))) 
+        assert not(ask(~(f[X]<'d'))) 
+        assert ask(~(f[a] in('d',)))
         
     """ aggregates                                                         """
     
@@ -634,6 +641,7 @@ def test():
     assert (Z.b[X]==Y) == [(z, 'za')]
     assert (Z.c[X]==Y) == [(z, 'za')]
     assert ((Z.c[X]==Y) & (Z.c[X]>'a')) == [(z, 'za')]
+    assert (Z.c[X]>'a') == [(z,)]
     assert (z.b) == 'za'
     assert (z.c) == 'za'
     
@@ -644,7 +652,7 @@ def test():
     assert ~Z.x(w)
     assert ~ (Z.z[w]=='z')
     assert(Z.pred(X)) == [(w,)]
-    assert(Z.pred(X) & ~ (Z.z[X]=='z')) == [(w,)]
+    assert(Z.pred(X) & ~ (Z.z[X]>='z')) == [(w,)]
     assert(Z.x(X) & ~(Z.pred(X))) == [(z,)]
 
     assert (Z.len[X]==Y) == [(w, 1), (z, 1)]
@@ -711,7 +719,6 @@ def test():
     assert_error("ask( (A.c[X]==Y) & (Z.c[X]==Y))", "TypeError: First argument of Z.c\[1\]==\('.','.'\) must be a Z, not a A ")
     assert_ask("A.u[X]==Y", "Predicate without definition \(or error in resolver\): A.u\[1\]==/2")
     assert_ask("A.u[X,Y]==Z", "Predicate without definition \(or error in resolver\): A.u\[2\]==/3")
-    assert_ask("~z(X)", "Terms of a negated literal must be bound : ~z\(X\)")
     assert_error('(a_sum[X] == sum(Y, key=Y)) <= p(X, Z, Y)', "Error: Duplicate definition of aggregate function.")
     assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
     assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')
