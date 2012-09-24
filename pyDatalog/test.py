@@ -21,8 +21,9 @@ USA
 """
 import cProfile
 import math
-import time
+import re
 import six
+import time
 
 import pyDatalog
 def test():
@@ -35,6 +36,8 @@ def test():
     
     pyDatalog.assert_fact('p', 'a', 'b')
     assert pyDatalog.ask('p(a, "b")') == set([('a', 'b')])
+    pyDatalog.retract_fact('p', 'a', 'b')
+    assert pyDatalog.ask('p(a, "b")') == None
     
     """unary facts                                                            """
     
@@ -102,6 +105,11 @@ def test():
         - q(a,c)
         assert ask(q(a, Y)) == set([('a', 'b')])
         
+        assert ask(q(X, X)) == None 
+        +q(a, a)
+        assert ask(q(X, X)) == set([('a', 'a')])
+        -q(a, a) 
+        
     """ (in)equality                                             """
 
     @pyDatalog.program()
@@ -109,8 +117,17 @@ def test():
         assert ask(X==1) == set([(1,)]) 
         assert ask(X==Y) == None
         assert ask(X==Y+1) == None
+        assert ask((X==1) & (Y==1) & (X==Y)) == set([(1,1)])
+        assert ask((X==1) & (Y==2) & (X==Y-1)) == set([(1,2)])
+        #assert ask((X==1) & (Y==2) & (X+2==Y+1)) == set([(1,2)])
         assert ask((X==2) & (Y==X/2)) == set([(2,1)])
         assert ask((X==2) & (Y==X//2)) == set([(2,1)])
+        
+        assert ask((X==1) & (Y==1+X)) == set([(1,2)])
+        assert ask((X==1) & (Y==1-X)) == set([(1,0)])
+        assert ask((X==1) & (Y==2*X)) == set([(1,2)])
+        assert ask((X==2) & (Y==2/X)) == set([(2,1)])
+        assert ask((X==2) & (Y==2//X)) == set([(2,1)])
 
     """ Conjunctive queries                                             """
 
@@ -141,6 +158,22 @@ def test():
         assert ask((X==1) & (X not in (1,))) == None
         assert ask((X==1) & ~(X in (1,))) == None
 
+    @pyDatalog.program()
+    def equality3():
+        # equality (must be between parenthesis):
+        s(X) <= (X == a)
+        assert ask(s(X)) == set([('a',)])
+        s(X) <= (X == 1)
+        assert ask(s(X)) == set([(1,), ('a',)])
+        
+        s(X, Y) <= p(X) & (X == Y)
+        assert ask(s(a, a)) == set([('a', 'a')])
+        assert ask(s(a, b)) == None
+        assert ask(s(X,a)) == set([('a', 'a')])
+        assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),(1, 1)])
+
+    assert pyDatalog.ask('p(a)') == set([('a',)])
+
     """ clauses                                                         """
     
     @pyDatalog.program()
@@ -148,12 +181,17 @@ def test():
     
         p2(X) <= p(X)
         assert ask(p2(a)) == set([('a',)])
+        p2(X) <= p(X)
         
         r(X, Y) <= p(X) & p(Y)
         assert ask(r(a, a)) == set([('a', 'a')])
         assert ask(r(a, c)) == set([('a', 'c')])
         r(X, b) <= p(X)
         assert ask(r(a, b)) == set([('a', 'b')])
+        
+        - (r(X, b) <= p(X))
+        assert ask(r(a, b)) == None
+        
         # TODO more tests
 
         # integer variable
@@ -165,6 +203,7 @@ def test():
         assert abs(-3)==3
         assert math.sin(3)==math.sin(3)
         
+    
     """ in                                                         """
     
     pyDatalog.assert_fact('is_list', (1,2))
@@ -196,23 +235,6 @@ def test():
         assert ask(odd(1)) == set([(1,)])
         assert ask(odd(5)) == set([(5,)])
         assert ask(even(5)) == None
-
-        # equality (must be between parenthesis):
-        s(X) <= (X == a)
-        assert ask(s(X)) == set([('a',)])
-        s(X) <= (X == 1)
-        assert ask(s(X)) == set([(1,), ('a',)])
-        
-        s(X, Y) <= p(X) & (X == Y)
-        assert ask(s(a, a)) == set([('a', 'a')])
-        assert ask(s(a, b)) == None
-        assert ask(s(X,a)) == set([('a', 'a')])
-        assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),(1, 1)])
-        # TODO  make this work
-        # s <= (X == Y)   
-        # assert ask(s(X,Y)) == set([('a', 'a'),('c', 'c'),('1', '1')])
-
-    assert pyDatalog.ask('p(a)') == set([('a',)])
     
     """ recursion with expressions                                         """
     # reset the engine
@@ -264,6 +286,9 @@ def test():
         split(X, Y,Z) <= (Y == (lambda X: X.split('-')[0])) & (Z == (lambda X: X.split('-')[1]))
         assert ask(split('a-b', Y, Z)) == set([('a-b', 'a', 'b')])
         assert ask(split(X, 'a', 'b')) == set([('a-b', 'a', 'b')])
+        
+        (two[X]==Z) <= (Z==X+(lambda X: X))
+        assert ask(two['A']==Y) == set([('A','AA')])
 
     """ negation                                                     """    
     
@@ -334,6 +359,7 @@ def test():
         assert ask((f[a]==X) & (~(X in('d',)))) == set([('c',)]) # TODO support direct negation of comparison
         
     """ aggregates                                                         """
+    
     pyDatalog.clear()
     @pyDatalog.program()
     def sum(): 
@@ -422,6 +448,13 @@ def test():
 
     @pyDatalog.program()
     def rank(): 
+        (a_rank1[Z] == rank(for_each=Z, order_by=Z)) <= q(X, Y, Z)
+        assert ask(a_rank1[X]==Y) == set([(1, 0), (2, 0), (4, 0)])
+        assert ask(a_rank1[X]==0) == set([(1, 0), (2, 0), (4, 0)])
+        assert ask(a_rank1[1]==X) == set([(1, 0)])
+        assert ask(a_rank1[1]==0) == set([(1, 0)])
+        assert ask(a_rank1[1]==1) == None
+
         # rank
         (a_rank[X,Y] == rank(for_each=(X,Y2), order_by=Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
         assert ask(a_rank[X,Y]==Z) == set([('a', 'b', 1), ('a', 'c', 0), ('b', 'b', 0)])
@@ -488,23 +521,13 @@ def test():
                 for X in pyDatalog.metaMixin.__refs__[cls]:
                     if X.b == 'za':
                         yield (X,)
-        @classmethod
-        def _pyD_query(cls, pred_name, args):
-            if pred_name == 'Z.pred':
-                if args[0].is_const() and args[0].id.b != 'za':
-                    yield (args[0].id,)
-                else:
-                    for X in pyDatalog.metaMixin.__refs__[cls]:
-                        if X.b != 'za':
-                            yield (X,)
-            else:
-                raise AttributeError
             
     a = A('a')
     b = A('b')
     assert a.c == 'a'
     X, Y = pyDatalog.variables(2)
     assert (A.c[X]=='a') == [(a,)]
+    assert (A.c[X]=='a')[0] == (a,)
     assert list(X) == [a]
     assert X.v() == a
     assert ((A.c[a]==X) >= X) == 'a'
@@ -573,13 +596,41 @@ def test():
         @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
         def _():
             (Z.w[X]==N) <= (Z.z[X]!=N)
+        @classmethod
+        def _pyD_query(cls, pred_name, args):
+            if pred_name == 'Z.pred':
+                if args[0].is_const() and args[0].id.b != 'za':
+                    yield (args[0].id,)
+                else:
+                    for X in pyDatalog.metaMixin.__refs__[cls]:
+                        if X.b != 'za':
+                            yield (X,)
+            else:
+                raise AttributeError
     
     z = Z('z')
     assert z.z == 'z'
     assert (Z.z[X]=='z') == [(z,)]
     assert ((Z.z[X]=='z') & (Z.z[X]>'a')) == [(z,)]
     assert list(X) == [z]
+    try:
+        a.z == 'z'
+    except Exception as e:
+        e_message = e.message if hasattr(e, 'message') else e.args[0]
+        if e_message != "Predicate without definition (or error in resolver): A.z[1]==/2":
+            print(e_message)
+    else:
+        assert False
     
+    try:
+        (Z.z[a] == 'z') == None
+    except Exception as e:
+        e_message = e.message if hasattr(e, 'message') else e.args[0]
+        if e_message != "Object is incompatible with the class that is queried.":
+            print(e_message)
+    else:
+        assert False
+
     assert (Z.b[X]==Y) == [(z, 'za')]
     assert (Z.c[X]==Y) == [(z, 'za')]
     assert ((Z.c[X]==Y) & (Z.c[X]>'a')) == [(z, 'za')]
@@ -621,34 +672,116 @@ def test():
     except: error = True
     assert error
 
-    def test_error(code):
+    def assert_error(code, message='^$'):
         _error = False
         try:
-            pyDatalog.load(code, catch_error=False)
-        except Exception as e: 
+            pyDatalog.load(code)
+        except Exception as e:
+            e_message = e.message if hasattr(e, 'message') else e.args[0] # python 2 and 3
+            if not re.match(message, e_message):
+                print(e_message) 
             _error = True
         assert _error
         
-    def test_ask(code):
+    def assert_ask(code, message='^$'):
         _error = False
         try:
             pyDatalog.ask(code)
-        except: 
+        except Exception as e: 
+            e_message = e.message if hasattr(e, 'message') else e.args[0]
+            if not re.match(message, e_message):
+                print(e_message) 
             _error = True
         assert _error
 
-    test_error('ask(z(a))')
-    test_error("+ farmer(farmer(moshe))")
-    test_error("+ manager[Mary]==John")
-    test_error("manager[X]==Y <= (X==Y)")
-    test_error("p(X) <= X==1 & X==2")
-    test_error("p(X) <= (manager[X]== min(X))")
-    test_error("ask(X<1)")
-    test_error("ask(X<Y)")
-    test_error("ask(1<Y)")
-    test_error("ask( (A.c[X]==Y) & (Z.c[X]==Y))")
-    test_error("ask( (A.u[X]==Y)")
+    assert_error('ask(z(a),True)', 'Too many arguments for ask \!')
+    assert_error('ask(z(a))', 'Predicate without definition \(or error in resolver\): z/1')
+    assert_error("+ farmer(farmer(moshe))", "Syntax error: Literals cannot have a literal as argument : farmer\(\[\],\)")
+    assert_error("+ manager[Mary]==John", "bad operand type for unary \+: 'Function'. Please consider adding parenthesis")
+    assert_error("manager[X]==Y <= (X==Y)", "Syntax error: please verify parenthesis around \(in\)equalities")
+    assert_error("p(X) <= (Y==2)", "Can't create clause")
+    assert_error("p(X) <= X==1 & X==2", "Syntax error: please verify parenthesis around \(in\)equalities")
+    assert_error("p(X) <= (manager[X]== min(X))", "Error: argument missing in aggregate")
+    assert_error("p(X) <= (manager[X]== min(X, order_by=X))", "Aggregation cannot appear in the body of a clause")
+    assert_error("q(min(X, order_by=X)) <= p(X)", "Syntax error: Incorrect use of aggregation\.")
+    assert_error("manager[X]== min(X, order_by=X) <= manager(X)", "Syntax error: please verify parenthesis around \(in\)equalities")
+    assert_error("ask(X<1)", 'Error: left hand side of comparison must be bound: =X<1/1')
+    assert_error("ask(X<Y)", 'Error: left hand side of comparison must be bound: =X<Y/2')
+    assert_error("ask(1<Y)", 'Error: left hand side of comparison must be bound: =Y>1/1')
+    assert_error("ask( (A.c[X]==Y) & (Z.c[X]==Y))", "TypeError: First argument of Z.c\[1\]==\('.','.'\) must be a Z, not a A ")
+    assert_ask("A.u[X]==Y", "Predicate without definition \(or error in resolver\): A.u\[1\]==/2")
+    assert_ask("A.u[X,Y]==Z", "Predicate without definition \(or error in resolver\): A.u\[2\]==/3")
+    assert_ask("~z(X)", "Terms of a negated literal must be bound : ~z\(X\)")
+    assert_error('(a_sum[X] == sum(Y, key=Y)) <= p(X, Z, Y)', "Error: Duplicate definition of aggregate function.")
+    assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
+    assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')
+    assert_error('ask(- manager[X]==1)', "bad operand type for unary -: 'Function'. Please consider adding parenthesis")
+    assert_error("p(X) <= (X=={})", "Syntax error: Symbol or Expression expected")
+
+    """ SQL Alchemy                    """
+
+    from sqlalchemy import create_engine
+    from sqlalchemy import Column, Integer, String, ForeignKey
+    from sqlalchemy.ext.declarative import declarative_base
+    from sqlalchemy.orm import sessionmaker, relationship
+    
+    engine = create_engine('sqlite:///:memory:', echo=False) # create database in memory
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    Base = declarative_base(cls=pyDatalog.Mixin, metaclass=pyDatalog.sqlMetaMixin)
+    Base.session = session
         
+    class Employee(Base): # --> Employee inherits from the Base class
+        __tablename__ = 'employee'
+        
+        name = Column(String, primary_key=True)
+        manager_name = Column(String, ForeignKey('employee.name'))
+        salary = Column(Integer)
+        
+        def __init__(self, name, manager_name, salary):
+            super(Employee, self).__init__()
+            self.name = name
+            self.manager_name = manager_name # direct manager of the employee, or None
+            self.salary = salary # monthly salary of the employee
+        def __repr__(self): # specifies how to display the employee
+            return "Employee: %s" % self.name
+    
+        @pyDatalog.program() # --> the following function contains pyDatalog clauses
+        def Employee():
+            (Employee.manager[X]==Y) <= (Employee.manager_name[X]==Z) & (Z==Employee.name[Y])
+            # the salary class of employee X is computed as a function of his/her salary
+            # this statement is a logic equality, not an assignment !
+            Employee.salary_class[X] = Employee.salary[X]//1000
+            
+            # all the indirect managers of employee X are derived from his manager, recursively
+            Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Y) & (Y != None)
+            Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Z) & Employee.indirect_manager(Z,Y) & (Y != None)
+            
+            # count the number of reports of X
+            (Employee.report_count[X] == len(Y)) <= Employee.indirect_manager(Y,X)
+
+    Base.metadata.create_all(engine) 
+    
+    John = Employee('John', None, 6800)
+    Mary = Employee('Mary', 'John', 6300)
+    Sam = Employee('Sam', 'Mary', 5900)
+    
+    session.add(John)
+    session.add(Mary)
+    session.add(Sam)
+    session.commit()
+    
+    assert (John.salary_class ==6) 
+    
+    X = pyDatalog.Variable()
+    Employee.salary[X] == 6300 # notice the similarity to a pyDatalog query
+    assert (X._value() == [Mary,]) # prints [Employee: Mary]
+    assert (X.v() == Mary) # prints Employee:Mary
+
+    Employee.indirect_manager(Mary, X)
+    assert (X.v() == John) # prints [Employee: John]
+
     print("Test completed successfully.")
 
 if __name__ == "__main__":

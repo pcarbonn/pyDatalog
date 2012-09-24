@@ -59,7 +59,7 @@ class Employee(Base): # --> Employee inherits from the Base class
 # create table
 Base.metadata.create_all(engine) 
 
-# create rows for 2 employees
+# create rows for 3 employees
 # John is the manager of Mary, who is the manager of Sam
 John = Employee('John', None, 6800)
 Mary = Employee('Mary', 'John', 6300)

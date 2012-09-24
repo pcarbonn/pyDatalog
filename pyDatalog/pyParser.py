@@ -41,14 +41,14 @@ Classes hierarchy contained in this file:
 * _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
 * LazyList : a subclassable list that is populated when it is accessed. Mixin for pyDatalog.Variable.
     * LazyListOfList : Mixin for Literal and Body
+        * Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
+        * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
 * Expression : base class for objects that can be part of an inequality or operation
-    * VarSymbol : represents they symbol of a variable. Mixin for pyDatalog.Variable
+    * VarSymbol : represents the symbol of a variable. Mixin for pyDatalog.Variable
         * Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
     * Function : represents f[X]
     * Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
     * Lambda : represents a lambda function, used in expressions
-    * Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
-* Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
 * Aggregate : represents calls to aggregation method, e.g. min(X)
 
 """
@@ -120,7 +120,7 @@ class _transform_ast(ast.NodeTransformer):
                 )
         return ast.fix_missing_locations(newNode)
 
-def load(code, newglobals={}, defined=set([]), function='load', catch_error=True):
+def load(code, newglobals={}, defined=set([]), function='load'):
     """ code : a string or list of string 
         newglobals : global variables for executing the code
         defined : reserved symbols
@@ -139,12 +139,9 @@ def load(code, newglobals={}, defined=set([]), function='load', catch_error=True
         tree = _transform_ast().visit(tree)
     except pyDatalog.DatalogError as e:
         e.function = function
+        e.message = e.value
         e.value = "%s\n%s" % (e.value, lines[e.lineno-1])
-        if catch_error:
-            print(str(e))
-            exit()
-        else:
-            raise
+        six.reraise(*sys.exc_info())
     code = compile(tree, function, 'exec')
 
     defined = defined.union(dir(builtins))
@@ -164,12 +161,9 @@ def load(code, newglobals={}, defined=set([]), function='load', catch_error=True
                 break
             elif traceback.tb_next:
                 traceback = traceback.tb_next 
+        e.message = e.value
         e.value = "%s\n%s" % (e.value, lines[e.lineno-1])
-        if catch_error:
-            print(str(e))
-            exit()
-        else:
-            raise
+        six.reraise(*sys.exc_info())
         
 class _NoCallFunction(object):
     """ This class prevents a call to a datalog program created using the 'program' decorator """
@@ -231,11 +225,11 @@ class LazyList(object):
         return str(self._value())
     def __repr__(self):
         return repr(self._value())
-    def __reversed__(self):
+    def __reversed__(self): # dead code
         return reversed(self._value())
     def __nonzero__(self):
         return bool(self._value())
-    def __eq__(self, other):
+    def __eq__(self, other): # dead code
         return self._value() == other
     def v(self):
         return self._list[0] if self._value() else None
@@ -300,6 +294,8 @@ class Expression(object):
         return Operation(other, '*', self)
     def __rdiv__(self, other):
         return Operation(other, '/', self)
+    def __rtruediv__(self, other):
+        return Operation(self, '/', other)
     def __rfloordiv__(self, other):
         return Operation(other, '//', self)
     
@@ -338,9 +334,6 @@ class VarSymbol(Expression):
         neg = Symbol(self._pyD_name)
         neg._pyD_negated = True
         return neg
-    
-    def __coerce__(self, other):
-        return None
     
     def lua_expr(self, variables):
         if self._pyD_type == 'variable':
@@ -451,7 +444,7 @@ class Function(Expression):
         if isinstance(other, type(lambda: None)):
             other = Lambda(other)
         assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
-        if operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y
+        if operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y # TODO use positive list of class
             return Literal(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
         literal = Literal(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
         if '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
@@ -565,7 +558,7 @@ class Literal(LazyListOfList):
                             
         # adjust head literal for aggregate
         h_terms = list(terms)
-        if terms and isinstance(terms[-1], Aggregate):
+        if terms and self.prearity != len(terms) and isinstance(terms[-1], Aggregate):
             # example : a[X] = sum(Y, key = Z)
             self.aggregate = terms[-1] # sum(Y, key=Z)
             h_predicate_name = predicate_name + '!'
@@ -598,7 +591,7 @@ class Literal(LazyListOfList):
             elif isinstance(a, Literal):
                 raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, terms), None, None)
             elif isinstance(a, Aggregate):
-                raise pyDatalog.DatalogError("Syntax error: Incorrect use of '%s' aggregation." % a.method, None, None)
+                raise pyDatalog.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
             else:
                 tbl.append(pyEngine.Const(a))
         # now create the literal for the head of a clause
@@ -649,6 +642,7 @@ class Literal(LazyListOfList):
         result = pyDatalog.add_clause(self, newBody)
         if not result: 
             raise pyDatalog.DatalogError("Can't create clause", None, None)
+        return result
 
     def __and__(self, other):
         " literal & literal" 
@@ -660,6 +654,13 @@ class Literal(LazyListOfList):
             return str(self.predicate_name) + "(" + ','.join(terms) + ")"
         else:
             return LazyListOfList.__str__(self)
+    
+    def __eq__(self, other):
+        if not self.args:
+            raise pyDatalog.DatalogError("Syntax error near equality: consider using brackets. %s" % str(self), None, None)
+        else:
+            return super(Literal, self).__eq__(other)
+
     def literal(self):
         return self
 
@@ -753,9 +754,6 @@ class Aggregate(object):
     def fact(self,k):
         return k + [pyEngine.Const(self.value)]
        
-    def __le__(self,other):
-        raise pyDatalog.DatalogError("Syntax error: Invalid use of Aggregate function. Please consider using parenthesis around aggregate definition.")
-
 class Sum_aggregate(Aggregate):
     """ represents sum(X, key=(Y,Z))"""
     def add(self, row):

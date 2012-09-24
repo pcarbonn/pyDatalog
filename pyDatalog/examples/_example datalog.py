@@ -9,7 +9,7 @@ It has 3 parts:
 
 from pyDatalog import pyDatalog
 
-""" 1. create facts for 2 employees in the datalog engine """
+""" 1. create facts for 3 employees in the datalog engine """
 # John is the manager of Mary, who is the manager of Sam
 pyDatalog.load("+ (salary['John'] == 6800)")
 

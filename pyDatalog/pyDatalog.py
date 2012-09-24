@@ -31,7 +31,7 @@ methods for direct access to datalog knowledge base:
   * retract_fact(predicate_name, *args) : retracts predicate_name(args)
   * program() : decorator function to create datalog programs
   * predicate() : decorator function to create a predicate resolver in python
-  * load(code, catch_error=False) : loads the clauses contained in the code string
+  * load(code) : loads the clauses contained in the code string
   * ask(code) : returns the result of the query contained in the code string
   * variables(n) : convenience function to create multiple variables in one statement
   * clear() : resets the datalog database
@@ -51,16 +51,10 @@ import six
 import sys
 import weakref
 
-try:
-    from . import version
-    from . import pyEngine
-    from . import pyParser
-    from .pyParser import Symbol, Expression, Lambda, Literal, Body
-except ValueError:
-    import version
-    import pyEngine
-    import pyParser
-    from pyParser import Symbol, Expression, Lambda, Literal, Body
+import version
+import pyEngine
+import pyParser
+from pyParser import Symbol, Expression, Lambda, Literal, Body
     
 print("pyDatalog version %s" % version.__version__)
 
@@ -109,9 +103,9 @@ def _predicate(func):
     pyEngine.Python_resolvers[func.__name__ + '/' + str(arity)] = func
     return func
 
-def load(code, catch_error=True):
+def load(code):
     """loads the clauses contained in the code string """
-    return pyParser.load(code, catch_error=catch_error)
+    return pyParser.load(code)
 
 def ask(code, _fast=None):
     """returns the result of the query contained in the code string"""
@@ -153,7 +147,7 @@ def add_clause(head,body):
         tbl = (body.lua,)
     clause = pyEngine.Clause(head.lua, tbl)
     return pyEngine.assert_(clause)
-    
+
 #circ: share functions with pyParser and avoid circular import
 pyDatalog = Dummy()
 pyDatalog.DatalogError= DatalogError
@@ -263,15 +257,7 @@ class sqlMetaMixin(metaMixin, DeclarativeMeta):
     pass
 
 """ attach a method to SQLAlchemy class.attribute, 
-    so that it can answer queries like class.attribute(X,Y)"""
-def InstrumentedAttribute_call(self, *args):
-    cls = self.class_
-    method = self.key
-    return type(cls).__getattr__(cls, method)(*args)
-InstrumentedAttribute.__call__ = InstrumentedAttribute_call
-
-""" attach a method to SQLAlchemy class.attribute, 
-    so that it can answer queries like class.attribute[X,Y]"""
+    so that it can answer queries like class.attribute[X]==Y"""
 def InstrumentedAttribute_getitem(self, *args):
     cls = self.class_
     method = self.key
