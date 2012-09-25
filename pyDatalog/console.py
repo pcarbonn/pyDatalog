@@ -43,11 +43,11 @@ class datalogConsole(code.InteractiveConsole):
         pySource = """
 pyDatalog.load('''
 %s
-''', catch_error=False)
+''')
 """ % source
         try:
             code.InteractiveConsole.runsource(self, pySource, filename, symbol)
-        except pyDatalog.DatalogError as e:
+        except Exception as e:
             print(e)
 
 sys.ps1 = 'pyDatalog> '

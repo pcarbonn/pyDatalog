@@ -250,13 +250,14 @@ def test():
         
         # odd and even
         + even(0)
-        even(N) <= (N > 0) & (N1==N-1) & odd(N1)
+        even(N) <= (N > 0) & odd(N-1)
         assert ask(even(0)) == set([(0,)])
         odd(N) <= (N > 0) & ~ even(N)
         assert ask(even(0)) == set([(0,)])
         assert ask(odd(1)) == set([(1,)])
         assert ask(odd(5)) == set([(5,)])
         assert ask(even(5)) == None
+        assert ask((X==3) & odd(X+2)) == set([(3,)])
         
     # Factorial
     pyDatalog.clear()
@@ -318,10 +319,18 @@ def test():
     def function(): 
         + (f[a]==b)
         assert ask(f[X]==Y) == set([('a', 'b')])
+        assert ask(f[X]==b) == set([('a', 'b')]) #TODO remove 'b' from result
+        assert ask(f[a]==X) == set([('a', 'b')])
         assert ask(f[a]==b) == set([('a', 'b')])
     
         + (f[a]==c)
         assert ask(f[a]==X) == set([('a', 'c')])
+        
+        + (f[a]==a)
+        assert ask(f[f[a]]==X) == set([('a',)])
+        - (f[a]==a)
+        assert ask(f[f[a]]==X) == None
+        + (f[a]==c)
 
         + (f2[a,x]==b)
         assert ask(f2[a,x]==b) == set([('a', 'x', 'b')])
@@ -347,17 +356,17 @@ def test():
         assert ask(f[a]>'c') == None
         assert ask(f[a] in ['c',]) == set([('c',)])
         
-        assert ask((f[X]=='c') & (f[Y]==f[X])) == set([('a', 'a', 'c', 'c')])
-        assert ask((f[X]=='c') & (f[Y]==f[X]+'')) == set([('a', 'a', 'c', 'c')])
-        assert ask((f[X]=='c') & (f[Y]==(lambda X : 'c'))) == set([('a', 'a', 'c')])
+        assert ask((f[X]=='c') & (f[Y]==f[X])) == set([('a', 'a')])
+        assert ask((f[X]=='c') & (f[Y]==f[X]+'')) == set([('a', 'a')])
+        assert ask((f[X]=='c') & (f[Y]==(lambda X : 'c'))) == set([('a', 'a')])
 
         assert ask(f[X]==Y+'') == None
-        assert ask((Y=='c') &(f[X]==Y+'')) == set([('c', 'a', 'c')])
-        assert ask((Y=='c') &(f[X]<=Y+'')) == set([('c', 'a', 'c')])
+        assert ask((Y=='c') &(f[X]==Y+'')) == set([('c', 'a')])
+        assert ask((Y=='c') &(f[X]<=Y+'')) == set([('c', 'a')])
         assert ask((Y=='c') &(f[X]<Y+'')) == None
-        assert ask((Y=='c') &(f[X]<'d'+Y+'')) == set([('c', 'a', 'c')])
-        assert ask((Y==('a','c')) & (f[X] in Y)) == set([(('a', 'c'), 'a', 'c')])
-        assert ask((Y==('a','c')) & (f[X] in (Y+('z',)))) == set([(('a', 'c'), 'a', 'c')])
+        assert ask((Y=='c') &(f[X]<'d'+Y+'')) == set([('c', 'a')])
+        assert ask((Y==('a','c')) & (f[X] in Y)) == set([(('a', 'c'), 'a')])
+        assert ask((Y==('a','c')) & (f[X] in (Y+('z',)))) == set([(('a', 'c'), 'a')])
 
     @pyDatalog.program()
     def function_negation(): 
