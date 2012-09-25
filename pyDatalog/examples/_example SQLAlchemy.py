@@ -113,8 +113,3 @@ print(X) # prints [12300]
 pyDatalog.load("(lowest[1] == min(X, order_by=N)) <= (Employee.salary[X]==N)")
 # must use ask() because inline queries cannot use unprefixed literals 
 print(pyDatalog.ask("lowest[1]==X")) # prints set([(1, Employee: Sam)])
-
-# start the datalog console, for interactive querying of employee
-from pyDatalog import console
-console = console.datalogConsole(locals=locals())
-console.interact('Type exit() when done.')

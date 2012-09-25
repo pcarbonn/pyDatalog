@@ -774,6 +774,13 @@ def _(literal, fast):
 Literal.ask = _
 
 def toAnswer(literal, answers):
+    if answers:
+        transposed = list(zip(*(answers))) # transpose result
+        result = []
+        for i, arg in enumerate(literal.terms):
+            if not isinstance(arg, Var) or not arg.id.startswith('_pyD_'):
+                result.append(transposed[i])
+        answers = list(zip(*result)) if result else answers
     if 0 < len(answers):
         answer = pyDatalog.Answer(literal.pred.name, literal.pred.arity, answers)
     else:

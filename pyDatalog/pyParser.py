@@ -397,7 +397,17 @@ class Symbol(VarSymbol):
             else: 
                 return len(args[0]) 
         else:
-            return Literal(self._pyD_name, args)
+            new_args, pre_calculations = [], Body()
+            for arg in args:
+                if isinstance(arg, (Operation, Function, Lambda)):
+                    Y = Function.newSymbol()
+                    new_args.append(Y)
+                    pre_calculations = pre_calculations & (Y == arg)
+                else:
+                    new_args.append(arg)
+            literal = Literal(self._pyD_name, tuple(new_args))
+            literal.pre_calculations = pre_calculations
+            return literal
 
     def __getattr__(self, name):
         """ called when compiling class.attribute """
@@ -428,12 +438,12 @@ class Function(Expression):
         if not isinstance(keys, tuple):
             keys = (keys,)
         self.name = "%s[%i]" % (name, len(keys))
-        self.keys, self.precalculation = [], Body()
+        self.keys, self.pre_calculations = [], Body()
         for key in keys:
-            if isinstance(key, Operation):
+            if isinstance(key, (Operation, Function, Lambda)):
                 Y = Function.newSymbol()
                 self.keys.append(Y)
-                self.precalculation = self.precalculation & (Y == key)
+                self.pre_calculations = self.pre_calculations & (Y == key)
             else:
                 self.keys.append(key)
                 
@@ -472,7 +482,7 @@ class Function(Expression):
         return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
 
     def _precalculation(self): 
-        return self.precalculation & (self == self.symbol)
+        return self.pre_calculations & (self == self.symbol)
     
 class Operation(Expression):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
