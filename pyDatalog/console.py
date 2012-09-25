@@ -33,8 +33,8 @@ Sample session:
 """
 import code
 import sys
-import pyDatalog # or from pyDatalog import pyDatalog
-import pyEngine # or from pyDatalog import pyEngine
+from pyDatalog import pyDatalog
+from pyDatalog import pyEngine
 
 pyEngine.Auto_print = True
 

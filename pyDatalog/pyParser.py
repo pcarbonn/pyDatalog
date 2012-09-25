@@ -60,7 +60,7 @@ import os
 import re
 import string
 import six
-from six.moves import builtins
+from six.moves import builtins, xrange
 import sys
 import weakref
     
@@ -305,7 +305,7 @@ class VarSymbol(Expression):
     def __init__ (self, name):
         self._pyD_name = name
         self._pyD_negated = False # for aggregate with sort in descending order
-        if isinstance(name, (int, list, tuple)) or not name or name[0] not in string.ascii_uppercase + '_':
+        if isinstance(name, (int, list, tuple, xrange)) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_type = 'constant'
             self._pyD_lua = pyEngine.Const(name)
         else:
@@ -317,7 +317,7 @@ class VarSymbol(Expression):
         if isinstance(other, type(lambda: None)):
             other = Lambda(other)
         name = '=' + str(self) + operator + str(other)
-        if other is None or isinstance(other, (int, six.string_types, list, tuple)):
+        if other is None or isinstance(other, (int, six.string_types, list, tuple, xrange)):
             literal = Literal(name, [self])
             expr = pyEngine.make_operand('constant', other)
         else: 
@@ -490,7 +490,7 @@ class Operation(Expression):
         self.operator = operator
         
         def _convert(operand):
-            if operand is None or isinstance(operand, (six.string_types, int, list, tuple)):
+            if operand is None or isinstance(operand, (six.string_types, int, list, tuple, xrange)):
                 return Symbol(operand)
             elif isinstance(operand, type(lambda: None)):
                 return Lambda(operand)

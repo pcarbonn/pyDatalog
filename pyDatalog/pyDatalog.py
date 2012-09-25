@@ -51,10 +51,16 @@ import six
 import sys
 import weakref
 
-import version
-import pyEngine
-import pyParser
-from pyParser import Symbol, Expression, Lambda, Literal, Body
+try:
+    from . import version
+    from . import pyEngine
+    from . import pyParser
+    from .pyParser import Symbol, Expression, Lambda, Literal, Body
+except ValueError:
+    import version
+    import pyEngine
+    import pyParser
+    from pyParser import Symbol, Expression, Lambda, Literal, Body
     
 print("pyDatalog version %s" % version.__version__)
 
