@@ -31,7 +31,7 @@ Note : it is significantly slower when run in debug mode (instead of from the co
 import time
 import six
 
-import pyDatalog
+from pyDatalog import pyDatalog
 def test1():
 
     """ Large database + deep recursion """
