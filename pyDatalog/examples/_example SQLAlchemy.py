@@ -104,9 +104,10 @@ print(X) # prints [Employee: John]
 
 # what is the total salary of the employees of John ?
 # note : it is better to place aggregation clauses in the class definition 
+Mary.salary = 6400 # queries use the latest, in-session, data
 pyDatalog.load("(Employee.budget[X] == sum(N, for_each=Y)) <= (Employee.indirect_manager(Y, X)) & (Employee.salary[Y]==N)")
 Employee.budget[John]==X
-print(X) # prints [12200]
+print(X) # prints [12300]
 
 # who has the lowest salary ?
 pyDatalog.load("(lowest[1] == min(X, order_by=N)) <= (Employee.salary[X]==N)")
