@@ -25,7 +25,7 @@ import re
 import six
 import time
 
-import pyDatalog
+from pyDatalog import pyDatalog
 def test():
 
     # test of expressions

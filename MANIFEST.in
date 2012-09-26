@@ -1,2 +1,3 @@
 include licence.txt
-include pyDatalog\test.py
+include pyDatalog\examples\*.*
+exclude pyDatalog\unittest.py
