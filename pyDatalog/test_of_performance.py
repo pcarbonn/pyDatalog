@@ -31,7 +31,7 @@ Note : it is significantly slower when run in debug mode (instead of from the co
 import time
 import six
 
-from pyDatalog import pyDatalog
+import pyDatalog
 def test1():
 
     """ Large database + deep recursion """
@@ -60,9 +60,9 @@ def test2():
     def _(): # the function name is ignored
 
         + even(0)
-        even(N) <= (N > 0) & (N1==N-1) & odd(N1)
+        even(N) <= (N > 0) & odd(N-1)
         assert ask(even(0)) == set([(0,)])
-        odd(N) <= (N > 0) & (N1==N-1) & even(N1)
+        odd(N) <= (N > 0) & even(N-1)
 
         assert ask(odd(9999)) == set([(9999,)])
 
