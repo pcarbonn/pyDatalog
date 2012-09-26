@@ -33,7 +33,7 @@ Sample session:
 """
 import code
 import sys
-from pyDatalog import pyDatalog
+from import pyDatalog
 from pyDatalog import pyEngine
 
 pyEngine.Auto_print = True
