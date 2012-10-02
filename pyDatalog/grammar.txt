@@ -1,30 +1,17 @@
 
 /* http://railroad.my28msec.com/rr/ui  */
 
-datalog_statement ::= ('+' | '-') fact 
-  | head '<=' body
-  | function '=' expression
+constant ::= [a-f] [0-9a-fA-F_]* | ["'] char ["']
+variable::= [A-F_] [0-9a-fA-F_]*
+simple_predicate ::= [a-fA-F_] [0-9a-fA-F_]*
 
-fact ::= head_without_variable
-
-head ::= literal 
-      | '(' function '==' (variable | constant) ')'
-      | '(' function '==' ('len' | 'sum' | 'concat' | 'min' | 'max' | 'rank' | 'running_sum' ) '(' arguments ')' ')'
-      
-body ::= ( '~' ? ) ( literal 
-           | '(' (variable | function) ('<' | '<=' | '==' | '~=' | '>='  | '>' | 'in' ) expression ')'
-           ) 
-         ( '&' ( '~' ? ) ( literal 
-           | '(' (variable | function) ('<' | '<=' | '==' | '~=' | '>='  | '>' | 'in' ) expression ')'
-           )
-         )*
-
-literal ::= predicate '(' (  (variable | constant) (',' (variable | constant))*  )? ')'
-
-  
 predicate ::= simple_predicate | simple_predicate '.' simple_predicate
 
-function ::= predicate '[' (variable | constant | expression) (',' (variable | constant | expression))*  ']'
+literal ::= predicate '(' (  expression (',' expression)*  )? ')'
+
+  
+function ::= predicate '[' expression (',' expression)*   ']'
+
 
 expression ::= (constant 
   | variable 
@@ -33,7 +20,31 @@ expression ::= (constant
   | '(' lambda-expression ')' 
   | expression ([+*/-] | '//') expression
   )
+
+body ::= ( '~' '(' body ')' | 
+           | literal 
+           | '(' (variable | function) ('<' | '<=' | '==' | '~=' | '>='  | '>' | 'in' | 'not in' ) expression ')'
+           ) 
+         ( '&' ( '~' '(' body ')' |
+           | literal 
+           | '(' (variable | function) ('<' | '<=' | '==' | '~=' | '>='  | '>' | 'in' | 'not in' ) expression ')'
+           ) 
+         )*
+
+head_function ::= predicate '[' (constant|variable)(',' (constant|variable))*   ']'
+
+head ::= literal 
+      | '(' head_function  '==' (variable | constant) ')'
+      | '(' head_function '==' ('len' | 'sum' | 'concat' | 'min' | 'max' | 'rank' | 'running_sum' ) '(' arguments ')' ')'
+
+fact ::= ( predicate '(' (  constant (',' constant)*  )? ')' | predicate '[' constant (',' constant )*   ']' '==' constant )
+
+datalog_statement ::= ('+' | '-') fact
+  | head '<=' body
+  | '-' '(' head '<=' body ')'
+  | head_function '=' expression
+
+
+      
+
   
-simple_predicate ::= [a-fA-F_] [0-9a-fA-F_]*
-constant ::= [a-f] [0-9a-fA-F_]* | ["'] char ["']
-variable::= [A-F_] [0-9a-fA-F_]*
