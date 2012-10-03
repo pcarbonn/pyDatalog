@@ -797,6 +797,10 @@ def test():
 
     Employee.indirect_manager(Mary, X)
     assert (X.v() == John) # prints [Employee: John]
+    
+    Mary.salary_class = ((Employee.salary_class[Mary]==X) >= X)
+    Mary.salary = 10000
+    assert Mary.salary_class != ((Employee.salary_class[Mary]==X) >= X)
 
     print("Test completed successfully.")
 
