@@ -17,12 +17,13 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
+# define a base class with SQLAlchemy and datalog capabilities, to be inherited by the Employee class
+Base = declarative_base(cls=pyDatalog.Mixin, metaclass=pyDatalog.sqlMetaMixin)
+
+# open a session on a database, then associate it to the Base class
 engine = create_engine('sqlite:///:memory:', echo=False) # create database in memory
 Session = sessionmaker(bind=engine)
 session = Session()
-
-# define a base class with SQLAlchemy and datalog capabilities, to be inherited by the Employee class
-Base = declarative_base(cls=pyDatalog.Mixin, metaclass=pyDatalog.sqlMetaMixin)
 Base.session = session
 
 """ 2. define python class and business rules """
