@@ -25,17 +25,15 @@ profiles.insert(profiles_to_insert)
 
 from SQLAlchemy import Employee # import the SQLAlchemy example
 
-def _pyD_query(cls, pred_name, args):
+def _pyD_diploma2(cls, employee, diploma):
     global profiles
-    if pred_name.startswith("Employee.diploma") and len(args)==2:
-        employee, diploma = args
-        if employee.is_const():
-            r = profiles.find_one({"name": employee.id.name})
-            yield (employee, r["diploma"])
-            return
+    if employee.is_const():
+        r = profiles.find_one({"name": employee.id.name})
+        yield (employee, r["diploma"])
+        return
     raise AttributeError
 
-Employee._pyD_query = classmethod(_pyD_query) # attach the resolver to the Employee class
+Employee._pyD_diploma2 = classmethod(_pyD_diploma2) # attach the resolver to the Employee class
 
 """ 3. query data from both Mongo DB and SQLite """
 
