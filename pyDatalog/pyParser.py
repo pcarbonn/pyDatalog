@@ -706,14 +706,13 @@ class Body(LazyListOfList):
 
     def literal(self, permanent=False):
         # return a literal that can be queried to resolve the body
-        env, args = OrderedDict(), []
+        env, args = OrderedDict(), OrderedDict()
         for literal in self.literals:
-            for term in literal.terms:
-                if isinstance(term, Symbol) and term._pyD_type == 'variable':
+            for term, arg in zip(literal.terms, literal.args or literal.terms):
+                if isinstance(term, Symbol) and term._pyD_type == 'variable' and (isinstance(arg, pyDatalog.Variable) or ProgramMode):
                     env[term._pyD_name] = term
-            for arg in literal.args:
-                if isinstance(arg, pyDatalog.Variable):
-                    args.append(arg)
+                    args[id(arg)] = arg
+        args = args.values() if not ProgramMode else []
         # TODO cleanup : use args instead of env.values() ?
         if permanent:
             literal = Literal('_pyD_query' + str(Body.Counter), list(env.values()))
