@@ -791,16 +791,23 @@ def test():
     assert (John.salary_class ==6) 
     
     X = pyDatalog.Variable()
-    Employee.salary[X] == 6300 # notice the similarity to a pyDatalog query
+    result = (Employee.salary[X] == 6300) # notice the similarity to a pyDatalog query
+    assert result == [(Mary,), ]
     assert (X._value() == [Mary,]) # prints [Employee: Mary]
     assert (X.v() == Mary) # prints Employee:Mary
 
-    Employee.indirect_manager(Mary, X)
+    result = (Employee.indirect_manager(Mary, X))
+    assert result == [(John,), ]
     assert (X.v() == John) # prints [Employee: John]
     
     Mary.salary_class = ((Employee.salary_class[Mary]==X) >= X)
     Mary.salary = 10000
     assert Mary.salary_class != ((Employee.salary_class[Mary]==X) >= X)
+
+    X, Y, N = pyDatalog.variables(3)
+    result = (Employee.salary[X]==6800) & (Employee.name[X]==N)
+    assert result == [(John,'John'), ]
+    assert N.v() == 'John'
 
     print("Test completed successfully.")
 
