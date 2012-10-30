@@ -29,7 +29,7 @@ def _pyD_diploma2(cls, employee, diploma):
     global profiles
     if employee.is_const():
         r = profiles.find_one({"name": employee.id.name})
-        yield (employee, r["diploma"])
+        if r: yield (employee, r["diploma"])
         return
     raise AttributeError
 
@@ -39,7 +39,7 @@ Employee._pyD_diploma2 = classmethod(_pyD_diploma2) # attach the resolver to the
 
 from pyDatalog import pyDatalog
 
-print(" *** combined SQLite and Mongo query :")
+print("\n *** combined SQLite and Mongo query :\n")
 X, N, Diploma = pyDatalog.variables(3)
 
 # Who has a salary of 6800 and a MSc. diploma
