@@ -170,14 +170,14 @@ class Pred(Interned):
 
 class Literal(object):
     def __init__(self, pred, terms, prearity=None, aggregate=None):
+        self.terms = terms
         if isinstance(pred, six.string_types):
             self.pred = Pred(pred, len(terms), aggregate)
             if pred[:1] == '~':
                 self.pred.base_pred = Pred(pred[1:], len(terms))
         else:
             self.pred = pred
-            assert self.pred.prearity == prearity or len(terms), "Error: Incorrect mix of predicates and functions : %s" & str(self)
-        self.terms = terms
+            # TODO assert self.pred.prearity == (prearity or len(terms)), "Error: Incorrect mix of predicates and functions : %s" % str(self)
         self.pred.prearity = prearity or len(terms)
     
     def _renamed(self, new_name):
