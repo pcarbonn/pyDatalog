@@ -368,6 +368,8 @@ def test():
         assert ask((Y==('a','c')) & (f[X] in Y)) == set([(('a', 'c'), 'a')])
         assert ask((Y==('a','c')) & (f[X] in (Y+('z',)))) == set([(('a', 'c'), 'a')])
 
+        assert ask(f[X]==f[X]+'') == set([('a',)])
+
     @pyDatalog.program()
     def function_negation(): 
         assert not(ask(~(f[a]<'d'))) 
@@ -776,6 +778,9 @@ def test():
             
             # count the number of reports of X
             (Employee.report_count[X] == len(Y)) <= Employee.indirect_manager(Y,X)
+            
+            Employee.p(X,Y) <= (Y <= Employee.salary[X] + 1)
+            
 
     Base.metadata.create_all(engine) 
     
@@ -808,7 +813,28 @@ def test():
     result = (Employee.salary[X]==6800) & (Employee.name[X]==N)
     assert result == [(John,'John'), ]
     assert N.v() == 'John'
+    
+    result = (Employee.salary[X]==Employee.salary[X])
+    assert result == [(John,), (Mary,), (Sam,)]
+    
+    result = (Employee.p(X,1))
+    assert result == [(John,), (Mary,), (Sam,)]
+    
+    result = (Employee.salary[X]<Employee.salary[X]+1)
+    assert result == [(John,), (Mary,), (Sam,)]
+    
+    result = (Employee.salary[John]==N) & Employee.p(John, N)
+    assert result == [(6800,)]
+    result = (Employee.salary[X]==6800) & (Employee.salary[X]==N) & Employee.p(X, N) 
+    assert result == [(John, 6800)]
 
+    """
+    result = Employee.p(John, Employee.salary[John]) # TODO
+    print(result)
+    result = (Employee.salary[X]==6800) & Employee.p(X, Employee.salary[X]) # TODO
+    print (result)
+    """
+    
     print("Test completed successfully.")
 
 if __name__ == "__main__":
