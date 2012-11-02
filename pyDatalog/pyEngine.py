@@ -35,6 +35,7 @@ Some differences between python and lua:
 * variable bindings in a closure.  See http://tiny.cc/7837cw, http://tiny.cc/rq47cw
 """
 import copy
+import gc
 from itertools import groupby
 import re
 import six
@@ -680,7 +681,9 @@ def search(subgoal):
                 fact_candidate(subgoal, class0, result)
             return        
         try: # call class._pyD_query
-            for result in _class._pyD_query(literal.pred.name, terms):
+            resolver = _class._pyD_query
+            if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
+            for result in resolver(literal.pred.name, terms):
                 fact_candidate(subgoal, class0, result)
             if Debug : print("pyDatalog has used _pyD_query resolvers for %s" % literal)
             return
@@ -747,9 +750,10 @@ def search(subgoal):
             
     if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
         try: 
-            iterator = class0.pyDatalog_search(literal)
+            resolver = class0.pyDatalog_search
+            if not class0.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
             if Debug : print("pyDatalog uses pyDatalog_search for %s" % literal)
-            for result in iterator:
+            for result in resolver(literal):
                 fact_candidate(subgoal, class0, result)
             return
         except AttributeError:

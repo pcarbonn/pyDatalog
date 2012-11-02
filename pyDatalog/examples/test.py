@@ -662,7 +662,7 @@ def test():
     assert not (~Z.x(z))
     assert ~Z.x(w)
     assert ~ (Z.z[w]=='z')
-    assert(Z.pred(X)) == [(w,)]
+    assert(Z.pred(X)) == [(w,)] # not duplicated !
     assert(Z.pred(X) & ~ (Z.z[X]>='z')) == [(w,)]
     assert(Z.x(X) & ~(Z.pred(X))) == [(z,)]
 
