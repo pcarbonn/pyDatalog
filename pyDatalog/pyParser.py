@@ -60,7 +60,8 @@ import os
 import re
 import string
 import six
-from six.moves import builtins, xrange
+six.add_move(six.MovedModule('UserList', 'UserList', 'collections'))
+from six.moves import builtins, xrange, UserList
 import sys
 import weakref
     
@@ -203,49 +204,38 @@ def ask(code, _fast=None):
 
 """                             Parser classes                                                   """
 
-class LazyList(object):
+class LazyList(UserList.UserList):
     """a subclassable list that is populated when it is accessed """
     """used by Literal, Body, pyDatalog.Variable to delay evaluation of datalog queries written in python  """
     """ during debugging, beware that viewing a Lazylist will force its udpate""" 
     def __init__(self):
-        self.todo = None # self.todo.ask() calculates self._list
-        self._list = []
-    def _value(self):
+        self.todo = None # self.todo.ask() calculates self.data
+        self._data = []
+    
+    @property
+    def data(self):
         # returns the list, after recalculation if needed
         if self.todo is not None: self.todo.ask()
-        return self._list
+        return self._data
 
-    def __iter__(self):
-        return iter(self._value())
-    def __len__(self):
-        return len(self._value())
-    def __getitem__(self, item):
-        return list.__getitem__(self._value(), item)
-    def __str__(self): 
-        return str(self._value())
-    def __repr__(self):
-        return repr(self._value())
-    def __reversed__(self): # dead code
-        return reversed(self._value())
-    def __nonzero__(self):
-        return bool(self._value())
-    def __eq__(self, other): # dead code
-        return self._value() == other
+    def _value(self):
+        return self.data
+    
     def v(self):
-        return self._list[0] if self._value() else None
+        return self.data[0] if self.data else None
 
 class LazyListOfList(LazyList):
     """ represents the result of an inline query (a Literal or Body)"""
     def __eq__(self, other):
-        return set(self._value()) == set(other)
+        return set(self.data) == set(other)
     
     def __ge__(self, other):
         # returns the first occurrence of 'other' variable in the result of a function
-        if self._value():
+        if self.data:
             assert isinstance(other, pyDatalog.Variable)
             for t in self.literal().args:
                 if id(t) == id(other):
-                    return t._list[0]
+                    return t.data[0]
     
 class Expression(object):
     def _precalculation(self):
@@ -551,7 +541,7 @@ class Literal(LazyListOfList):
             for i, arg in enumerate(self.args):
                 if isinstance(arg, pyDatalog.Variable):
                     arg.todo = self
-                    del arg._list[:] # reset variables
+                    del arg._data[:] # reset variables
                     # deal with (X,X)
                     variable = env.get(id(arg), Symbol('X%i' % id(arg)))
                     env[id(arg)] = variable
@@ -609,17 +599,17 @@ class Literal(LazyListOfList):
         # TODO check that l.pred.aggregate is empty
 
     def ask(self):
-        self._list = self.lua.ask(False)
+        self._data = self.lua.ask(False)
         self.todo = None
-        if self.args and self._list: 
-            transposed = list(zip(*(self._list))) # transpose result
+        if self.args and self.data: 
+            transposed = list(zip(*(self.data))) # transpose result
             result = []
             for i, arg in enumerate(self.args):
-                if isinstance(arg, pyDatalog.Variable) and len(arg._list)==0:
-                    arg._list.extend(transposed[i])
+                if isinstance(arg, pyDatalog.Variable) and len(arg._data)==0:
+                    arg._data.extend(transposed[i])
                     arg.todo = None
                     result.append(transposed[i])
-            self._list = list(zip(*result)) if result else [()]
+            self._data = list(zip(*result)) if result else [()]
 
     def __pos__(self):
         " unary + means insert into database as fact "
@@ -731,7 +721,7 @@ class Body(LazyListOfList):
     def ask(self):
         literal = self.literal()
         literal.ask()
-        self._list = literal._list
+        self._data = literal.data
     
 class Aggregate(object):
     """ represents aggregation_method(X,Y), e.g. 'sum(Y,key=Z)' in '(a[X]==sum(Y,key=Z))'"""
