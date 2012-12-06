@@ -346,10 +346,6 @@ class Symbol(VarSymbol):
     def __call__ (self, *args, **kwargs):
         """ called when compiling p(args) """
         "time to create a literal !"
-        def check(kwargs, template):
-            for arg in template:
-                if not [kw for kw in arg if kw in kwargs]:
-                    raise pyDatalog.DatalogError("Error: argument missing in aggregate", None, None)
         if self._pyD_name == 'ask':
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
@@ -358,29 +354,25 @@ class Symbol(VarSymbol):
             return pyEngine.toAnswer(literal.lua, literal.lua.ask(fast))
         elif self._pyD_name == '__sum__':
             if isinstance(args[0], Symbol):
-                check(kwargs, (('key', 'for_each'),))
-                return Sum_aggregate(args[0], for_each=kwargs.get('for_each', kwargs.get('key')))
+                return Sum_aggregate(args[0], for_each=kwargs.get('for_each', kwargs.get('key', [])))
             else:
                 return sum(args)
         elif self._pyD_name == 'concat':
-            check(kwargs, (('key','order_by'),('sep',)))
-            return Concat_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key')), sep=kwargs['sep'])
+            return Concat_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])), sep=kwargs['sep'])
         elif self._pyD_name == '__min__':
             if isinstance(args[0], Symbol):
-                check(kwargs, (('key', 'order_by'),))
-                return Min_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key')),)
+                return Min_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
             else:
                 return min(args)
         elif self._pyD_name == '__max__':
             if isinstance(args[0], Symbol):
-                check(kwargs, (('key', 'order_by'),))
-                return Max_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key')),)
+                return Max_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
             else:
                 return max(args)
         elif self._pyD_name == 'rank':
-            return Rank_aggregate(None, for_each=kwargs['for_each'], order_by=kwargs['order_by'])
+            return Rank_aggregate(None, for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
         elif self._pyD_name == 'running_sum':
-            return Running_sum(args[0], for_each=kwargs['for_each'], order_by=kwargs['order_by'])
+            return Running_sum(args[0], for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
         elif self._pyD_name == '__len__':
             if isinstance(args[0], Symbol):
                 return Len_aggregate(args[0])
@@ -727,7 +719,7 @@ class Aggregate(object):
     e.g. 'sum(Y,key=Z)' in '(a[X]==sum(Y,key=Z))'
     pyEngine calls sort_result(), key(), reset(), add() and fact() to compute the aggregate
     """
-
+    
     def __init__(self, Y=None, for_each=tuple(), order_by=tuple(), sep=None):
         # convert for_each=Z to for_each=(Z,)
         self.Y = Y
@@ -736,6 +728,10 @@ class Aggregate(object):
         if sep and not isinstance(sep, six.string_types):
             raise pyDatalog.DatalogError("Separator in aggregation must be a string", None, None)
         self.sep = sep
+        
+        # verify presence of keyword arguments
+        if any([kw for kw in self.required_kw if getattr(self, kw) in (None, tuple())]):
+            raise pyDatalog.DatalogError("Error: argument missing in aggregate", None, None)
         
         # used to create literal. TODO : filter on symbols
         self.args = ((Y,) if Y is not None else tuple()) + self.for_each + self.order_by + ((sep,) if sep is not None else tuple())
@@ -779,17 +775,22 @@ class Aggregate(object):
         return k + [pyEngine.Const(self.value)]
        
 class Sum_aggregate(Aggregate):
-    """ represents sum(X, key=(Y,Z))"""
+    """ represents sum(Y, for_each=(Z,T))"""
+    required_kw = ('Y', 'for_each')
+
     def add(self, row):
         self._value += row[-self.arity].id
         
 class Len_aggregate(Aggregate):
     """ represents len(X)"""
+    required_kw = ('Y')
+
     def add(self, row):
         self._value += 1
 
 class Concat_aggregate(Aggregate):
     """ represents concat(Y, order_by=(Z1,Z2), sep=sep)"""
+    required_kw = ('Y', 'order_by', 'sep')
         
     def reset(self):
         self._value = []
@@ -802,7 +803,9 @@ class Concat_aggregate(Aggregate):
         return self.sep.join(self._value)
 
 class Min_aggregate(Aggregate):
-    """ represents min(X, order_by=(Y,Z))"""
+    """ represents min(Y, order_by=(Z,T))"""
+    required_kw = ('Y', 'order_by')
+
     def reset(self):
         self._value = None
         
@@ -810,7 +813,7 @@ class Min_aggregate(Aggregate):
         self._value = row[-self.arity].id if self._value is None else self._value
 
 class Max_aggregate(Min_aggregate):
-    """ represents max(X, order_by=(Y,Z))"""
+    """ represents max(Y, order_by=(Z,T))"""
     def __init__(self, *args, **kwargs):
         Min_aggregate.__init__(self, *args, **kwargs)
         for a in self.order_by:
@@ -818,6 +821,8 @@ class Max_aggregate(Min_aggregate):
 
 class Rank_aggregate(Aggregate):
     """ represents rank(for_each=(Z), order_by(T))"""
+    required_kw = ('for_each', 'order_by')
+    
     def reset(self):
         self.count = 0
         self._value = None
@@ -833,7 +838,9 @@ class Rank_aggregate(Aggregate):
         return self._value
 
 class Running_sum(Rank_aggregate):
-    """ represents running_sum(N, for_each=(Z), order_by(T)"""
+    """ represents running_sum(Y, for_each=(Z), order_by(T)"""
+    required_kw = ('Y', 'for_each', 'order_by')
+    
     def add(self,row):
         self.count += row[self.to_add].id # TODO
         if row[:self.to_add] == row[self.slice_for_each]:
