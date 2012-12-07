@@ -35,7 +35,7 @@ Datalog is a truly declarative subset of prolog that is best at
 * managing large sets of related information (e.g. in data integration or the semantic web).  
 * simulating intelligent behavior (e.g. in games), 
 * performing recursive algorithms (e.g. in network protocol, code and graph analysis)
-* at solving discrete constraint problems. 
+* solving discrete constraint problems. 
 
 In particular, pyDatalog can be used for object-relational mapping: 
 
