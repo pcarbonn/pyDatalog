@@ -48,6 +48,7 @@ classes for Python Mixin:
 from collections import defaultdict
 import inspect
 import six
+import string
 import sys
 import weakref
 
@@ -132,6 +133,20 @@ class Answer(object):
         return set(self.answers) == other if self.answers else other is None
     def __str__(self):
         return str(set(self.answers))
+
+def create_atoms(*args):
+    stack = inspect.stack()
+    try:
+        locals_ = stack[1][0].f_locals
+        for arg in args:
+            if arg in locals_ and not isinstance(locals_[arg], (pyParser.Symbol, pyDatalog.Variable)):
+                raise BaseException("Name conflict.  Can't redefine %s as atom" % arg)
+            if arg[0] not in string.ascii_uppercase:
+                locals_[arg] = pyParser.Symbol(arg)
+            else:
+                locals_[arg] = pyDatalog.Variable()    
+    finally:
+        del stack
 
 def variables(n):
     return [pyDatalog.Variable() for i in range(n)]

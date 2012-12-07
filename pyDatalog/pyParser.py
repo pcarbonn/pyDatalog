@@ -36,7 +36,7 @@ Methods exposed by this file:
 * add_program(func)
 * ask(code)
 
-Classes hierarchy contained in this file:
+Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRnMPH
 * ProgramContext : class to safely differentiate between In-line queries and pyDatalog program / ask(), using ProgramMode global variable
 * _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
 * LazyList : a subclassable list that is populated when it is accessed. Mixin for pyDatalog.Variable.
@@ -524,11 +524,17 @@ class Literal(LazyListOfList):
         self.prearity = prearity or len(terms)
         self.pre_calculations = Body()
         
-        # TODO cleanup by redifining self.args, .HasSymbols, .hasVariables, .prefix
-        if not ProgramMode: # in-line, thus
+        self.has_variables, self.has_symbols, self.is_fact = (False, False, True)
+        for t in terms:
+            self.has_variables = self.has_variables or isinstance(t, pyDatalog.Variable)
+            self.has_symbols = self.has_symbols or isinstance(t, Symbol)
+            self.is_fact = self.is_fact and not(isinstance(t, pyDatalog.Variable) and not(isinstance(t, Symbol) and t._pyD_type == 'variable'))
+        
+        # TODO cleanup by redefining self.args, .HasSymbols, .has_variables, .prefix
+        if not ProgramMode: # in-line, thus.  --> replace variables in terms by Symbols
             self.todo = self
             self.args = terms
-            cls = self.predicate_name.split('.')[0] if 1< len(self.predicate_name.split('.')) else ''
+            cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
             terms, env = [], {}
             for i, arg in enumerate(self.args):
                 if isinstance(arg, pyDatalog.Variable):
@@ -540,7 +546,7 @@ class Literal(LazyListOfList):
                     terms.append(variable)
                 elif isinstance(arg, Symbol):
                     terms.append(arg)
-                elif i==0 and cls and arg.__class__.__name__ != cls.replace('~',''):
+                elif i==0 and cls_name and arg.__class__.__name__ != cls_name: # TODO use __mro__ !
                     raise TypeError("Object is incompatible with the class that is queried.")
                 else:
                     terms.append(arg)
@@ -601,13 +607,12 @@ class Literal(LazyListOfList):
 
     def __pos__(self):
         " unary + means insert into database as fact "
-        global ProgramMode
-        assert ProgramMode, "'+' cannot be used to assert facts in python programs"
+        assert self.is_fact, "Cannot assert a fact containing Variables"
         pyDatalog._assert_fact(self)
 
     def __neg__(self):
         " unary - means retract fact from database "
-        assert not self.args # '-' cannot be used with literal containing pyDatalog.Variable instances
+        assert self.is_fact, "Cannot assert a fact containing Variables"
         pyDatalog._retract_fact(self)
         
     def __invert__(self):
@@ -663,10 +668,10 @@ class Body(LazyListOfList):
         self.literals = []
         for arg in args:
             self.literals += [arg] if isinstance(arg, Literal) else arg.literals
-        self.hasVariables = False
+        self.has_variables = False
         for literal in self.literals:
             if hasattr(literal, 'args'):
-                self.hasVariables = True
+                self.has_variables = True
                 self.todo = self
                 for arg in literal.args:
                     if isinstance(arg, pyDatalog.Variable):
@@ -678,7 +683,7 @@ class Body(LazyListOfList):
         return Body(self, body2)
     
     def __str__(self):
-        if self.hasVariables:
+        if self.has_variables:
             return LazyListOfList.__str__(self)
         return ' & '.join(list(map (str, self.literals)))
 
