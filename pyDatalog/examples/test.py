@@ -668,6 +668,8 @@ def test():
 
     assert (Z.len[X]==Y) == [(w, 1), (z, 1)]
     assert (Z.len[z]==Y) == [(1,)]
+    
+    # TODO print (A.b[w]==Y)
             
     """ python resolvers                                              """
     
@@ -835,8 +837,32 @@ def test():
     print (result)
     """
     
-    print("Test completed successfully.")
-
 if __name__ == "__main__":
     test()
     #cProfile.runctx('test()', globals(), locals())
+    
+    """ In-line queries using create_atoms                    """
+    
+    pyDatalog.create_atoms('p', 'Y')
+    +p('a')
+    
+    p(Y)
+    assert (Y._value() == ['a',])
+    
+    X = pyDatalog.Variable()
+    pyDatalog.create_atoms('X')
+    p(X) & (X=='b')
+    assert (X._value() == [])
+    
+    pyDatalog.create_atoms('p2')
+    
+    def test2():
+        p2(X) <= p(X)
+        p2(X)
+        assert (X._value() == ['a',])
+        assert (p2(X) == [('a',)])
+    test2()
+    
+    print("Test completed successfully.")
+
+    
