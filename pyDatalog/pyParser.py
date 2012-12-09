@@ -98,10 +98,10 @@ class _transform_ast(ast.NodeTransformer):
         """rename builtins to allow customization"""
         self.generic_visit(node)
         if hasattr(node.func, 'id'):
-            node.func.id = '__sum__' if node.func.id == 'sum' else node.func.id
-            node.func.id = '__len__' if node.func.id == 'len' else node.func.id
-            node.func.id = '__min__' if node.func.id == 'min' else node.func.id
-            node.func.id = '__max__' if node.func.id == 'max' else node.func.id
+            node.func.id = '_sum' if node.func.id == 'sum' else node.func.id
+            node.func.id = '_len' if node.func.id == 'len' else node.func.id
+            node.func.id = '_min' if node.func.id == 'min' else node.func.id
+            node.func.id = '_max' if node.func.id == 'max' else node.func.id
         return node
     
     def visit_Compare(self, node):
@@ -335,20 +335,20 @@ class Symbol(VarSymbol):
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             literal = args[0] if not isinstance(args[0], Body) else args[0].literal()
             return pyEngine.toAnswer(literal.lua, literal.lua.ask(fast))
-        elif self._pyD_name == '__sum__':
+        elif self._pyD_name == '_sum':
             if isinstance(args[0], (Symbol, pyDatalog.Variable)):
                 return Sum_aggregate(args[0], for_each=kwargs.get('for_each', kwargs.get('key', [])))
             else:
                 return sum(args)
         elif self._pyD_name == 'concat':
             return Concat_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])), sep=kwargs['sep'])
-        elif self._pyD_name == '__min__':
-            if isinstance(args[0], Symbol):
+        elif self._pyD_name == '_min':
+            if isinstance(args[0], (Symbol, pyDatalog.Variable)):
                 return Min_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
             else:
                 return min(args)
-        elif self._pyD_name == '__max__':
-            if isinstance(args[0], Symbol):
+        elif self._pyD_name == '_max':
+            if isinstance(args[0], (Symbol, pyDatalog.Variable)):
                 return Max_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
             else:
                 return max(args)
@@ -356,8 +356,8 @@ class Symbol(VarSymbol):
             return Rank_aggregate(None, for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
         elif self._pyD_name == 'running_sum':
             return Running_sum(args[0], for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
-        elif self._pyD_name == '__len__':
-            if isinstance(args[0], Symbol):
+        elif self._pyD_name == '_len':
+            if isinstance(args[0], (Symbol, pyDatalog.Variable)):
                 return Len_aggregate(args[0])
             else: 
                 return len(args[0]) 
@@ -495,7 +495,7 @@ class Literal(object):
             self.has_symbols = self.has_symbols or isinstance(t, Symbol)
             self.is_fact = self.is_fact and not(isinstance(t, pyDatalog.Variable) and not(isinstance(t, Symbol) and t._pyD_type == 'variable'))
         
-        self.args = terms
+        self.args = terms # TODO simplify
         self.todo = self
         cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
         terms, env = [], {}
@@ -513,6 +513,8 @@ class Literal(object):
                 raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, terms), None, None)
             elif i==0 and cls_name and arg.__class__.__name__ != cls_name: # TODO use __mro__ !
                 raise TypeError("Object is incompatible with the class that is queried.")
+            elif isinstance(arg, Aggregate):
+                raise pyDatalog.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
             else:
                 terms.append(arg)
         self.terms = terms
@@ -521,8 +523,6 @@ class Literal(object):
         for a in terms:
             if isinstance(a, Symbol):
                 tbl.append(a._pyD_lua)
-            elif isinstance(a, Aggregate):
-                raise pyDatalog.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
             else:
                 tbl.append(pyEngine.Const(a))
         # now create the literal for the head of a clause
@@ -582,8 +582,6 @@ class Literal(object):
 
     def __le__(self, body):
         " head <= body"
-        global ProgramMode
-        #TODO assert ProgramMode # '<=' cannot be used with literal containing pyDatalog.Variable instances
         if isinstance(body, Literal):
             newBody = body.pre_calculations & body
             if isinstance(body, Literal) and body.predicate_name[-1]=='!':
@@ -728,8 +726,8 @@ class Aggregate(object):
     def __init__(self, Y=None, for_each=tuple(), order_by=tuple(), sep=None):
         # convert for_each=Z to for_each=(Z,)
         self.Y = Y
-        self.for_each = (for_each,) if isinstance(for_each, Symbol) else tuple(for_each)
-        self.order_by = (order_by,) if isinstance(order_by, Symbol) else tuple(order_by)
+        self.for_each = (for_each,) if isinstance(for_each, (Symbol, pyDatalog.Variable)) else tuple(for_each)
+        self.order_by = (order_by,) if isinstance(order_by, (Symbol, pyDatalog.Variable)) else tuple(order_by)
         if sep and not isinstance(sep, six.string_types):
             raise pyDatalog.DatalogError("Separator in aggregation must be a string", None, None)
         self.sep = sep

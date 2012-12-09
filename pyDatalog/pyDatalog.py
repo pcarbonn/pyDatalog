@@ -138,7 +138,7 @@ def create_atoms(*args):
     stack = inspect.stack()
     try:
         locals_ = stack[1][0].f_locals
-        for arg in set(args + ('__sum__','__min__', '__max__')):
+        for arg in set(args + ('_sum','_min', '_max', '_len')):
             if arg in locals_ and not isinstance(locals_[arg], (pyParser.Symbol, pyDatalog.Variable)):
                 raise BaseException("Name conflict.  Can't redefine %s as atom" % arg)
             if arg[0] not in string.ascii_uppercase:
