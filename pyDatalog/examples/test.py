@@ -723,7 +723,7 @@ def test():
     assert_error("p(X) <= (Y==2)", "Can't create clause")
     assert_error("p(X) <= X==1 & X==2", "Syntax error: please verify parenthesis around \(in\)equalities")
     assert_error("p(X) <= (manager[X]== min(X))", "Error: argument missing in aggregate")
-    assert_error("p(X) <= (manager[X]== min(X, order_by=X))", "Aggregation cannot appear in the body of a clause")
+    assert_error("p(X) <= (manager[X]== max(X, order_by=X))", "Aggregation cannot appear in the body of a clause")
     assert_error("q(min(X, order_by=X)) <= p(X)", "Syntax error: Incorrect use of aggregation\.")
     assert_error("manager[X]== min(X, order_by=X) <= manager(X)", "Syntax error: please verify parenthesis around \(in\)equalities")
     assert_error("ask(X<1)", 'Error: left hand side of comparison must be bound: =X<1/1')

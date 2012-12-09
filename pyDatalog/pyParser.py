@@ -245,7 +245,7 @@ class Expression(object):
         if self._pyD_type == 'variable' and not isinstance(other, Symbol):
             return self._make_expression_literal('==', other)
         else:
-            return Literal("=", (self, other))
+            return Literal.make("=", (self, other))
     def __ne__(self, other):
         return self._make_expression_literal('!=', other)
     def __le__(self, other):
@@ -308,12 +308,12 @@ class VarSymbol(Expression):
             other = Lambda(other)
         name = '=' + str(self) + operator + str(other)
         if other is None or isinstance(other, (int, six.string_types, list, tuple, xrange)):
-            literal = Literal(name, [self])
+            literal = Literal.make(name, [self])
             expr = pyEngine.make_operand('constant', other)
         else: 
             if not isinstance(other, (Symbol, Expression)):
                 raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
-            literal = Literal(name, [self] + list(other._variables().values()))
+            literal = Literal.make(name, [self] + list(other._variables().values()))
             expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
             literal.pre_calculations = other._precalculation()
         pyEngine.add_expr_to_predicate(literal.lua.pred, operator, expr)
@@ -353,7 +353,7 @@ class Symbol(VarSymbol):
             literal = args[0] if not isinstance(args[0], Body) else args[0].literal()
             return pyEngine.toAnswer(literal.lua, literal.lua.ask(fast))
         elif self._pyD_name == '__sum__':
-            if isinstance(args[0], Symbol):
+            if isinstance(args[0], (Symbol, pyDatalog.Variable)):
                 return Sum_aggregate(args[0], for_each=kwargs.get('for_each', kwargs.get('key', [])))
             else:
                 return sum(args)
@@ -387,7 +387,7 @@ class Symbol(VarSymbol):
                     pre_calculations = pre_calculations & (Y == arg)
                 else:
                     new_args.append(arg)
-            literal = Literal(self._pyD_name, tuple(new_args))
+            literal = Literal.make(self._pyD_name, tuple(new_args))
             literal.pre_calculations = pre_calculations
             return literal
 
@@ -437,15 +437,15 @@ class Function(Expression):
             other = Lambda(other)
         assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
         if operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y # TODO use positive list of class
-            return Literal(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
-        literal = Literal(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
+            return Literal.make(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
+        literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
         if '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
             return literal & pyEngine.compare2(self.symbol, operator, other)
         elif isinstance(other, (Operation, Function, Lambda)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
             Y2 = Function.newSymbol()
-            return (Y2 == other) & Literal(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
+            return (Y2 == other) & Literal.make(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
         else: 
-            return Literal(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
+            return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
     
     def __eq__(self, other):
         return self._make_expression_literal('==', other)
@@ -570,7 +570,7 @@ class Literal(LazyListOfList):
             h_prearity = len(h_terms) # (X,Y,Z)
             
             # create the second predicate # TODO use Pred() instead
-            l = Literal(predicate_name, base_terms, prearity, self.aggregate)
+            l = Literal.make(predicate_name, base_terms, prearity, self.aggregate)
             pyDatalog.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
             # TODO check that l.pred.aggregate_method is correct
         else:
@@ -592,10 +592,32 @@ class Literal(LazyListOfList):
         self.lua = pyEngine.Literal(h_predicate_name, tbl, h_prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
 
+    @classmethod
+    def make(self, predicate_name, terms, prearity=None, aggregate=None):
+        return Query(predicate_name, terms, prearity, aggregate)
+
+    def __le__(self, body):
+        " head <= body"
+        global ProgramMode
+        #TODO assert ProgramMode # '<=' cannot be used with literal containing pyDatalog.Variable instances
+        if isinstance(body, Literal):
+            newBody = body.pre_calculations & body
+        else:
+            if not isinstance(body, Body):
+                raise pyDatalog.DatalogError("Invalid body for clause", None, None)
+            newBody = Body()
+            for literal in body.literals:
+                newBody = newBody & literal.pre_calculations & literal
+        result = pyDatalog.add_clause(self, newBody)
+        if not result: 
+            raise pyDatalog.DatalogError("Can't create clause", None, None)
+        return result
+
+class Query(Literal, LazyListOfList):
     def ask(self):
         self._data = self.lua.ask(False)
         self.todo = None
-        if self.args and self.data: 
+        if not ProgramMode and self.data: 
             transposed = list(zip(*(self.data))) # transpose result
             result = []
             for i, arg in enumerate(self.args):
@@ -618,38 +640,21 @@ class Literal(LazyListOfList):
     def __invert__(self):
         """unary ~ means negation """
         # TODO test with python queries
-        return Literal('~' + self.predicate_name, self.terms)
-
-    def __le__(self, body):
-        " head <= body"
-        global ProgramMode
-        #TODO assert ProgramMode # '<=' cannot be used with literal containing pyDatalog.Variable instances
-        if isinstance(body, Literal):
-            newBody = body.pre_calculations & body
-        else:
-            if not isinstance(body, Body):
-                raise pyDatalog.DatalogError("Invalid body for clause", None, None)
-            newBody = Body()
-            for literal in body.literals:
-                newBody = newBody & literal.pre_calculations & literal
-        result = pyDatalog.add_clause(self, newBody)
-        if not result: 
-            raise pyDatalog.DatalogError("Can't create clause", None, None)
-        return result
+        return Literal.make('~' + self.predicate_name, self.terms)
 
     def __and__(self, other):
         " literal & literal" 
         return Body(self, other)
 
     def __str__(self):
-        if not self.args:
+        if ProgramMode:
             terms = list(map (str, self.terms))
             return str(self.predicate_name) + "(" + ','.join(terms) + ")"
         else:
             return LazyListOfList.__str__(self)
     
     def __eq__(self, other):
-        if not self.args:
+        if ProgramMode:
             raise pyDatalog.DatalogError("Syntax error near equality: consider using brackets. %s" % str(self), None, None)
         else:
             return super(Literal, self).__eq__(other)
@@ -698,10 +703,10 @@ class Body(LazyListOfList):
         args = args.values() if not ProgramMode else []
         # TODO cleanup : use args instead of env.values() ?
         if permanent:
-            literal = Literal('_pyD_query' + str(Body.Counter), list(env.values()))
+            literal = Literal.make('_pyD_query' + str(Body.Counter), list(env.values()))
             Body.Counter = Body.Counter + 1
         else:
-            literal = Literal('_pyD_query', list(env.values()))
+            literal = Literal.make('_pyD_query', list(env.values()))
             literal.lua.pred.reset_clauses()
         literal <= self
         literal.args = args
@@ -735,8 +740,10 @@ class Aggregate(object):
         self.sep = sep
         
         # verify presence of keyword arguments
-        if any([kw for kw in self.required_kw if getattr(self, kw) in (None, tuple())]):
-            raise pyDatalog.DatalogError("Error: argument missing in aggregate", None, None)
+        for kw in self.required_kw:
+            arg = getattr(self, kw)
+            if arg is None or (isinstance(arg, tuple) and arg == tuple()):
+                raise pyDatalog.DatalogError("Error: argument missing in aggregate", None, None)
         
         # used to create literal. TODO : filter on symbols
         self.args = ((Y,) if Y is not None else tuple()) + self.for_each + self.order_by + ((sep,) if sep is not None else tuple())

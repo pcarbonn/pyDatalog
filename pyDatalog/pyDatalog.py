@@ -89,12 +89,12 @@ class DatalogError(Exception):
 
 def assert_fact(predicate_name, *args):
     """ assert predicate_name(args) """
-    literal = Literal(predicate_name, args)
+    literal = Literal.make(predicate_name, args)
     _assert_fact(literal)
 
 def retract_fact(predicate_name, *args):
     """ retracts predicate_name(args) """
-    literal = Literal(predicate_name, args)
+    literal = Literal.make(predicate_name, args)
     _retract_fact(literal)
 
 def program():
@@ -138,7 +138,7 @@ def create_atoms(*args):
     stack = inspect.stack()
     try:
         locals_ = stack[1][0].f_locals
-        for arg in args:
+        for arg in set(args + ('__sum__','__min__', '__max__')):
             if arg in locals_ and not isinstance(locals_[arg], (pyParser.Symbol, pyDatalog.Variable)):
                 raise BaseException("Name conflict.  Can't redefine %s as atom" % arg)
             if arg[0] not in string.ascii_uppercase:
@@ -205,7 +205,7 @@ class metaMixin(type):
             """ responds to instance.method by asking datalog engine """
             if not attribute == '__iter__' and not attribute.startswith('_sa_'):
                 predicate_name = "%s.%s[1]==" % (self.__class__.__name__, attribute)
-                literal = Literal(predicate_name, (self, Symbol("X")))
+                literal = Literal.make(predicate_name, (self, Symbol("X")))
                 result = literal.lua.ask(False)
                 return result[0][-1] if result else None                    
             raise AttributeError
