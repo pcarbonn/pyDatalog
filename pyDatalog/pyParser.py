@@ -479,13 +479,12 @@ class Lambda(Expression):
     def __str__(self):
         return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(getattr(self.lambda_object,func_code).co_varnames))
         
-class Literal(LazyListOfList):
+class Literal(object):
     """
     created by source code like 'p(a, b)'
     operator '<=' means 'is true if', and creates a Clause
     """
     def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
-        LazyListOfList.__init__(self)
         self.predicate_name = predicate_name
         self.prearity = prearity or len(terms)
         self.pre_calculations = Body()
@@ -524,7 +523,7 @@ class Literal(LazyListOfList):
         h_terms = list(terms)
         if terms and self.prearity != len(terms) and isinstance(terms[-1], Aggregate):
             # example : a[X] = sum(Y, key = Z)
-            self.aggregate = terms[-1] # sum(Y, key=Z)
+            aggregate_term = terms[-1] # sum(Y, key=Z)
             h_predicate_name = predicate_name + '!'
             # compute list of terms
             del h_terms[-1] # --> (X,)
@@ -532,15 +531,14 @@ class Literal(LazyListOfList):
             # OK to use any variable to represent the aggregate value
             base_terms.append(Symbol('X')) # (X, X)
 
-            h_terms.extend(self.aggregate.args)
+            h_terms.extend(aggregate_term.args)
             h_prearity = len(h_terms) # (X,Y,Z)
             
             # create the second predicate # TODO use Pred() instead
-            l = Literal.make(predicate_name, base_terms, prearity, self.aggregate)
+            l = Literal.make(predicate_name, base_terms, prearity, aggregate_term)
             pyDatalog.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
             # TODO check that l.pred.aggregate_method is correct
         else:
-            self.aggregate = None
             h_predicate_name = predicate_name
             h_prearity = prearity
         
@@ -560,14 +558,20 @@ class Literal(LazyListOfList):
 
     @classmethod
     def make(cls, predicate_name, terms, prearity=None, aggregate=None):
-        return Query(predicate_name, terms, prearity, aggregate)
+        if aggregate: #TODO test terms[-1] instead ?
+            return Literal(predicate_name, terms, prearity, aggregate)
+        else:
+            return Query(predicate_name, terms, prearity, aggregate)
     
     @classmethod
     def make_for_comparison(cls, self, operator, other):
+        assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
+        if isinstance(other, type(lambda: None)):
+            other = Lambda(other)
         if isinstance(self, Function):
-            if isinstance(other, type(lambda: None)):
-                other = Lambda(other)
-            assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
+            if operator == '==' and isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
+                return Literal.make(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
+            
             if operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y # TODO use positive list of class
                 return Literal.make(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
             literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
@@ -579,8 +583,6 @@ class Literal(LazyListOfList):
             else: 
                 return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
         else:
-            if isinstance(other, type(lambda: None)):
-                other = Lambda(other)
             name = '=' + str(self) + operator + str(other)
             if other is None or isinstance(other, (int, six.string_types, list, tuple, xrange)):
                 literal = Literal.make(name, [self])
@@ -616,8 +618,11 @@ class Query(Literal, LazyListOfList):
     represents a literal that can be queried (thus excludes aggregate literals)
     unary operator '+' means insert it as fact
     binary operator '&' means 'and', and returns a Body
-
     """
+    def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
+        LazyListOfList.__init__(self)
+        Literal.__init__(self, predicate_name, terms, prearity, aggregate)
+        
     def ask(self):
         self._data = self.lua.ask(False)
         self.todo = None
@@ -687,7 +692,7 @@ class Body(LazyListOfList):
                         arg.todo = self
 
     def __and__(self, body2):
-        if not (isinstance(body2, Body) or not body2.aggregate):
+        if not isinstance(body2, Body) and body2.terms and isinstance(body2.terms[-1], Aggregate):
             raise pyDatalog.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
         return Body(self, body2)
     
