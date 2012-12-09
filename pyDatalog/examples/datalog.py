@@ -6,59 +6,62 @@ It has 3 parts:
     2. define business rules
     3. Query the datalog engine
 """
-from pyDatalog.pyDatalog import load, ask
+from pyDatalog import pyDatalog
 
 """ 1. create facts for 3 employees in the datalog engine """
+pyDatalog.create_atoms('salary', 'manager')
+
 # John is the manager of Mary, who is the manager of Sam
-load("+ (salary['John'] == 6800)")
++ (salary['John'] == 6800)
 
-load("+ (manager['Mary'] == 'John')")
-load("+ (salary['Mary'] == 6300)")
++ (manager['Mary'] == 'John')
++ (salary['Mary'] == 6300)
 
-load("+ (manager['Sam'] == 'Mary')")
-load("+ (salary['Sam'] == 5900)")
++ (manager['Sam'] == 'Mary')
++ (salary['Sam'] == 5900)
 
 """ 2. define business rules """
+pyDatalog.create_atoms('salary_class', 'indirect_manager', 'report_count', 'budget', 'lowest',
+                       'X', 'Y', 'Z', 'N')
 # the salary class of employee X is computed as a function of his/her salary
-load("salary_class[X] = salary[X]//1000")
+salary_class[X] = salary[X]//1000
     
 # all the indirect managers of employee X are derived from his manager, recursively
-load("indirect_manager(X,Y) <= (manager[X] == Y) & (Y != None)")
-load("indirect_manager(X,Y) <= (manager[X] == Z) & indirect_manager(Z,Y) & (Y != None)")
+indirect_manager(X,Y) <= (manager[X] == Y) & (Y != None)
+indirect_manager(X,Y) <= (manager[X] == Z) & indirect_manager(Z,Y) & (Y != None)
 
 # count the number of reports of X
-load("(report_count[X] == len(Y)) <= indirect_manager(Y,X)")
+(report_count[X] == _len(Y)) <= indirect_manager(Y,X)
 
 """ 3. Query the datalog engine """
 
 # what is the salary class of John ?
-print(ask("salary_class['John'] == Y")) # prints set([('John', 6)])
+print(salary_class['John'] == Y) # prints [6]
 
 # who has a salary of 6300 ?
-print(ask("salary[X] == 6300")) # prints set([('Mary', 6300)])
+print(salary[X] == 6300) # prints Mary
 
 # who are the indirect managers of Mary ?
-print(ask("indirect_manager('Mary', X)")) # prints set([('Mary', 'John')])
+print(indirect_manager('Mary', X)) # prints [('John',)]
 
 # Who are the employees of John with a salary below 6000 ?
-print(ask("(salary[X] < 6000) & indirect_manager(X, 'John')")) # prints set([('Sam', )])
+print((salary[X] < 6000) & indirect_manager(X, 'John')) # prints [('Sam',)]
 
 # who is his own indirect manager ?
-print(ask("indirect_manager('X', X)")) # prints None
+print(indirect_manager('X', X)) # prints []
 
 # who has 2 reports ?
-print(ask("report_count[X] == 2")) # prints set([('John', 2)])
+print(report_count[X] == 2) # prints [('John',)]
 
 # what is the total salary of the employees of John ? 
-load("(Budget[X] == sum(N, for_each=Y)) <= (indirect_manager(Y, X)) & (salary[Y]==N)")
-print(ask("Budget['John']==N")) # prints set([('John', 12200)])
+(budget[X] == _sum(N, for_each=Y)) <= (indirect_manager(Y, X)) & (salary[Y]==N)
+print(budget['John']==N) # prints [(12200,)]
 
 # who has the lowest salary ?
-load("(Lowest[1] == min(X, order_by=N)) <= (salary[X]==N)")
-print(ask("Lowest[1]==N")) # prints set([(1, 'Sam')])
+(lowest[1] == _min(X, order_by=N)) <= (salary[X]==N)
+print(lowest[1]==N) # prints [('Sam',)]
 
 # start the datalog console, for interactive querying 
-from pyDatalog import pyDatalog
 from pyDatalog.examples import console
 console = console.datalogConsole(locals=locals())
 console.interact('Type exit() when done.')
