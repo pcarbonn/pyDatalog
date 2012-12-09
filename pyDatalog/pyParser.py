@@ -496,64 +496,59 @@ class Literal(object):
             self.is_fact = self.is_fact and not(isinstance(t, pyDatalog.Variable) and not(isinstance(t, Symbol) and t._pyD_type == 'variable'))
         
         # TODO cleanup by redefining self.args, .HasSymbols, .has_variables, .prefix
-        if not ProgramMode: # in-line, thus.  --> replace variables in terms by Symbols
-            self.todo = self
-            self.args = terms
-            cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
-            terms, env = [], {}
-            for i, arg in enumerate(self.args):
-                if isinstance(arg, pyDatalog.Variable):
-                    arg.todo = self
-                    del arg._data[:] # reset variables
-                    # deal with (X,X)
-                    variable = env.get(id(arg), Symbol('X%i' % id(arg)))
-                    env[id(arg)] = variable
-                    terms.append(variable)
-                elif isinstance(arg, Symbol):
-                    terms.append(arg)
-                elif i==0 and cls_name and arg.__class__.__name__ != cls_name: # TODO use __mro__ !
-                    raise TypeError("Object is incompatible with the class that is queried.")
-                else:
-                    terms.append(arg)
-        else:
-            self.args = []
+        self.args = terms
+        self.todo = self
+        cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
+        terms, env = [], {}
+        for i, arg in enumerate(self.args):
+            if isinstance(arg, pyDatalog.Variable):
+                arg.todo = self
+                del arg._data[:] # reset variables
+                # deal with (X,X)
+                variable = env.get(id(arg), Symbol('X%i' % id(arg)))
+                env[id(arg)] = variable
+                terms.append(variable)
+            elif isinstance(arg, Symbol):
+                terms.append(arg)
+            elif isinstance(arg, Literal):
+                raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, terms), None, None)
+            elif i==0 and cls_name and arg.__class__.__name__ != cls_name: # TODO use __mro__ !
+                raise TypeError("Object is incompatible with the class that is queried.")
+            else:
+                terms.append(arg)
         self.terms = terms
                             
         # adjust head literal for aggregate
-        h_terms = list(terms)
-        if terms and self.prearity != len(terms) and isinstance(terms[-1], Aggregate):
+        terms = list(terms)
+        if terms and prearity is not None and isinstance(terms[-1], Aggregate):
             # example : a[X] = sum(Y, key = Z)
-            aggregate_term = terms[-1] # sum(Y, key=Z)
-            h_predicate_name = predicate_name + '!'
-            # compute list of terms
-            del h_terms[-1] # --> (X,)
-            base_terms = list(h_terms) # creates a copy
-            # OK to use any variable to represent the aggregate value
-            base_terms.append(Symbol('X')) # (X, X)
-
-            h_terms.extend(aggregate_term.args)
-            h_prearity = len(h_terms) # (X,Y,Z)
             
-            # create the second predicate # TODO use Pred() instead
-            l = Literal.make(predicate_name, base_terms, prearity, aggregate_term)
+            # 1 create literal for queries
+            aggregate_term = terms[-1] # sum(Y, key=Z)
+            # OK to use any variable to represent the aggregate value
+            terms[-1] = (Symbol('X')) # (X, X)
+           
+            # create the second predicate # TODO use Pred() instead ?
+            l = Literal.make(predicate_name, terms, prearity, aggregate_term)
             pyDatalog.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
             # TODO check that l.pred.aggregate_method is correct
-        else:
-            h_predicate_name = predicate_name
-            h_prearity = prearity
+
+            # 2 prepare literal for the calculation 
+            predicate_name = predicate_name + '!'
+            del terms[-1] # --> (X,)
+            terms.extend(aggregate_term.args)
+            prearity = len(terms) # (X,Y,Z)
         
         tbl = []
-        for a in h_terms:
+        for a in terms:
             if isinstance(a, Symbol):
                 tbl.append(a._pyD_lua)
-            elif isinstance(a, Literal):
-                raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, terms), None, None)
             elif isinstance(a, Aggregate):
                 raise pyDatalog.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
             else:
                 tbl.append(pyEngine.Const(a))
         # now create the literal for the head of a clause
-        self.lua = pyEngine.Literal(h_predicate_name, tbl, h_prearity, aggregate)
+        self.lua = pyEngine.Literal(predicate_name, tbl, prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
 
     @classmethod
@@ -561,7 +556,7 @@ class Literal(object):
         if aggregate: #TODO test terms[-1] instead ?
             return Literal(predicate_name, terms, prearity, aggregate)
         else:
-            return Query(predicate_name, terms, prearity, aggregate)
+            return Query(predicate_name, terms, prearity)
     
     @classmethod
     def make_for_comparison(cls, self, operator, other):
@@ -619,9 +614,9 @@ class Query(Literal, LazyListOfList):
     unary operator '+' means insert it as fact
     binary operator '&' means 'and', and returns a Body
     """
-    def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
+    def __init__(self, predicate_name, terms, prearity=None):
         LazyListOfList.__init__(self)
-        Literal.__init__(self, predicate_name, terms, prearity, aggregate)
+        Literal.__init__(self, predicate_name, terms, prearity)
         
     def ask(self):
         self._data = self.lua.ask(False)

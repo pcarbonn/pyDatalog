@@ -719,7 +719,7 @@ def test():
 
     assert_error('ask(z(a),True)', 'Too many arguments for ask \!')
     assert_error('ask(z(a))', 'Predicate without definition \(or error in resolver\): z/1')
-    assert_error("+ farmer(farmer(moshe))", "Syntax error: Literals cannot have a literal as argument : farmer\(\[\],\)")
+    assert_error("+ farmer(farmer(moshe))", "Syntax error: Literals cannot have a literal as argument : farmer\[\]")
     assert_error("+ manager[Mary]==John", "bad operand type for unary \+: 'Function'. Please consider adding parenthesis")
     assert_error("manager[X]==Y <= (X==Y)", "Syntax error: please verify parenthesis around \(in\)equalities")
     assert_error("p(X) <= (Y==2)", "Can't create clause")
