@@ -495,7 +495,6 @@ class Literal(object):
             self.has_symbols = self.has_symbols or isinstance(t, Symbol)
             self.is_fact = self.is_fact and not(isinstance(t, pyDatalog.Variable) and not(isinstance(t, Symbol) and t._pyD_type == 'variable'))
         
-        # TODO cleanup by redefining self.args, .HasSymbols, .has_variables, .prefix
         self.args = terms
         self.todo = self
         cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
@@ -518,27 +517,6 @@ class Literal(object):
                 terms.append(arg)
         self.terms = terms
                             
-        # adjust head literal for aggregate
-        terms = list(terms)
-        if terms and prearity is not None and isinstance(terms[-1], Aggregate):
-            # example : a[X] = sum(Y, key = Z)
-            
-            # 1 create literal for queries
-            aggregate_term = terms[-1] # sum(Y, key=Z)
-            # OK to use any variable to represent the aggregate value
-            terms[-1] = (Symbol('X')) # (X, X)
-           
-            # create the second predicate # TODO use Pred() instead ?
-            l = Literal.make(predicate_name, terms, prearity, aggregate_term)
-            pyDatalog.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
-            # TODO check that l.pred.aggregate_method is correct
-
-            # 2 prepare literal for the calculation 
-            predicate_name = predicate_name + '!'
-            del terms[-1] # --> (X,)
-            terms.extend(aggregate_term.args)
-            prearity = len(terms) # (X,Y,Z)
-        
         tbl = []
         for a in terms:
             if isinstance(a, Symbol):
@@ -553,10 +531,10 @@ class Literal(object):
 
     @classmethod
     def make(cls, predicate_name, terms, prearity=None, aggregate=None):
-        if aggregate: #TODO test terms[-1] instead ?
+        if False: #TODO should test predicate_name[-1]=='!' instead, but  python uses __ge__ instead of __le__ !
             return Literal(predicate_name, terms, prearity, aggregate)
         else:
-            return Query(predicate_name, terms, prearity)
+            return Query(predicate_name, terms, prearity, aggregate)
     
     @classmethod
     def make_for_comparison(cls, self, operator, other):
@@ -565,7 +543,18 @@ class Literal(object):
             other = Lambda(other)
         if isinstance(self, Function):
             if operator == '==' and isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
-                return Literal.make(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
+                name, terms, prearity = (self.name + '==', list(self.keys) + [other], len(self.keys))
+                
+                # 1 create literal for queries
+                terms[-1] = (Symbol('X')) # (X, X)
+                l = Literal.make(name, terms, prearity, other)
+                pyDatalog.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
+
+                # 2 prepare literal for the calculation. It can be used in the head only
+                del terms[-1] # --> (X,)
+                terms.extend(other.args)
+                prearity = len(terms) # (X,Y,Z)
+                return Literal.make(name + '!', terms, prearity=prearity)
             
             if operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y # TODO use positive list of class
                 return Literal.make(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
@@ -597,11 +586,15 @@ class Literal(object):
         #TODO assert ProgramMode # '<=' cannot be used with literal containing pyDatalog.Variable instances
         if isinstance(body, Literal):
             newBody = body.pre_calculations & body
+            if isinstance(body, Literal) and body.predicate_name[-1]=='!':
+                raise pyDatalog.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
         else:
             if not isinstance(body, Body):
                 raise pyDatalog.DatalogError("Invalid body for clause", None, None)
             newBody = Body()
             for literal in body.literals:
+                if isinstance(literal, Literal) and literal.predicate_name[-1]=='!':
+                    raise pyDatalog.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
                 newBody = newBody & literal.pre_calculations & literal
         result = pyDatalog.add_clause(self, newBody)
         if not result: 
@@ -614,9 +607,9 @@ class Query(Literal, LazyListOfList):
     unary operator '+' means insert it as fact
     binary operator '&' means 'and', and returns a Body
     """
-    def __init__(self, predicate_name, terms, prearity=None):
+    def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
         LazyListOfList.__init__(self)
-        Literal.__init__(self, predicate_name, terms, prearity)
+        Literal.__init__(self, predicate_name, terms, prearity, aggregate)
         
     def ask(self):
         self._data = self.lua.ask(False)
@@ -687,8 +680,6 @@ class Body(LazyListOfList):
                         arg.todo = self
 
     def __and__(self, body2):
-        if not isinstance(body2, Body) and body2.terms and isinstance(body2.terms[-1], Aggregate):
-            raise pyDatalog.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
         return Body(self, body2)
     
     def __str__(self):
