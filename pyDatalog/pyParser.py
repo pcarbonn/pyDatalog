@@ -243,25 +243,25 @@ class Expression(object):
     
     def __eq__(self, other):
         if self._pyD_type == 'variable' and not isinstance(other, Symbol):
-            return self._make_expression_literal('==', other)
+            return Literal.make_for_comparison(self, '==', other)
         else:
             return Literal.make("=", (self, other))
     def __ne__(self, other):
-        return self._make_expression_literal('!=', other)
+        return Literal.make_for_comparison(self, '!=', other)
     def __le__(self, other):
-        return self._make_expression_literal('<=', other)
+        return Literal.make_for_comparison(self, '<=', other)
     def __lt__(self, other):
-        return self._make_expression_literal('<', other)
+        return Literal.make_for_comparison(self, '<', other)
     def __ge__(self, other):
-        return self._make_expression_literal('>=', other)
+        return Literal.make_for_comparison(self, '>=', other)
     def __gt__(self, other):
-        return self._make_expression_literal('>', other)
+        return Literal.make_for_comparison(self, '>', other)
     def _in(self, values):
         """ called when compiling (X in (1,2)) """
-        return self._make_expression_literal('in', values)
+        return Literal.make_for_comparison(self, 'in', values)
     def _not_in(self, values):
         """ called when compiling (X not in (1,2)) """
-        return self._make_expression_literal('not in', values)
+        return Literal.make_for_comparison(self, 'not in', values)
     
     def __add__(self, other):
         return Operation(self, '+', other)
@@ -301,23 +301,6 @@ class VarSymbol(Expression):
         else:
             self._pyD_type = 'variable'
             self._pyD_lua = pyEngine.Var(name)
-        
-    def _make_expression_literal(self, operator, other):
-        """private function to create a literal for comparisons"""
-        if isinstance(other, type(lambda: None)):
-            other = Lambda(other)
-        name = '=' + str(self) + operator + str(other)
-        if other is None or isinstance(other, (int, six.string_types, list, tuple, xrange)):
-            literal = Literal.make(name, [self])
-            expr = pyEngine.make_operand('constant', other)
-        else: 
-            if not isinstance(other, (Symbol, Expression)):
-                raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
-            literal = Literal.make(name, [self] + list(other._variables().values()))
-            expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
-            literal.pre_calculations = other._precalculation()
-        pyEngine.add_expr_to_predicate(literal.lua.pred, operator, expr)
-        return literal
 
     def __neg__(self):
         """ called when compiling -X """
@@ -431,24 +414,9 @@ class Function(Expression):
                 
         self.symbol = Function.newSymbol()
         self.dummy_variable_name = '_pyD_X%i' % Function.Counter
-        
-    def _make_expression_literal(self, operator, other):
-        if isinstance(other, type(lambda: None)):
-            other = Lambda(other)
-        assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
-        if operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y # TODO use positive list of class
-            return Literal.make(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
-        literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
-        if '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
-            return literal & pyEngine.compare2(self.symbol, operator, other)
-        elif isinstance(other, (Operation, Function, Lambda)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
-            Y2 = Function.newSymbol()
-            return (Y2 == other) & Literal.make(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
-        else: 
-            return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
     
     def __eq__(self, other):
-        return self._make_expression_literal('==', other)
+        return Literal.make_for_comparison(self, '==', other)
     
     def __pos__(self):
         raise pyDatalog.DatalogError("bad operand type for unary +: 'Function'. Please consider adding parenthesis", None, None)
@@ -514,8 +482,6 @@ class Lambda(Expression):
 class Literal(LazyListOfList):
     """
     created by source code like 'p(a, b)'
-    unary operator '+' means insert it as fact
-    binary operator '&' means 'and', and returns a Body
     operator '<=' means 'is true if', and creates a Clause
     """
     def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
@@ -593,8 +559,40 @@ class Literal(LazyListOfList):
         # TODO check that l.pred.aggregate is empty
 
     @classmethod
-    def make(self, predicate_name, terms, prearity=None, aggregate=None):
+    def make(cls, predicate_name, terms, prearity=None, aggregate=None):
         return Query(predicate_name, terms, prearity, aggregate)
+    
+    @classmethod
+    def make_for_comparison(cls, self, operator, other):
+        if isinstance(self, Function):
+            if isinstance(other, type(lambda: None)):
+                other = Lambda(other)
+            assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
+            if operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y # TODO use positive list of class
+                return Literal.make(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
+            literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
+            if '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
+                return literal & pyEngine.compare2(self.symbol, operator, other)
+            elif isinstance(other, (Operation, Function, Lambda)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
+                Y2 = Function.newSymbol()
+                return (Y2 == other) & Literal.make(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
+            else: 
+                return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
+        else:
+            if isinstance(other, type(lambda: None)):
+                other = Lambda(other)
+            name = '=' + str(self) + operator + str(other)
+            if other is None or isinstance(other, (int, six.string_types, list, tuple, xrange)):
+                literal = Literal.make(name, [self])
+                expr = pyEngine.make_operand('constant', other)
+            else: 
+                if not isinstance(other, (Symbol, Expression)):
+                    raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
+                literal = Literal.make(name, [self] + list(other._variables().values()))
+                expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
+                literal.pre_calculations = other._precalculation()
+            pyEngine.add_expr_to_predicate(literal.lua.pred, operator, expr)
+            return literal
 
     def __le__(self, body):
         " head <= body"
@@ -614,6 +612,12 @@ class Literal(LazyListOfList):
         return result
 
 class Query(Literal, LazyListOfList):
+    """
+    represents a literal that can be queried (thus excludes aggregate literals)
+    unary operator '+' means insert it as fact
+    binary operator '&' means 'and', and returns a Body
+
+    """
     def ask(self):
         self._data = self.lua.ask(False)
         self.todo = None
