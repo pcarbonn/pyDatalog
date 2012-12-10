@@ -694,11 +694,9 @@ class Body(LazyListOfList):
         env, args = OrderedDict(), OrderedDict()
         for literal in self.literals:
             for term, arg in zip(literal.terms, literal.args or literal.terms):
-                if isinstance(term, Symbol) and term._pyD_type == 'variable' and (isinstance(arg, pyDatalog.Variable) or ProgramMode):
+                if isinstance(term, Symbol) and term._pyD_type == 'variable' and (isinstance(arg, (Symbol, pyDatalog.Variable))):
                     env[term._pyD_name] = term
                     args[id(arg)] = arg
-        args = args.values() if not ProgramMode else []
-        # TODO cleanup : use args instead of env.values() ?
         if permanent:
             literal = Literal.make('_pyD_query' + str(Body.Counter), list(env.values()))
             Body.Counter = Body.Counter + 1
@@ -706,8 +704,8 @@ class Body(LazyListOfList):
             literal = Literal.make('_pyD_query', list(env.values()))
             literal.lua.pred.reset_clauses()
         literal <= self
-        literal.args = args
-        return literal 
+        literal.args = args.values()
+        return literal
         
     def __invert__(self):
         """unary ~ means negation """
