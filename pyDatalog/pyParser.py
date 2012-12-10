@@ -531,8 +531,8 @@ class Literal(object):
 
     @classmethod
     def make(cls, predicate_name, terms, prearity=None, aggregate=None):
-        if False: #TODO should test predicate_name[-1]=='!' instead, but  python uses __ge__ instead of __le__ !
-            return Literal(predicate_name, terms, prearity, aggregate)
+        if predicate_name[-1]=='!':
+            return HeadLiteral(predicate_name, terms, prearity, aggregate)
         else:
             return Query(predicate_name, terms, prearity, aggregate)
     
@@ -584,20 +584,24 @@ class Literal(object):
         " head <= body"
         if isinstance(body, Literal):
             newBody = body.pre_calculations & body
-            if isinstance(body, Literal) and body.predicate_name[-1]=='!':
+            if isinstance(body, HeadLiteral):
                 raise pyDatalog.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
         else:
             if not isinstance(body, Body):
                 raise pyDatalog.DatalogError("Invalid body for clause", None, None)
             newBody = Body()
             for literal in body.literals:
-                if isinstance(literal, Literal) and literal.predicate_name[-1]=='!':
+                if isinstance(literal, HeadLiteral):
                     raise pyDatalog.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
                 newBody = newBody & literal.pre_calculations & literal
         result = pyDatalog.add_clause(self, newBody)
         if not result: 
             raise pyDatalog.DatalogError("Can't create clause", None, None)
         return result
+
+class HeadLiteral(Literal):
+    """ represents literals that can be used only in head of clauses, i.e. literals with aggregate function"""
+    pass
 
 class Query(Literal, LazyListOfList):
     """
