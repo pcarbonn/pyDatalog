@@ -140,7 +140,7 @@ def create_atoms(*args):
         locals_ = stack[1][0].f_locals
         args = [arg.split(',') for arg in args]
         args = [arg.strip() for argl in args for arg in argl]
-        for arg in set(args + ['_sum','_min', '_max', '_len']):
+        for arg in set(args + ['_sum','_min', '_max', '_len', 'concat', 'rank', 'running_sum']):
             if arg in locals_: 
                 assert isinstance(locals_[arg], (pyParser.Symbol, pyDatalog.Variable)), \
                     "Name conflict.  Can't redefine %s as atom" % arg
@@ -148,7 +148,7 @@ def create_atoms(*args):
                 if arg[0] not in string.ascii_uppercase:
                     locals_[arg] = pyParser.Symbol(arg)
                 else:
-                    locals_[arg] = pyDatalog.Variable()    
+                    locals_[arg] = pyDatalog.Variable(arg)    
     finally:
         del stack
 
@@ -186,9 +186,9 @@ pyEngine.pyDatalog = pyDatalog
 """ ****************** python Mixin ***************** """
 
 class Variable(pyParser.VarSymbol, pyParser.LazyList):
-    def __init__(self):
+    def __init__(self, name=None):
         pyParser.LazyList.__init__(self)
-        pyParser.VarSymbol.__init__(self, 'X%i' % id(self))
+        pyParser.VarSymbol.__init__(self, 'X%i' % id(self) if name is None else name)
 pyDatalog.Variable = Variable
 
 """Keep a dictionary of classes with datalog capabilities.  This list is used by pyEngine to resolve prefixed literals."""
