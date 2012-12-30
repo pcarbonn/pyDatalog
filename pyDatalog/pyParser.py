@@ -415,6 +415,10 @@ class Function(Expression):
         self.symbol = Function.newSymbol()
         self.dummy_variable_name = '_pyD_X%i' % Function.Counter
     
+    @property
+    def _pyD_name(self):
+        return str(self)
+    
     def __eq__(self, other):
         return Literal.make_for_comparison(self, '==', other)
     
@@ -449,6 +453,10 @@ class Operation(Expression):
         self.lhs = _convert(lhs)
         self.rhs = _convert(rhs)
         
+    @property
+    def _pyD_name(self):
+        return str(self)
+    
     def _variables(self):
         temp = self.lhs._variables()
         temp.update(self.rhs._variables())
@@ -461,7 +469,7 @@ class Operation(Expression):
         return pyEngine.make_expression(self.operator, self.lhs.lua_expr(variables), self.rhs.lua_expr(variables))
     
     def __str__(self):
-        return '(' + str(self.lhs) + self.operator + str(self.rhs) + ')'
+        return '(' + str(self.lhs._pyD_name) + self.operator + str(self.rhs._pyD_name) + ')'
 
 class Lambda(Expression):
     """represents a lambda function, used in expressions"""
@@ -469,6 +477,10 @@ class Lambda(Expression):
         self.operator = '<lambda>'
         self.lambda_object = other
         
+    @property
+    def _pyD_name(self):
+        return str(self)
+    
     def _variables(self):
         return dict([ [var, Symbol(var)] for var in getattr(self.lambda_object,func_code).co_varnames])
     
@@ -567,13 +579,14 @@ class Literal(object):
             else: 
                 return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
         else:
-            name = '=' + str(self) + operator + str(other)
             if other is None or isinstance(other, (int, six.string_types, list, tuple, xrange)):
+                name = '=' + self._pyD_name + operator + str(other)
                 literal = Literal.make(name, [self])
                 expr = pyEngine.make_operand('constant', other)
             else: 
-                if not isinstance(other, (Symbol, Expression)):
+                if not isinstance(other, Expression):
                     raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
+                name = '=' + self._pyD_name + operator + other._pyD_name
                 literal = Literal.make(name, [self] + list(other._variables().values()))
                 expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
                 literal.pre_calculations = other._precalculation()
