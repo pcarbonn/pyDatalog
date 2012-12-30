@@ -516,7 +516,7 @@ class Literal(object):
                 arg.todo = self
                 del arg._data[:] # reset variables
                 # deal with (X,X)
-                variable = env.get(id(arg), Symbol('X%i' % id(arg)))
+                variable = env.get(id(arg), Symbol(arg._pyD_name))
                 env[id(arg)] = variable
                 terms.append(variable)
             elif isinstance(arg, Symbol):
