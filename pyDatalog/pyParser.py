@@ -510,15 +510,12 @@ class Literal(object):
         self.args = terms # TODO simplify
         self.todo = self
         cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
-        terms, env = [], {}
+        terms = []
         for i, arg in enumerate(self.args):
             if isinstance(arg, pyDatalog.Variable):
                 arg.todo = self
                 del arg._data[:] # reset variables
-                # deal with (X,X)
-                variable = env.get(id(arg), Symbol(arg._pyD_name))
-                env[id(arg)] = variable
-                terms.append(variable)
+                terms.append(arg.associated_symbol)
             elif isinstance(arg, Symbol):
                 terms.append(arg)
             elif isinstance(arg, Literal):
