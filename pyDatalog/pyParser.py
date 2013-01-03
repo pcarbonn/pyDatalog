@@ -520,7 +520,7 @@ class Literal(object):
                 terms.append(arg)
             elif isinstance(arg, Literal):
                 raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, terms), None, None)
-            elif i==0 and cls_name and arg.__class__.__name__ != cls_name: # TODO use __mro__ !
+            elif i==0 and cls_name and cls_name not in [c.__name__ for c in arg.__class__.__mro__]:
                 raise TypeError("Object is incompatible with the class that is queried.")
             elif isinstance(arg, Aggregate):
                 raise pyDatalog.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
