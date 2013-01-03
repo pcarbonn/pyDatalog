@@ -23,19 +23,23 @@ expression ::= (constant
 
 body ::= ( '~' '(' body ')' | 
            | literal 
-           | '(' (variable | function) ('<' | '<=' | '==' | '~=' | '>='  | '>' | 'in' | 'not in' ) expression ')'
+           | '(' (variable | function) ( ('<' | '<=' | '==' | '~=' | '>='  | '>' ) expression 
+                                       | ('._in' | '._not_in') '(' expression ')'
+                                       ) ')'
            ) 
          ( '&' ( '~' '(' body ')' |
            | literal 
-           | '(' (variable | function) ('<' | '<=' | '==' | '~=' | '>='  | '>' | 'in' | 'not in' ) expression ')'
-           ) 
+           | '(' (variable | function) ( ('<' | '<=' | '==' | '~=' | '>='  | '>' ) expression
+                                       | ('._in' | '._not_in') '(' expression ')'
+                                       ) ')'
+           )  
          )*
 
 head_function ::= predicate '[' (constant|variable)(',' (constant|variable))*   ']'
 
 head ::= literal 
       | '(' head_function  '==' (variable | constant) ')'
-      | '(' head_function '==' ('len' | 'sum' | 'concat' | 'min' | 'max' | 'rank' | 'running_sum' ) '(' arguments ')' ')'
+      | '(' head_function '==' ('_len' | '_sum' | '_min' | '_max' | 'concat' | 'rank' | 'running_sum' ) '(' arguments ')' ')'
 
 fact ::= ( predicate '(' (  constant (',' constant)*  )? ')' | predicate '[' constant (',' constant )*   ']' '==' constant )
 
