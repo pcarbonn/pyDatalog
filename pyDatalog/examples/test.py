@@ -657,6 +657,7 @@ def test():
     assert (Z.c[X]>'a') == [(z,)]
     assert ((Z.c[X]>'a') & (A.c[X]=='za')) == [(z,)]
     assert (A.c[X]=='za') == [(z,)]
+    assert (A.c[z]=='za') == [()]
     assert (z.b) == 'za'
     assert (z.c) == 'za'
     
