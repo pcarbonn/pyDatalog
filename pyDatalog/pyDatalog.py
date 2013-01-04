@@ -205,7 +205,7 @@ class metaMixin(type):
         """when creating a subclass of Mixin, save the subclass in Class_dict. """
         super(metaMixin, cls).__init__(name, bases, dct)
         Class_dict[name]=cls
-        cls.has_SQLAlchemy = any(base.__module__ in ('sqlalchemy.ext.declarative',) for base in bases)
+        cls.has_SQLAlchemy = any(base.__module__ in ('sqlalchemy.ext.declarative', 'sqlalchemy.ext.declarative.api') for base in bases)
         
         def _getattr(self, attribute):
             """ responds to instance.method by asking datalog engine """
@@ -221,7 +221,7 @@ class metaMixin(type):
         """when access to an attribute of a subclass of Mixin fails, return an object that responds to () and to [] """
         if cls in ('Mixin', 'metaMixin') or method in (
                 '__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__', 
-                '__table_cls__', '_pyD_query'):
+                '_sa_instance_state', '_sa_decl_prepare', '__table_cls__', '_pyD_query'):
             raise AttributeError        return pyParser.Symbol("%s.%s" % (cls.__name__, method))
 
     def pyDatalog_search(cls, literal):
