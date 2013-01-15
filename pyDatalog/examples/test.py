@@ -848,7 +848,7 @@ if __name__ == "__main__":
     
     """ In-line queries using create_atoms                    """
     
-    pyDatalog.create_atoms('p', 'Y')
+    pyDatalog.create_atoms('p', 'Y, eq, Z')
     +p('a')
     
     p(Y)
@@ -867,6 +867,13 @@ if __name__ == "__main__":
         assert (X._value() == ['a',])
         assert (p2(X) == [('a',)])
     test2()
+
+    eq(X,Y) <= (X==Z) & (Z==Y)
+    
+    assert (eq(3, Z)) == [(3,)]
+    assert(eq(X, 3)) == [] # because X==Z is undefined
+    assert(eq(2, 3)) == []
+    assert(eq(3, 3)) == [()]
     
     print("Test completed successfully.")
 
