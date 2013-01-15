@@ -242,6 +242,7 @@ class Expression(object):
         return Body() # by default, there is no precalculation needed to evaluate an expression
     
     def __eq__(self, other):
+        assert isinstance(self, (VarSymbol, Function)), "Left-hand side of equality must be a symbol or function, not an expression."
         if self._pyD_type == 'variable' and not isinstance(other, VarSymbol):
             return Literal.make_for_comparison(self, '==', other)
         else:
@@ -263,6 +264,13 @@ class Expression(object):
         """ called when compiling (X not in (1,2)) """
         return Literal.make_for_comparison(self, 'not in', values)
     
+    def __pos__(self):
+        """ called when compiling -X """
+        return 0 + self
+    def __neg__(self):
+        """ called when compiling -X """
+        return 0 - self
+
     def __add__(self, other):
         return Operation(self, '+', other)
     def __sub__(self, other):
@@ -306,7 +314,10 @@ class VarSymbol(Expression):
         """ called when compiling -X """
         neg = Symbol(self._pyD_name)
         neg._pyD_negated = True
-        return neg
+
+        expr = 0 - self
+        expr.variable = neg
+        return expr
     
     def lua_expr(self, variables):
         if self._pyD_type == 'variable':
@@ -421,12 +432,6 @@ class Function(Expression):
     
     def __eq__(self, other):
         return Literal.make_for_comparison(self, '==', other)
-    
-    def __pos__(self):
-        raise pyDatalog.DatalogError("bad operand type for unary +: 'Function'. Please consider adding parenthesis", None, None)
-    
-    def __neg__(self):
-        raise pyDatalog.DatalogError("bad operand type for unary -: 'Function'. Please consider adding parenthesis", None, None)
     
     # following methods are used when the function is used in an expression
     def _variables(self):
@@ -738,8 +743,16 @@ class Aggregate(object):
     def __init__(self, Y=None, for_each=tuple(), order_by=tuple(), sep=None):
         # convert for_each=Z to for_each=(Z,)
         self.Y = Y
-        self.for_each = (for_each,) if isinstance(for_each, (Symbol, pyDatalog.Variable)) else tuple(for_each)
-        self.order_by = (order_by,) if isinstance(order_by, (Symbol, pyDatalog.Variable)) else tuple(order_by)
+        self.for_each = (for_each,) if isinstance(for_each, Expression) else tuple(for_each)
+        self.order_by = (order_by,) if isinstance(order_by, Expression) else tuple(order_by)
+        
+        # try to recast expressions to variables
+        self.for_each = tuple([e.__dict__.get('variable', e) for e in self.for_each]) 
+        self.order_by = tuple([e.__dict__.get('variable', e) for e in self.order_by])
+        
+        assert all([isinstance(e, VarSymbol) for e in self.for_each]), "for_each argument of aggregate must be variable(s), not expression(s)."
+        assert all([isinstance(e, VarSymbol) for e in self.order_by]), "order_by argument of aggregate must be variable(s), not expression(s)."
+        
         if sep and not isinstance(sep, six.string_types):
             raise pyDatalog.DatalogError("Separator in aggregation must be a string", None, None)
         self.sep = sep
