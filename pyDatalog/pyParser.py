@@ -242,7 +242,7 @@ class Expression(object):
         return Body() # by default, there is no precalculation needed to evaluate an expression
     
     def __eq__(self, other):
-        if self._pyD_type == 'variable' and not isinstance(other, Symbol):
+        if self._pyD_type == 'variable' and not isinstance(other, VarSymbol):
             return Literal.make_for_comparison(self, '==', other)
         else:
             return Literal.make("=", (self, other))
