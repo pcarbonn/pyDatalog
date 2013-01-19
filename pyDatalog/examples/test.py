@@ -128,7 +128,7 @@ def test():
         assert ask((X==1) & (Y==2*X)) == set([(1,2)])
         assert ask((X==2) & (Y==2/X)) == set([(2,1)])
         assert ask((X==2) & (Y==2//X)) == set([(2,1)])
-
+        
     """ Conjunctive queries                                             """
 
     @pyDatalog.program()
@@ -334,6 +334,13 @@ def test():
         assert ask(f[X]==f[a]+'') == set([('a',)])
         - (f[a]==a)
         assert ask(f[f[a]]==X) == None
+
+        + (f[a]==None)
+        assert (ask(f[a]==X)) == set([('a',None)])
+        + (f[a]==(1,2))
+        assert (ask(f[a]==X)) == set([('a',(1,2))])
+        assert (ask(f[X]==(1,2))) == set([('a',(1,2))])
+
         + (f[a]==c)
 
         + (f2[a,x]==b)
@@ -348,7 +355,7 @@ def test():
         h(X,Y) <= (f[X]==Y)
         assert (ask(h(X,'c'))) == set([('a', 'c')])
         assert (ask(h(X,Y))) == set([('a', 'c')])
-
+        
     @pyDatalog.program()
     def function_comparison(): 
         assert ask(f[X]==Y) == set([('a', 'c')])
