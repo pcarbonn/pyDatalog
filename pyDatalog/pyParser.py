@@ -303,6 +303,7 @@ class VarSymbol(Expression):
     def __init__ (self, name):
         self._pyD_name = name
         self._pyD_negated = False # for aggregate with sort in descending order
+        name = tuple(name) if isinstance(name, list) else name
         if isinstance(name, (int, list, tuple, xrange)) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_type = 'constant'
             self._pyD_lua = pyEngine.Const(name)
@@ -333,7 +334,7 @@ class VarSymbol(Expression):
 
 class Symbol(VarSymbol):
     """
-    can be constant, variable or predicate name
+    can be constant, list, tuple, variable or predicate name
     ask() creates a query
     created when analysing the datalog program
     """
@@ -555,8 +556,12 @@ class Literal(object):
         assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
         if isinstance(other, type(lambda: None)):
             other = Lambda(other)
+        if other is None or isinstance(other, (int, six.string_types, list, tuple, xrange)):
+            other = Symbol(other)
         if isinstance(self, Function):
-            if operator == '==' and isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
+            if isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
+                if operator != '==':
+                    raise pyDatalog.DatalogError("Aggregate operator can only be used with equality.", None, None)
                 name, terms, prearity = (self.name + '==', list(self.keys) + [other], len(self.keys))
                 
                 # 1 create literal for queries
@@ -570,10 +575,10 @@ class Literal(object):
                 prearity = len(terms) # (X,Y,Z)
                 return Literal.make(name + '!', terms, prearity=prearity)
             
-            if operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y # TODO use positive list of class
+            elif operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y # TODO use positive list of class
                 return Literal.make(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
-            literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
-            if '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
+            elif '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
+                literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
                 return literal & pyEngine.compare2(self.symbol, operator, other)
             elif isinstance(other, (Operation, Function, Lambda)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
                 Y2 = Function.newSymbol()
@@ -581,17 +586,12 @@ class Literal(object):
             else: 
                 return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
         else:
-            if other is None or isinstance(other, (int, six.string_types, list, tuple, xrange)):
-                name = '=' + self._pyD_name + operator + str(other)
-                literal = Literal.make(name, [self])
-                expr = pyEngine.make_operand('constant', other)
-            else: 
-                if not isinstance(other, Expression):
-                    raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
-                name = '=' + self._pyD_name + operator + other._pyD_name
-                literal = Literal.make(name, [self] + list(other._variables().values()))
-                expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
-                literal.pre_calculations = other._precalculation()
+            if not isinstance(other, Expression):
+                raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
+            name = '=' + self._pyD_name + operator + str(other._pyD_name)
+            literal = Literal.make(name, [self] + list(other._variables().values()))
+            expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
+            literal.pre_calculations = other._precalculation()
             pyEngine.add_expr_to_predicate(literal.lua.pred, operator, expr)
             return literal
 
