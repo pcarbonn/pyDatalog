@@ -574,17 +574,14 @@ class Literal(object):
                 terms.extend(other.args)
                 prearity = len(terms) # (X,Y,Z)
                 return Literal.make(name + '!', terms, prearity=prearity)
-            
-            elif operator == '==' and not isinstance(other, (Operation, Function, Lambda)): # p[X]==Y # TODO use positive list of class
-                return Literal.make(self.name + '==', list(self.keys) + [other], prearity=len(self.keys))
-            elif '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
-                literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
-                return literal & pyEngine.compare2(self.symbol, operator, other)
-            elif isinstance(other, (Operation, Function, Lambda)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
-                Y2 = Function.newSymbol()
-                return (Y2 == other) & Literal.make(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
-            else: 
-                return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
+            elif operator != '==' or isinstance(other, (Operation, Function, Lambda)):
+                if '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
+                    literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
+                    return literal & pyEngine.compare2(self.symbol, operator, other)
+                else: # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
+                    Y2 = Function.newSymbol()
+                    return (Y2 == other) & Literal.make(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
+            return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
         else:
             if not isinstance(other, Expression):
                 raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
