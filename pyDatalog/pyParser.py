@@ -589,20 +589,19 @@ class Literal(object):
             pyEngine.add_expr_to_predicate(literal.lua.pred, operator, expr)
             return literal
 
+    @property
+    def literals(self):
+        return [self]
+    
     def __le__(self, body):
         " head <= body"
-        if isinstance(body, Literal):
-            newBody = body.pre_calculations & body
-            if isinstance(body, HeadLiteral):
+        if not isinstance(body, (Literal, Body)):
+            raise pyDatalog.DatalogError("Invalid body for clause", None, None)
+        newBody = Body()
+        for literal in body.literals:
+            if isinstance(literal, HeadLiteral):
                 raise pyDatalog.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
-        else:
-            if not isinstance(body, Body):
-                raise pyDatalog.DatalogError("Invalid body for clause", None, None)
-            newBody = Body()
-            for literal in body.literals:
-                if isinstance(literal, HeadLiteral):
-                    raise pyDatalog.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
-                newBody = newBody & literal.pre_calculations & literal
+            newBody = newBody & literal.pre_calculations & literal
         result = pyDatalog.add_clause(self, newBody)
         if not result: 
             raise pyDatalog.DatalogError("Can't create clause", None, None)
