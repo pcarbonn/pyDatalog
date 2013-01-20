@@ -444,17 +444,17 @@ class Function(Expression):
     def _precalculation(self): 
         return self.pre_calculations & (self == self.symbol)
     
+def _convert(operand):
+    if operand is None or isinstance(operand, (six.string_types, int, list, tuple, xrange)):
+        return Symbol(operand)
+    elif isinstance(operand, type(lambda: None)):
+        return Lambda(operand)
+    return operand
+
 class Operation(Expression):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
-        
-        def _convert(operand):
-            if operand is None or isinstance(operand, (six.string_types, int, list, tuple, xrange)):
-                return Symbol(operand)
-            elif isinstance(operand, type(lambda: None)):
-                return Lambda(operand)
-            return operand
         
         self.lhs = _convert(lhs)
         self.rhs = _convert(rhs)
@@ -554,10 +554,7 @@ class Literal(object):
     @classmethod
     def make_for_comparison(cls, self, operator, other):
         assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
-        if isinstance(other, type(lambda: None)):
-            other = Lambda(other)
-        if other is None or isinstance(other, (int, six.string_types, list, tuple, xrange)):
-            other = Symbol(other)
+        other = _convert(other)
         if isinstance(self, Function):
             if isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
                 if operator != '==':
@@ -578,7 +575,7 @@ class Literal(object):
                 if '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
                     literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
                     return literal & pyEngine.compare2(self.symbol, operator, other)
-                else: # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
+                elif isinstance(other, (Operation, Function, Lambda)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
                     Y2 = Function.newSymbol()
                     return (Y2 == other) & Literal.make(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
             return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
