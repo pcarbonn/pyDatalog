@@ -300,11 +300,11 @@ class Expression(object):
 class VarSymbol(Expression):
     """ represents the symbol of a variable, both inline and in pyDatalog program 
     """
-    def __init__ (self, name):
+    def __init__ (self, name, forced_type=None):
         self._pyD_name = name
         self._pyD_negated = False # for aggregate with sort in descending order
         name = tuple(name) if isinstance(name, list) else name
-        if isinstance(name, (int, list, tuple, xrange)) or not name or name[0] not in string.ascii_uppercase + '_':
+        if forced_type=="constant" or isinstance(name, (int, list, tuple, xrange)) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_type = 'constant'
             self._pyD_lua = pyEngine.Const(name)
         else:
@@ -446,7 +446,7 @@ class Function(Expression):
     
 def _convert(operand):
     if operand is None or isinstance(operand, (six.string_types, int, list, tuple, xrange)):
-        return Symbol(operand)
+        return Symbol(operand, forced_type="constant")
     elif isinstance(operand, type(lambda: None)):
         return Lambda(operand)
     return operand
