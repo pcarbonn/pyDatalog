@@ -238,6 +238,14 @@ class LazyListOfList(LazyList):
                     return t.data[0]
     
 class Expression(object):
+    @classmethod
+    def _for(cls, operand):
+        if operand is None or isinstance(operand, (six.string_types, int, list, tuple, xrange)):
+            return Symbol(operand, forced_type="constant")
+        elif isinstance(operand, type(lambda: None)):
+            return Lambda(operand)
+        return operand
+    
     def _precalculation(self):
         return Body() # by default, there is no precalculation needed to evaluate an expression
     
@@ -322,9 +330,9 @@ class VarSymbol(Expression):
     
     def lua_expr(self, variables):
         if self._pyD_type == 'variable':
-            return pyEngine.make_operand('variable', variables.index(self._pyD_name))
+            return pyEngine.Operand('variable', variables.index(self._pyD_name))
         else:
-            return pyEngine.make_operand('constant', self._pyD_name)
+            return pyEngine.Operand('constant', self._pyD_name)
     
     def _variables(self):
         if self._pyD_type == 'variable':
@@ -439,25 +447,18 @@ class Function(Expression):
         return {self.dummy_variable_name : self.symbol}
 
     def lua_expr(self, variables):
-        return pyEngine.make_operand('variable', variables.index(self.dummy_variable_name))
+        return pyEngine.Operand('variable', variables.index(self.dummy_variable_name))
 
     def _precalculation(self): 
         return self.pre_calculations & (self == self.symbol)
     
-def _convert(operand):
-    if operand is None or isinstance(operand, (six.string_types, int, list, tuple, xrange)):
-        return Symbol(operand, forced_type="constant")
-    elif isinstance(operand, type(lambda: None)):
-        return Lambda(operand)
-    return operand
-
 class Operation(Expression):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
         
-        self.lhs = _convert(lhs)
-        self.rhs = _convert(rhs)
+        self.lhs = Expression._for(lhs)
+        self.rhs = Expression._for(rhs)
         
     @property
     def _pyD_name(self):
@@ -472,7 +473,7 @@ class Operation(Expression):
         return self.lhs._precalculation() & self.rhs._precalculation()
     
     def lua_expr(self, variables):
-        return pyEngine.make_expression(self.operator, self.lhs.lua_expr(variables), self.rhs.lua_expr(variables))
+        return pyEngine.Expression(self.operator, self.lhs.lua_expr(variables), self.rhs.lua_expr(variables))
     
     def __str__(self):
         return '(' + str(self.lhs._pyD_name) + self.operator + str(self.rhs._pyD_name) + ')'
@@ -491,7 +492,7 @@ class Lambda(Expression):
         return dict([ [var, Symbol(var)] for var in getattr(self.lambda_object,func_code).co_varnames])
     
     def lua_expr(self, variables):
-        operands = [pyEngine.make_operand('variable', variables.index(varname)) for varname in getattr(self.lambda_object,func_code).co_varnames] 
+        operands = [pyEngine.Operand('variable', variables.index(varname)) for varname in getattr(self.lambda_object,func_code).co_varnames] 
         return pyEngine.make_lambda(self.lambda_object, operands)
     
     def __str__(self):
@@ -554,7 +555,7 @@ class Literal(object):
     @classmethod
     def make_for_comparison(cls, self, operator, other):
         assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
-        other = _convert(other)
+        other = Expression._for(other)
         if isinstance(self, Function):
             if isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
                 if operator != '==':
