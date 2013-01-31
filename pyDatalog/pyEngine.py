@@ -25,8 +25,6 @@ from lua to python, with some enhancements:
 * indexing of facts,
 * support for lambda.
 
-The original code of the lua engine is available in luaEngine.py.
-
 Some differences between python and lua:
 * lua indices start at 1, not 0
 * any variable is true in lua if it is not nil or false.
@@ -63,7 +61,15 @@ Python_resolvers = {} # dictionary  of python functions that can resolve a predi
 
 class Interned(object):
     # beware, they should be one registry per class --> copy the following line in the child class !!
-    # registry = weakref.WeakValueDictionary() 
+    # registry = weakref.WeakValueDictionary()
+    @classmethod
+    def of(cls, atom):
+        if isinstance(atom, Interned):
+            return self
+        #elif isinstance(atom, (list, tuple, xrange)):
+        #    return VarTuple(tuple(atom)) # TODO Enterned all elements of _id ?
+        else:
+            return Const(atom)
     notFound = object()
     def __eq__(self, other):
         return self is other
@@ -78,7 +84,41 @@ class Interned(object):
 def add_size(s):
     return "%i:%s" % (len(s), s)
 
-class Var(Interned):
+class Fresh_var(object): # no interning needed
+    fresh_var_state = 0  
+    def __init__(self):
+        self.id = str(Fresh_var.fresh_var_state)
+        self.key = add_size('v' + self.id)
+        Fresh_var.fresh_var_state += 1 # ensures freshness
+    def is_const(self):
+        return False
+    def get_tag(self, i, env):
+        env.setdefault(self, 'v%i' % i)
+        return env[self] 
+
+    def subst(self, env):
+        return env.get(self, self)
+    def shuffle(self, env):
+        env.setdefault(self, Fresh_var())
+        return env[self]
+    def chase(self, env):
+        return env[self].chase(env) if self in env else self
+    
+    def unify(self, term, env):
+        return term.unify_var(self, env)
+    def unify_const(self, const, env):
+        env[self] = const
+        return env
+    def unify_var(self, var, env):
+        env[var] = self
+        return env
+    
+    def is_safe(self, clause):
+        return any([is_in(self, bodi) for bodi in clause.body])
+    def __str__(self): 
+        return "variable_%s" % self.id 
+
+class Var(Fresh_var, Interned):
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
         o = cls.registry.get(_id, Interned.notFound)
@@ -88,19 +128,10 @@ class Var(Interned):
             o.key = add_size('v' + _id)
             cls.registry[_id] = o
         return o
-    def is_const(self):
-        return False
-    def __str__(self): return self.id 
-
-class Fresh_var(object): # no interning needed
-    fresh_var_state = 0  
-    def __init__(self):
-        self.id = str(Fresh_var.fresh_var_state)
-        self.key = add_size('v' + self.id)
-        Fresh_var.fresh_var_state += 1 # ensures freshness
-    def is_const(self):
-        return False
-    def __str__(self): return "variable_%s" % self.id 
+    def __init__(self, name):
+        pass
+    def __str__(self): 
+        return self.id 
 
 # Constants as simple objects.
 
@@ -117,7 +148,27 @@ class Const(Interned):
         return o
     def is_const(self):
         return True
-    def __str__(self): return "'%s'" % self.id 
+    def get_tag(self, i, env):
+        return self.key
+    def subst(self, env):
+        return self
+    def shuffle(self, env):
+        return None
+    def chase(self, env):
+        return self
+    
+    def unify(self, term, env):
+        return term.unify_const(self, env)
+    def unify_const(self, const, env):
+        return None
+    def unify_var(self, var, env):
+        return var.unify_const(self, env)
+    
+    def is_safe(self, clause): 
+        return True
+    
+    def __str__(self): 
+        return "'%s'" % self.id 
 
 # Predicate symbols
 
@@ -236,33 +287,19 @@ def get_tag(literal):
         literal.tag += ''.join([add_size(term.get_tag(i, env)) for i, term in enumerate(literal.terms)])
     return literal.tag
      
-Const.get_tag = lambda self, i, env : self.key
-Var.get_tag = lambda self, i, env : env[self] if self in env else env.setdefault(self, 'v%i' % i)
-Fresh_var.get_tag = lambda self, i, env : env[self] if self in env else env.setdefault(self, 'v%i' % i)
-
-# Substitution
-
 # An environment is a map from variables to terms.
 
 def subst(literal, env):
     if len(env) == 0: return literal
     return Literal(literal.pred, [term.subst(env) for term in literal.terms])
 
-Const.subst = lambda self, env : self
-Var.subst = lambda self, env : env.get(self, self)
-Fresh_var.subst = lambda self, env : env.get(self, self)
-
 # Shuffle creates an environment in which all variables are mapped to
 # freshly generated variables.
 
 def shuffle(literal, env={}):
-    map_ = env
     for term in literal.terms:
-        term.shuffle(map_)
-    return map_
-Const.shuffle = lambda self, env : None
-Var.shuffle = lambda self, env : env[self] if self in env else env.setdefault(self, Fresh_var())
-Fresh_var.shuffle = lambda self, env : env[self] if self in env else env.setdefault(self, Fresh_var())
+        term.shuffle(env)
+    return env
 
 # Renames a literal using an environment generated by shuffle.
 
@@ -285,31 +322,6 @@ def unify(literal, other):
             if env == None: return env
     return env
 
-# Chase returns a constant or an unbound variable.
-
-Const.chase =  lambda self, env : self
-Var.chase = lambda self, env : env[self].chase(env) if self in env else self
-Fresh_var.chase = lambda self, env : env[self].chase(env) if self in env else self
-
-# The case analysis for unifying two terms is handled by method
-# dispatch.
-
-Const.unify = lambda self, term, env : term.unify_const(self, env)
-Const.unify_const = lambda self, const, env : None
-def _(self, const, env):
-    env[self] = const
-    return env
-Var.unify_const = _
-Fresh_var.unify_const = _
-
-Var.unify = lambda self, term, env : term.unify_var(self, env)
-Fresh_var.unify = lambda self, term, env : term.unify_var(self, env)
-Const.unify_var = lambda self, var, env : var.unify_const(self, env)
-def _(self, var, env):
-    env[var] = self
-    return env
-Var.unify_var = _
-Fresh_var.unify_var = _
 
 # Does a literal have a given term?  Internalizing terms ensures an
 # efficient implementation of this operation.
@@ -378,12 +390,6 @@ def rename_clause(clause):
 
 def is_safe(clause):
     return all([term.is_safe(clause) for term in clause.head.terms])
-Const.is_safe = lambda self, clause : True
-
-def _(self, clause):
-    return any([is_in(self, bodi) for bodi in clause.body])
-Var.is_safe = _
-Fresh_var.is_safe = _
 
 # DATABASE
 
@@ -620,7 +626,7 @@ def _(self):
 Pred.parent_classes = _
 
 def fact_candidate(subgoal, class0, result):
-    result = [Const(r) if not isinstance(r, Const) else r for r in result]
+    result = [Interned.of(r) if not isinstance(r, Interned) else r for r in result]
     if class0 and result[0].id and not isinstance(result[0].id, class0): 
         return
     result = Literal(subgoal.literal.pred.name, result)
@@ -877,7 +883,7 @@ def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
     def prim(literal, subgoal, pred=pred, iter=iter): # TODO consider merging with fact_candidate
         for terms in iter(literal):
             if len(terms) == len(literal.terms):
-                new = Literal(pred, [Const(term) for term in terms])
+                new = Literal(pred, [Interned.of(term) for term in terms])
                 if match(literal, new) != None:
                     fact(subgoal, new)
     pred.prim = prim
@@ -899,9 +905,6 @@ class Operand(object):
     def eval(self, environment):
         return environment[self.index-1] if self.index != None else self.value
         
-def make_operand(type, value):
-    return Operand(type, value)
-
 class Expression(object):
     def __init__(self, operator, operand1, operand2):
         self.operator = operator
@@ -920,9 +923,6 @@ class Expression(object):
             return self.operand1.eval(env) // self.operand2.eval(env)
         assert False # dead code
         
-def make_expression(operator, operand1, operand2):
-    return Expression(operator, operand1, operand2)
-
 """
 lambda
 """
