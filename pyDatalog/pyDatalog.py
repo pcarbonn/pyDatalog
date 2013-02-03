@@ -89,12 +89,12 @@ class DatalogError(Exception):
 
 def assert_fact(predicate_name, *args):
     """ assert predicate_name(args) """
-    literal = Literal.make(predicate_name, args)
+    literal = Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
     _assert_fact(literal)
 
 def retract_fact(predicate_name, *args):
     """ retracts predicate_name(args) """
-    literal = Literal.make(predicate_name, args)
+    literal = Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
     _retract_fact(literal)
 
 def program():
