@@ -251,7 +251,8 @@ class Expression(object):
     
     def __eq__(self, other):
         assert isinstance(self, (VarSymbol, Function)), "Left-hand side of equality must be a symbol or function, not an expression."
-        if self._pyD_type == 'variable' and not isinstance(other, VarSymbol):
+        other = Expression._for(other)
+        if self._pyD_type == 'variable' and (not isinstance(other, VarSymbol) or other._pyD_type=='constant'):
             return Literal.make_for_comparison(self, '==', other)
         else:
             return Literal.make("=", (self, other))
@@ -309,13 +310,17 @@ class VarSymbol(Expression):
     """ represents the symbol of a variable, both inline and in pyDatalog program 
     """
     def __init__ (self, name, forced_type=None):
-        self._pyD_name = name
         self._pyD_negated = False # for aggregate with sort in descending order
-        name = tuple(name) if isinstance(name, list) else name
-        if forced_type=="constant" or isinstance(name, (int, list, tuple, xrange)) or not name or name[0] not in string.ascii_uppercase + '_':
+        if isinstance(name, (list, tuple, xrange)):
+            self._pyD_name = [Expression._for(element) for element in name]
+            self._pyD_type = 'tuple'
+            self._pyD_lua = pyEngine.VarTuple([e._pyD_lua for e in self._pyD_name])
+        elif forced_type=="constant" or isinstance(name, (int, list, tuple, xrange)) or not name or name[0] not in string.ascii_uppercase + '_':
+            self._pyD_name = name
             self._pyD_type = 'constant'
             self._pyD_lua = pyEngine.Const(name)
         else:
+            self._pyD_name = name
             self._pyD_type = 'variable'
             self._pyD_lua = pyEngine.Var(name)
 
@@ -331,12 +336,19 @@ class VarSymbol(Expression):
     def lua_expr(self, variables):
         if self._pyD_type == 'variable':
             return pyEngine.Operand('variable', variables.index(self._pyD_name))
+        elif self._pyD_type == 'tuple':
+            return pyEngine.Operand('tuple', [element.lua_expr(variables) for element in self._pyD_name])
         else:
             return pyEngine.Operand('constant', self._pyD_name)
     
     def _variables(self):
         if self._pyD_type == 'variable':
             return OrderedDict({self._pyD_name : self})
+        elif self._pyD_type == 'tuple':
+            variables = OrderedDict()
+            for element in self._pyD_name:
+                variables.update(element._variables())
+            return variables
         else:
             return OrderedDict()
 

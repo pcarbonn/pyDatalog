@@ -884,7 +884,41 @@ if __name__ == "__main__":
     assert(eq(X, 3)) == [] # because X==Z is undefined
     assert(eq(2, 3)) == []
     assert(eq(3, 3)) == [()]
+
+    # list unification
+    pyDatalog.create_atoms('X,Y, X1, X2, p, a, eq')
+    assert ( X==(1,2) ) == [((1,2),)]
+    assert ( X==(1,(2,)) ) == [((1,(2,)),)] # nested
+    assert ( X==(1,) + (2,) ) == [((1,2),)] # expression
     
+    assert ( (X==(1,2)) & (X==(1, X2)) & (Y==X2)) == [((1, 2), 2, 2)] # TODO drop last literal
+    assert ( (X==(1,(2,))) & (X==(1, (X2,))) & (Y==X2)) == [((1, (2,)), 2, 2)]
+    assert ( (X==(1,2)) & (X==Y)) == [((1, 2), (1, 2))]
+    assert ( (X==(1,2)) & (Y==(1,2)) & (X==Y)) == [((1, 2), (1, 2))]
+    assert ( (X==(1,2)) & (Y==(1,3)) & (X==Y)) == []
+    
+    eq(X,Y) <= (X==Y)
+    assert ( eq(X,(1,2))) == [((1,2),)]
+    assert ( eq(X,(1,(2,))) ) == [((1,(2,)),)] # nested
+    assert ( eq(X,(1,) + (2,)) ) == [((1,2),)] # expression
+    
+    """ TODO
+    assert ( eq(X,(1,2)) & (eq(X,(1, X2))) & (Y==X2)) == [((1, 2), 2, 2)] # TODO drop last literal
+    assert ( eq(X,(1,(2,))) & (X==(1, (X2,))) & (Y==X2)) == [((1, (2,)), 2, 2)]
+    assert ( eq(X,(1,2)) & eq(X,Y)) == [((1, 2), (1, 2))]
+    assert ( eq(X,(1,2)) & (Y==(1,2)) & (X==Y)) == [((1, 2), (1, 2))]
+    assert ( eq(X,(1,2)) & (Y==(1,3)) & (X==Y)) == []
+    """
+    
+    + (p[a] == (1,2))
+    assert ( p[X]==(1,2) ) == [('a',)]
+    assert ( (p[X]==(1,2)) & (p[X]==(1, X2)) & (Y==X2)) == [('a', 2, 2)] # TODO drop last literal
+    assert ( (p[X]==(1,2)) & (p[X]==Y)) == [('a', (1, 2))]
+    assert ( (p[X]==(1,2)) & (Y==(1,2)) & (p[X]==Y)) == [('a', (1, 2))]
+    assert ( (p[X]==(1,2)) & (Y==(1,3)) & (p[X]==Y)) == []
+    + (p[a] == (1,(2,)))
+    assert ( (p[X]==(1,(2,))) & (p[X]==(1, (X2,))) & (Y==X2)) == [('a', 2, 2)]
+
     print("Test completed successfully.")
 
     

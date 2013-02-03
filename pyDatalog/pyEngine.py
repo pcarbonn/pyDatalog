@@ -37,6 +37,7 @@ import gc
 from itertools import groupby
 import re
 import six
+from six.moves import xrange
 import weakref
 
 pyDatalog = None #circ: later set by pyDatalog to avoid circular import
@@ -64,10 +65,10 @@ class Interned(object):
     # registry = weakref.WeakValueDictionary()
     @classmethod
     def of(cls, atom):
-        if isinstance(atom, Interned):
-            return self
-        #elif isinstance(atom, (list, tuple, xrange)):
-        #    return VarTuple(tuple(atom)) # TODO Enterned all elements of _id ?
+        if isinstance(atom, (Interned, Fresh_var)):
+            return atom
+        elif isinstance(atom, (list, tuple, xrange)):
+            return VarTuple(atom)
         else:
             return Const(atom)
     notFound = object()
@@ -93,14 +94,14 @@ class Fresh_var(object): # no interning needed
     def is_const(self):
         return False
     def get_tag(self, i, env):
-        env.setdefault(self, 'v%i' % i)
+        env.setdefault(self, 'v%i' % i) # TODO return the result of this statement directly ?
         return env[self] 
 
     def subst(self, env):
         return env.get(self, self)
     def shuffle(self, env):
         env.setdefault(self, Fresh_var())
-        return env[self]
+        return env[self] #TODO no need to return a value
     def chase(self, env):
         return env[self].chase(env) if self in env else self
     
@@ -112,11 +113,16 @@ class Fresh_var(object): # no interning needed
     def unify_var(self, var, env):
         env[var] = self
         return env
+    def unify_tuple(self, tuple, env):
+        env[self] = tuple
+        return env
     
     def is_safe(self, clause):
         return any([is_in(self, bodi) for bodi in clause.body])
     def __str__(self): 
-        return "variable_%s" % self.id 
+        return "variable_%s" % self.id
+    def equals_primitive(self, term, subgoal):
+        return None
 
 class Var(Fresh_var, Interned):
     registry = weakref.WeakValueDictionary()
@@ -153,7 +159,7 @@ class Const(Interned):
     def subst(self, env):
         return self
     def shuffle(self, env):
-        return None
+        return None  #TODO no need to return a value
     def chase(self, env):
         return self
     
@@ -163,12 +169,74 @@ class Const(Interned):
         return None
     def unify_var(self, var, env):
         return var.unify_const(self, env)
+    def unify_tuple(self, tuple, env):
+        return None
     
     def is_safe(self, clause): 
         return True
     
     def __str__(self): 
-        return "'%s'" % self.id 
+        return "'%s'" % self.id
+    def equals_primitive(self, term, subgoal):
+        if self == term:          # Both terms are constant and equal.
+            literal = Literal(binary_equals_pred, (self, self))
+            return fact(subgoal, literal)
+
+class VarTuple(Interned):
+    registry = weakref.WeakValueDictionary()
+    def __new__(cls,  _id):
+        _id = tuple([Interned.of(element) for element in _id])
+        o = cls.registry.get(_id, Interned.notFound)
+        if o is Interned.notFound: 
+            o = object.__new__(cls) # o is the ref that keeps it alive
+            o._id = _id
+            o.key = add_size('o' + str(id(o)) )
+            cls.registry[_id] = o
+        return o
+    
+    @property # TODO use lazy property
+    def id(self):
+        return tuple([element.id for element in self._id])
+    def __len__(self):
+        return len(self._id)        
+    
+    def is_const(self):
+        return all(element.is_const() for element in self._id)
+    
+    def get_tag(self, i, env):
+        return self.key
+    def subst(self, env):
+        return VarTuple([element.subst(env) for element in self._id])
+    def shuffle(self, env):
+        for element in self._id:
+            element.shuffle(env)
+    def chase(self, env):
+        return VarTuple([element.chase(env) for element in self._id])
+    
+    def unify(self, term, env):
+        return term.unify_tuple(self, env)
+    def unify_const(self, const, env):
+        return None
+    def unify_var(self, var, env):
+        return var.unify_tuple(self, env)
+    def unify_tuple(self, tuple, env):
+        if len(self) != len(tuple):
+            return None
+        for e1, e2 in zip(self._id, tuple._id):
+            if e1 != e2:
+                env = e1.unify(e2, env)
+                if env == None: return env
+        return env
+
+    def is_safe(self, clause): 
+        return all(element.is_safe(clause) for element in self._id)
+
+    def __str__(self): 
+        return "'%s'" % str(str(e) for e in self.id)
+    def equals_primitive(self, term, subgoal):
+        if self == term:          # Both terms are constant and equal.
+            literal = Literal(binary_equals_pred, (self, self))
+            return fact(subgoal, literal)
 
 # Predicate symbols
 
@@ -842,15 +910,6 @@ def equals_primitive(literal, subgoal):
     return x.equals_primitive(y, subgoal)
 binary_equals_pred.prim = equals_primitive
 
-Var.equals_primitive = lambda self, term, subgoal: None
-Fresh_var.equals_primitive = lambda self, term, subgoal: None
-
-def _(self, term, subgoal):
-    if self == term:          # Both terms are constant and equal.
-        literal = Literal(binary_equals_pred, (self, self))
-        return fact(subgoal, literal)
-Const.equals_primitive = _
-
 # Does a literal unify with an fact known to contain only constant
 # terms?
 
@@ -900,10 +959,15 @@ def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
 
 class Operand(object):
     def __init__(self, type, value):
-        self.value = value if type == 'constant' else None
-        self.index = value if type != 'constant' else None
+        self.value = value if type != 'variable' else None
+        self.index = value if type == 'variable' else None
     def eval(self, environment):
-        return environment[self.index-1] if self.index != None else self.value
+        if self.index != None:
+            return environment[self.index-1]
+        elif isinstance(self.value, (list, tuple)):
+            return tuple(element.eval(environment) for element in self.value)
+        else:
+            return self.value
         
 class Expression(object):
     def __init__(self, operator, operand1, operand2):
@@ -962,7 +1026,7 @@ def add_expr_to_predicate(pred, operator, expression):
         if literal.pred.operator == "==" and (not x.is_const() or x.id == Y):
             args.insert(0,Y)
             yield args
-        elif x.is_const() and compare(x.id, literal.pred.operator, Y) :
+        elif x.is_const() and compare(x.id, literal.pred.operator, Y):
             args.insert(0,x.id)
             yield args
         elif (literal.pred.operator == "in" and not x.is_const()):
