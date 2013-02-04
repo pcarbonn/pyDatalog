@@ -368,19 +368,19 @@ class Symbol(VarSymbol):
             literal = args[0] if not isinstance(args[0], Body) else args[0].literal()
             return pyEngine.toAnswer(literal.lua, literal.lua.ask(fast))
         elif self._pyD_name == '_sum':
-            if isinstance(args[0], (Symbol, pyDatalog.Variable)):
+            if isinstance(args[0], VarSymbol):
                 return Sum_aggregate(args[0], for_each=kwargs.get('for_each', kwargs.get('key', [])))
             else:
                 return sum(args)
         elif self._pyD_name == 'concat':
             return Concat_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])), sep=kwargs['sep'])
         elif self._pyD_name == '_min':
-            if isinstance(args[0], (Symbol, pyDatalog.Variable)):
+            if isinstance(args[0], VarSymbol):
                 return Min_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
             else:
                 return min(args)
         elif self._pyD_name == '_max':
-            if isinstance(args[0], (Symbol, pyDatalog.Variable)):
+            if isinstance(args[0], VarSymbol):
                 return Max_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
             else:
                 return max(args)
@@ -389,7 +389,7 @@ class Symbol(VarSymbol):
         elif self._pyD_name == 'running_sum':
             return Running_sum(args[0], for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
         elif self._pyD_name == '_len':
-            if isinstance(args[0], (Symbol, pyDatalog.Variable)):
+            if isinstance(args[0], VarSymbol):
                 return Len_aggregate(args[0])
             else: 
                 return len(args[0]) 
@@ -520,12 +520,6 @@ class Literal(object):
         self.prearity = prearity or len(terms)
         self.pre_calculations = Body()
         
-        self.has_variables, self.has_symbols, self.is_fact = (False, False, True)
-        for t in terms:
-            self.has_variables = self.has_variables or isinstance(t, pyDatalog.Variable)
-            self.has_symbols = self.has_symbols or isinstance(t, Symbol)
-            self.is_fact = self.is_fact and not(isinstance(t, pyDatalog.Variable) and not(isinstance(t, Symbol) and t._pyD_type == 'variable'))
-        
         self.args = terms # TODO simplify
         self.todo = self
         cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
@@ -601,6 +595,12 @@ class Literal(object):
     def literals(self):
         return [self]
     
+    def _variables(self):
+        variables = OrderedDict()
+        for term in self.terms:
+            variables.update(term._variables())
+        return variables
+    
     def __le__(self, body):
         " head <= body"
         if not isinstance(body, (Literal, Body)):
@@ -644,12 +644,12 @@ class Query(Literal, LazyListOfList):
 
     def __pos__(self):
         " unary + means insert into database as fact "
-        assert self.is_fact, "Cannot assert a fact containing Variables"
+        assert not self._variables(), "Cannot assert a fact containing Variables"
         pyDatalog._assert_fact(self)
 
     def __neg__(self):
         " unary - means retract fact from database "
-        assert self.is_fact, "Cannot assert a fact containing Variables"
+        assert not self._variables(), "Cannot assert a fact containing Variables"
         pyDatalog._retract_fact(self)
         
     def __invert__(self):
@@ -710,7 +710,7 @@ class Body(LazyListOfList):
         env, args = OrderedDict(), OrderedDict()
         for literal in self.literals:
             for term, arg in zip(literal.terms, literal.args or literal.terms):
-                if isinstance(term, Symbol) and term._pyD_type == 'variable' and (isinstance(arg, (Symbol, pyDatalog.Variable))):
+                if isinstance(term, Symbol) and term._pyD_type == 'variable' and (isinstance(arg, VarSymbol)):
                     env[term._pyD_name] = term
                     args[id(arg)] = arg
         if permanent:
