@@ -751,7 +751,7 @@ def test():
     assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
     assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')
     assert_error('ask(- manager[X]==1)', "Left-hand side of equality must be a symbol or function, not an expression.")
-    assert_error("p(X) <= (X=={})", "Syntax error: Symbol or Expression expected")
+    assert_error("p(X) <= (X=={})", "unhashable type: 'dict'")
 
     """ SQL Alchemy                    """
 
@@ -886,7 +886,7 @@ if __name__ == "__main__":
     assert(eq(3, 3)) == [()]
 
     # list unification
-    pyDatalog.create_atoms('X,Y, X1, X2, p, a, eq')
+    pyDatalog.create_atoms('X,Y, X1, X2, X3, p, a, eq')
     assert ( X==(1,2) ) == [((1,2),)]
     assert ( X==(1,(2,)) ) == [((1,(2,)),)] # nested
     assert ( X==(1,) + (2,) ) == [((1,2),)] # expression
@@ -896,6 +896,7 @@ if __name__ == "__main__":
     assert ( (X==(1,2)) & (X==Y)) == [((1, 2), (1, 2))]
     assert ( (X==(1,2)) & (Y==(1,2)) & (X==Y)) == [((1, 2), (1, 2))]
     assert ( (X==(1,2)) & (Y==(1,3)) & (X==Y)) == []
+    #print ( (X==(1,X1)) & (Y==(1,X2)) & (X==Y) & (X1==1) & (X3==X2)) # TODO drop last literal
     
     eq(X,Y) <= (X==Y)
     assert ( eq(X,(1,2))) == [((1,2),)]
