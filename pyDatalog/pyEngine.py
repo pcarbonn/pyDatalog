@@ -232,7 +232,7 @@ class VarTuple(Interned):
         return all(element.is_safe(clause) for element in self._id)
 
     def __str__(self): 
-        return "'%s'" % str(str(e) for e in self.id)
+        return "'%s'" % str([str(e) for e in self.id])
     def equals_primitive(self, term, subgoal):
         if self == term:          # Both terms are constant and equal.
             literal = Literal(binary_equals_pred, (self, self))

@@ -240,11 +240,11 @@ class LazyListOfList(LazyList):
 class Expression(object):
     @classmethod
     def _for(cls, operand):
-        if operand is None or isinstance(operand, (six.string_types, int, list, tuple, xrange)):
-            return Symbol(operand, forced_type="constant")
-        elif isinstance(operand, type(lambda: None)):
+        if isinstance(operand, (Expression, Aggregate)):
+            return operand
+        if isinstance(operand, type(lambda: None)):
             return Lambda(operand)
-        return operand
+        return Symbol(operand, forced_type="constant")
     
     def _precalculation(self):
         return Body() # by default, there is no precalculation needed to evaluate an expression
@@ -544,15 +544,10 @@ class Literal(object):
             elif isinstance(arg, Aggregate):
                 raise pyDatalog.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
             else:
-                terms.append(arg)
+                terms.append(Expression._for(arg))
         self.terms = terms
                             
-        tbl = []
-        for a in terms:
-            if isinstance(a, Symbol):
-                tbl.append(a._pyD_lua)
-            else:
-                tbl.append(pyEngine.Const(a))
+        tbl = [a._pyD_lua for a in terms]
         # now create the literal for the head of a clause
         self.lua = pyEngine.Literal(predicate_name, tbl, prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
