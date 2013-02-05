@@ -136,6 +136,11 @@ class Var(Fresh_var, Interned):
         return o
     def __init__(self, name):
         pass
+    def is_in(self, other):
+        if isinstance(other, Var):
+            return self==other
+        if isinstance(other, VarTuple):
+            return any(self.is_in(element) for element in other._id)
     def __str__(self): 
         return self.id 
 
@@ -395,7 +400,7 @@ def unify(literal, other):
 # efficient implementation of this operation.
 
 def is_in(term, literal):
-    return any([term2==term for term2 in literal.terms])
+    return any([term.is_in(term2) for term2 in literal.terms])
 
 # These methods are used to handle a set of facts.
 def is_member(literal, tbl):

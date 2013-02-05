@@ -222,7 +222,7 @@ class LazyList(UserList.UserList):
         return self.data
     
     def v(self):
-        return self.data[0] if self.data else None
+        return self._data[0] if self.data else None
 
 class LazyListOfList(LazyList):
     """ represents the result of an inline query (a Literal or Body)"""
@@ -233,7 +233,7 @@ class LazyListOfList(LazyList):
         # returns the first occurrence of 'other' variable in the result of a function
         if self.data:
             assert isinstance(other, pyDatalog.Variable)
-            for t in self.literal().args:
+            for t in self.literal().terms:
                 if id(t) == id(other):
                     return t.data[0]
     
@@ -523,25 +523,20 @@ class Literal(object):
         self.args = terms # TODO simplify
         self.todo = self
         cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
-        terms = []
-        for i, arg in enumerate(self.args):
-            if isinstance(arg, pyDatalog.Variable):
-                arg.todo = self
-                del arg._data[:] # reset variables
-                terms.append(arg.associated_symbol)
-            elif isinstance(arg, Symbol):
-                terms.append(arg)
-            elif isinstance(arg, Literal):
-                raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, terms), None, None)
-            elif i==0 and cls_name and cls_name not in [c.__name__ for c in arg.__class__.__mro__]:
+        self.terms = []
+        for i, arg in enumerate(terms):
+            if isinstance(arg, Literal):
+                raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, self.terms), None, None)
+            elif not isinstance(arg, VarSymbol) and i==0 and cls_name and cls_name not in [c.__name__ for c in arg.__class__.__mro__]:
                 raise TypeError("Object is incompatible with the class that is queried.")
             elif isinstance(arg, Aggregate):
                 raise pyDatalog.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
-            else:
-                terms.append(Expression._for(arg))
-        self.terms = terms
+            if isinstance(arg, pyDatalog.Variable):
+                arg.todo = self
+                del arg._data[:] # reset variables
+            self.terms.append(Expression._for(arg))
                             
-        tbl = [a._pyD_lua for a in terms]
+        tbl = [a._pyD_lua for a in self.terms]
         # now create the literal for the head of a clause
         self.lua = pyEngine.Literal(predicate_name, tbl, prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
@@ -633,9 +628,9 @@ class Query(Literal, LazyListOfList):
         self._data = self.lua.ask(False)
         self.todo = None
         if not ProgramMode and self.data: 
-            transposed = list(zip(*(self.data))) # transpose result
+            transposed = list(zip(*(self._data))) # transpose result
             result = []
-            for i, arg in enumerate(self.args):
+            for i, arg in enumerate(self.terms):
                 if isinstance(arg, pyDatalog.Variable) and len(arg._data)==0:
                     arg._data.extend(transposed[i])
                     arg.todo = None
@@ -689,11 +684,11 @@ class Body(LazyListOfList):
         for arg in args:
             self.literals += [arg] if isinstance(arg, Literal) else arg.literals
         self.has_variables = False
+        self.todo = self
         for literal in self.literals:
-            if hasattr(literal, 'args'):
+            if literal._variables():
                 self.has_variables = True
-                self.todo = self
-                for arg in literal.args:
+                for arg in literal.terms:
                     if isinstance(arg, pyDatalog.Variable):
                         arg.todo = self
 
@@ -707,12 +702,10 @@ class Body(LazyListOfList):
 
     def literal(self, permanent=False):
         # return a literal that can be queried to resolve the body
-        env, args = OrderedDict(), OrderedDict()
+        env = OrderedDict()
         for literal in self.literals:
-            for term, arg in zip(literal.terms, literal.args or literal.terms):
-                if isinstance(term, Symbol) and term._pyD_type == 'variable' and (isinstance(arg, VarSymbol)):
-                    env[term._pyD_name] = term
-                    args[id(arg)] = arg
+            for term in literal._variables().values():
+                env[term._pyD_name] = term
         if permanent:
             literal = Literal.make('_pyD_query' + str(Body.Counter), list(env.values()))
             Body.Counter = Body.Counter + 1
@@ -720,7 +713,6 @@ class Body(LazyListOfList):
             literal = Literal.make('_pyD_query', list(env.values()))
             literal.lua.pred.reset_clauses()
         literal <= self
-        literal.args = args.values()
         return literal
         
     def __invert__(self):

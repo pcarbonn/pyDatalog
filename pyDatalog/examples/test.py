@@ -529,6 +529,7 @@ def test():
     assert ((X==1) >= X) == 1
     assert ((X==1) & (X!=2) >= X) == 1
     assert set(X._in((1,2))) == set([(1,),(2,)])
+    assert ((X==1) & (X._in ((1,2)))) == [(1,)]
 
     """ interface with python classes                                        """
 
@@ -891,29 +892,27 @@ if __name__ == "__main__":
     assert ( X==(1,(2,)) ) == [((1,(2,)),)] # nested
     assert ( X==(1,) + (2,) ) == [((1,2),)] # expression
     
-    assert ( (X==(1,2)) & (X==(1, X2)) & (Y==X2)) == [((1, 2), 2, 2)] # TODO drop last literal
+    assert ( (X==(1,2)) & (X==(1, X2))) == [((1, 2), 2)]
     assert ( (X==(1,(2,))) & (X==(1, (X2,))) & (Y==X2)) == [((1, (2,)), 2, 2)]
     assert ( (X==(1,2)) & (X==Y)) == [((1, 2), (1, 2))]
     assert ( (X==(1,2)) & (Y==(1,2)) & (X==Y)) == [((1, 2), (1, 2))]
     assert ( (X==(1,2)) & (Y==(1,3)) & (X==Y)) == []
-    #print ( (X==(1,X1)) & (Y==(1,X2)) & (X==Y) & (X1==1) & (X3==X2)) # TODO drop last literal
     
     eq(X,Y) <= (X==Y)
     assert ( eq(X,(1,2))) == [((1,2),)]
     assert ( eq(X,(1,(2,))) ) == [((1,(2,)),)] # nested
     assert ( eq(X,(1,) + (2,)) ) == [((1,2),)] # expression
     
-    """ TODO
-    assert ( eq(X,(1,2)) & (eq(X,(1, X2))) & (Y==X2)) == [((1, 2), 2, 2)] # TODO drop last literal
+    
+    assert ( eq(X,(1,2)) & (eq(X,(1, X2)))) == [((1, 2), 2)]
     assert ( eq(X,(1,(2,))) & (X==(1, (X2,))) & (Y==X2)) == [((1, (2,)), 2, 2)]
     assert ( eq(X,(1,2)) & eq(X,Y)) == [((1, 2), (1, 2))]
     assert ( eq(X,(1,2)) & (Y==(1,2)) & (X==Y)) == [((1, 2), (1, 2))]
     assert ( eq(X,(1,2)) & (Y==(1,3)) & (X==Y)) == []
-    """
     
     + (p[a] == (1,2))
     assert ( p[X]==(1,2) ) == [('a',)]
-    assert ( (p[X]==(1,2)) & (p[X]==(1, X2)) & (Y==X2)) == [('a', 2, 2)] # TODO drop last literal
+    assert ( (p[X]==(1,2)) & (p[X]==(1, X2))) == [('a', 2)]
     assert ( (p[X]==(1,2)) & (p[X]==Y)) == [('a', (1, 2))]
     assert ( (p[X]==(1,2)) & (Y==(1,2)) & (p[X]==Y)) == [('a', (1, 2))]
     assert ( (p[X]==(1,2)) & (Y==(1,3)) & (p[X]==Y)) == []
