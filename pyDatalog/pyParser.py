@@ -305,6 +305,13 @@ class Expression(object):
         return Operation(self, '/', other)
     def __rfloordiv__(self, other):
         return Operation(other, '//', self)
+
+    def __getitem__(self, keys):
+        """ called when compiling expression[keys] """
+        return Operation(self, 'slice', keys)
+    def __getslice__(self, i, j):
+        return self.__getitem__(slice(i,j))
+    
     
 class VarSymbol(Expression):
     """ represents the symbol of a variable, both inline and in pyDatalog program 
@@ -315,6 +322,11 @@ class VarSymbol(Expression):
             self._pyD_name = [Expression._for(element) for element in name]
             self._pyD_type = 'tuple'
             self._pyD_lua = pyEngine.VarTuple([e._pyD_lua for e in self._pyD_name])
+        elif isinstance(name, slice):
+            start, stop, step = map(Expression._for, (name.start, name.stop, name.step))
+            self._pyD_name = slice(start, stop, step)
+            self._pyD_type = 'slice'
+            self._pyD_lua = slice(start, stop, step)
         elif forced_type=="constant" or isinstance(name, (int, list, tuple, xrange)) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_name = name
             self._pyD_type = 'constant'
@@ -338,6 +350,10 @@ class VarSymbol(Expression):
             return pyEngine.Operand('variable', variables.index(self._pyD_name))
         elif self._pyD_type == 'tuple':
             return pyEngine.Operand('tuple', [element.lua_expr(variables) for element in self._pyD_name])
+        elif self._pyD_type == 'slice':
+            return pyEngine.Operand('slice', slice(self._pyD_name.start.lua_expr(variables),
+                                                   self._pyD_name.stop.lua_expr(variables),
+                                                   self._pyD_name.step.lua_expr(variables),))
         else:
             return pyEngine.Operand('constant', self._pyD_name)
     
@@ -349,9 +365,15 @@ class VarSymbol(Expression):
             for element in self._pyD_name:
                 variables.update(element._variables())
             return variables
+        elif self._pyD_type == 'slice':
+            variables = OrderedDict()
+            variables.update(self._pyD_name.start._variables())
+            variables.update(self._pyD_name.stop._variables())
+            variables.update(self._pyD_name.step._variables())
+            return variables
         else:
             return OrderedDict()
-
+        
 class Symbol(VarSymbol):
     """
     can be constant, list, tuple, variable or predicate name

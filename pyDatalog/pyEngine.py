@@ -971,6 +971,10 @@ class Operand(object):
             return environment[self.index-1]
         elif isinstance(self.value, (list, tuple)):
             return tuple(element.eval(environment) for element in self.value)
+        elif isinstance(self.value, slice):
+            return slice(self.value.start.eval(environment), 
+                         self.value.stop.eval(environment),
+                         self.value.step.eval(environment),)
         else:
             return self.value
         
@@ -990,6 +994,8 @@ class Expression(object):
             return self.operand1.eval(env) / self.operand2.eval(env)
         elif self.operator == '//':
             return self.operand1.eval(env) // self.operand2.eval(env)
+        elif self.operator == 'slice':
+            return self.operand1.eval(env).__getitem__(self.operand2.eval(env))
         assert False # dead code
         
 """

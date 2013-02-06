@@ -558,15 +558,15 @@ def test():
     X, Y = pyDatalog.variables(2)
     assert (A.c[X]=='a') == [(a,)]
     assert (A.c[X]=='a')[0] == (a,)
-    assert list(X) == [a]
+    assert list(X.data) == [a]
     assert X.v() == a
     assert ((A.c[a]==X) >= X) == 'a'
     assert ((A.c[a]==X) & (A.c[a]==X) >= X) == 'a'
     assert ((A.c[a]==X) & (A.c[b]==X) >= X) == None
     (A.c[X]=='b') & (A.b[X]=='a')
-    assert list(X) == []
+    assert list(X.data) == []
     (A.c[X]=='a') & (A.b[X]=='a')
-    assert list(X) == [a]
+    assert list(X.data) == [a]
     result = (A.c[X]=='a') & (A.b[X]=='a')
     assert result == [(a,)]
     assert (A.c[a] == 'a') == [()]
@@ -642,7 +642,7 @@ def test():
     assert z.z == 'z'
     assert (Z.z[X]=='z') == [(z,)]
     assert ((Z.z[X]=='z') & (Z.z[X]>'a')) == [(z,)]
-    assert list(X) == [z]
+    assert list(X.data) == [z]
     try:
         a.z == 'z'
     except Exception as e:
@@ -918,6 +918,13 @@ if __name__ == "__main__":
     assert ( (p[X]==(1,2)) & (Y==(1,3)) & (p[X]==Y)) == []
     + (p[a] == (1,(2,)))
     assert ( (p[X]==(1,(2,))) & (p[X]==(1, (X2,))) & (Y==X2)) == [('a', 2, 2)]
+
+    # slices
+    assert ((X==(1,2)) & (Y==X[1:2])) == [((1, 2), (2,))]
+    assert ((X==(1,2)) & (Y==X[1])) == [((1, 2), 2)]
+    assert ((X==(1,2)) & (X1==1) & (Y==X[X1])) == [((1, 2), 1, 2)]
+    assert ((X==(1,2)) & (X1==1) & (Y==X[X1:])) == [((1, 2), 1, (2,))]
+    assert ((X==(1,2)) & (X1==1) & (Y==X[X1:X1+1])) == [((1, 2), 1, (2,))]
 
     print("Test completed successfully.")
 
