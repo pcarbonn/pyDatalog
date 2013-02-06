@@ -190,6 +190,12 @@ class Variable(pyParser.VarSymbol, pyParser.LazyList):
         name = 'X%i' % id(self) if name is None else name
         pyParser.LazyList.__init__(self)
         pyParser.VarSymbol.__init__(self, name)
+
+    def __add__(self, other):
+        return pyParser.Operation(self, '+', other)
+    def __radd__(self, other):
+        return pyParser.Operation(other, '+', self)
+
 pyDatalog.Variable = Variable
 
 """Keep a dictionary of classes with datalog capabilities.  This list is used by pyEngine to resolve prefixed literals."""

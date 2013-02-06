@@ -319,26 +319,30 @@ class VarSymbol(Expression):
     def __init__ (self, name, forced_type=None):
         self._pyD_negated = False # for aggregate with sort in descending order
         if isinstance(name, (list, tuple, xrange)):
-            self._pyD_name = [Expression._for(element) for element in name]
+            self._pyD_value = list(map(Expression._for, name))
+            self._pyD_name = str([element._pyD_name for element in self._pyD_value])
             self._pyD_type = 'tuple'
-            self._pyD_lua = pyEngine.VarTuple([e._pyD_lua for e in self._pyD_name])
+            self._pyD_lua = pyEngine.VarTuple([e._pyD_lua for e in self._pyD_value])
         elif isinstance(name, slice):
             start, stop, step = map(Expression._for, (name.start, name.stop, name.step))
-            self._pyD_name = slice(start, stop, step)
+            self._pyD_value = slice(start, stop, step)
+            self._pyD_name = '[%s:%s:%s]' % (start._pyD_name, stop._pyD_name, step._pyD_name)
             self._pyD_type = 'slice'
-            self._pyD_lua = slice(start, stop, step)
-        elif forced_type=="constant" or isinstance(name, (int, list, tuple, xrange)) or not name or name[0] not in string.ascii_uppercase + '_':
-            self._pyD_name = name
+            self._pyD_lua = slice(start, stop, step) # TODO ._pyD_lua ?
+        elif forced_type=="constant" or isinstance(name, int) or not name or name[0] not in string.ascii_uppercase + '_':
+            self._pyD_value = name
+            self._pyD_name = str(name)
             self._pyD_type = 'constant'
             self._pyD_lua = pyEngine.Const(name)
         else:
+            self._pyD_value = name
             self._pyD_name = name
             self._pyD_type = 'variable'
             self._pyD_lua = pyEngine.Var(name)
 
     def __neg__(self):
         """ called when compiling -X """
-        neg = Symbol(self._pyD_name)
+        neg = Symbol(self._pyD_value)
         neg._pyD_negated = True
 
         expr = 0 - self
@@ -349,27 +353,27 @@ class VarSymbol(Expression):
         if self._pyD_type == 'variable':
             return pyEngine.Operand('variable', variables.index(self._pyD_name))
         elif self._pyD_type == 'tuple':
-            return pyEngine.Operand('tuple', [element.lua_expr(variables) for element in self._pyD_name])
+            return pyEngine.Operand('tuple', [element.lua_expr(variables) for element in self._pyD_value])
         elif self._pyD_type == 'slice':
-            return pyEngine.Operand('slice', slice(self._pyD_name.start.lua_expr(variables),
-                                                   self._pyD_name.stop.lua_expr(variables),
-                                                   self._pyD_name.step.lua_expr(variables),))
+            return pyEngine.Operand('slice', slice(self._pyD_lua.start.lua_expr(variables),
+                                                   self._pyD_lua.stop.lua_expr(variables),
+                                                   self._pyD_lua.step.lua_expr(variables),))
         else:
-            return pyEngine.Operand('constant', self._pyD_name)
+            return pyEngine.Operand('constant', self._pyD_value)
     
     def _variables(self):
         if self._pyD_type == 'variable':
             return OrderedDict({self._pyD_name : self})
         elif self._pyD_type == 'tuple':
             variables = OrderedDict()
-            for element in self._pyD_name:
+            for element in self._pyD_value:
                 variables.update(element._variables())
             return variables
         elif self._pyD_type == 'slice':
             variables = OrderedDict()
-            variables.update(self._pyD_name.start._variables())
-            variables.update(self._pyD_name.stop._variables())
-            variables.update(self._pyD_name.step._variables())
+            variables.update(self._pyD_lua.start._variables())
+            variables.update(self._pyD_lua.stop._variables())
+            variables.update(self._pyD_lua.step._variables())
             return variables
         else:
             return OrderedDict()
