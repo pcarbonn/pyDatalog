@@ -121,11 +121,12 @@ class _transform_ast(ast.NodeTransformer):
                 )
         return ast.fix_missing_locations(newNode)
 
-def load(code, newglobals={}, defined=set([]), function='load'):
+def load(code, newglobals=None, defined=None, function='load'):
     """ code : a string or list of string 
         newglobals : global variables for executing the code
         defined : reserved symbols
     """
+    newglobals, defined = newglobals or {}, defined or set([])
     # remove indentation based on first non-blank line
     lines = code.splitlines() if isinstance(code, six.string_types) else code
     r = re.compile('^\s*')

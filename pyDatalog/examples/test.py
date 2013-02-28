@@ -152,6 +152,7 @@ def test():
         assert ask((X==1) & (X<=1)) == set([(1,)])
         assert ask((X==1) & (X>1)) == None
         assert ask((X==1) & (X>=1)) == set([(1,)])
+        assert ask(X==(1,2)) == set([((1,2), (1,2))])
         assert ask(X in (1,)) == set([(1,)])
         assert ask((X==1) & (X not in (2,))) == set([(1,)])
         assert ask((X==1) & ~(X in (2,))) == set([(1,)])
