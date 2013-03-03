@@ -23,7 +23,7 @@ print(queens7(X0,X1,X2,X3,X4,X5,X6,X7))
     
 # there is a fixed penalty the first time around (JIT, ...), so let's measure performance the second time
 start_time = time.time()
-datalog_count = len(pyDatalog.ask("queens7(X0,X1,X2,X3,X4,X5,X6,X7)").answers)
+datalog_count = len(queens7(X0,X1,X2,X3,X4,X5,X6,X7))
 datalog_time = (time.time() - start_time)
 
 # pure python solution found on http://rosettacode.org/wiki/N-Queens#Python, for comparison purposes
