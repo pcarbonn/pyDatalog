@@ -93,8 +93,8 @@ class Fresh_var(object): # no interning needed
         Fresh_var.fresh_var_state += 1 # ensures freshness
     def is_const(self):
         return False
-    def get_tag(self, i, env):
-        env.setdefault(self, 'v%i' % i) # TODO return the result of this statement directly ?
+    def get_tag(self, env):
+        env.setdefault(self, 'v%i' % len(env)) # TODO return the result of this statement directly ?
         return env[self] 
 
     def subst(self, env):
@@ -118,7 +118,7 @@ class Fresh_var(object): # no interning needed
         return env
     
     def is_safe(self, clause):
-        return any([is_in(self, bodi) for bodi in clause.body])
+        return any(is_in(self, bodi) for bodi in clause.body)
     def __str__(self): 
         return "variable_%s" % self.id
     def equals_primitive(self, term, subgoal):
@@ -159,7 +159,7 @@ class Const(Interned):
         return o
     def is_const(self):
         return True
-    def get_tag(self, i, env):
+    def get_tag(self, env):
         return self.key
     def subst(self, env):
         return self
@@ -208,8 +208,8 @@ class VarTuple(Interned):
     def is_const(self):
         return all(element.is_const() for element in self._id)
     
-    def get_tag(self, i, env):
-        return self.key
+    def get_tag(self, env):
+        return repr([t.get_tag(env) for t in self._id])#TODO
     def subst(self, env):
         return VarTuple([element.subst(env) for element in self._id])
     def shuffle(self, env):
@@ -357,7 +357,7 @@ def get_tag(literal):
     if not hasattr(literal, 'tag'):
         literal.tag = add_size(literal.pred.id)
         env = {}
-        literal.tag += ''.join([add_size(term.get_tag(i, env)) for i, term in enumerate(literal.terms)])
+        literal.tag += ''.join([add_size(term.get_tag(env)) for term in literal.terms])
     return literal.tag
      
 # An environment is a map from variables to terms.
@@ -400,7 +400,7 @@ def unify(literal, other):
 # efficient implementation of this operation.
 
 def is_in(term, literal):
-    return any([term.is_in(term2) for term2 in literal.terms])
+    return any(term.is_in(term2) for term2 in literal.terms)
 
 # These methods are used to handle a set of facts.
 def is_member(literal, tbl):
@@ -462,7 +462,7 @@ def rename_clause(clause):
 # A clause is safe if every variable in its head is in its body.
 
 def is_safe(clause):
-    return all([term.is_safe(clause) for term in clause.head.terms])
+    return all(term.is_safe(clause) for term in clause.head.terms)
 
 # DATABASE
 
