@@ -323,7 +323,7 @@ class VarSymbol(Expression):
             self._pyD_value = list(map(Expression._for, name))
             self._pyD_name = str([element._pyD_name for element in self._pyD_value])
             self._pyD_type = 'tuple'
-            self._pyD_lua = pyEngine.VarTuple([e._pyD_lua for e in self._pyD_value])
+            self._pyD_lua = pyEngine.Interned.of([e._pyD_lua for e in self._pyD_value])
         elif isinstance(name, slice):
             start, stop, step = map(Expression._for, (name.start, name.stop, name.step))
             self._pyD_value = slice(start, stop, step)

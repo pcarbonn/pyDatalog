@@ -68,7 +68,7 @@ class Interned(object):
         if isinstance(atom, (Interned, Fresh_var)):
             return atom
         elif isinstance(atom, (list, tuple, xrange)):
-            return VarTuple(atom)
+            return VarTuple(tuple([Interned.of(element) for element in atom]))
         else:
             return Const(atom)
     notFound = object()
@@ -193,7 +193,6 @@ class Const(Interned):
 class VarTuple(Interned):
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
-        _id = tuple([Interned.of(element) for element in _id])
         o = cls.registry.get(_id, Interned.notFound)
         if o is Interned.notFound: 
             o = object.__new__(cls) # o is the ref that keeps it alive
@@ -214,7 +213,7 @@ class VarTuple(Interned):
     def subst(self, env):
         if self.is_constant: # can use lazy property only for constants
             return self
-        return VarTuple([element.subst(env) for element in self._id])
+        return VarTuple(tuple([element.subst(env) for element in self._id]))
     def shuffle(self, env):
         if not self.is_constant:
             for element in self._id:
@@ -222,7 +221,7 @@ class VarTuple(Interned):
     def chase(self, env):
         if self.is_constant:
             return self
-        return VarTuple([element.chase(env) for element in self._id])
+        return VarTuple(tuple([element.chase(env) for element in self._id]))
     
     def unify(self, term, env):
         return term.unify_tuple(self, env)
