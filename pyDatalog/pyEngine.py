@@ -77,6 +77,8 @@ class Interned(object):
     def __hash__(self): return id(self)
     def __ne__(self, other):
         return not self is other
+    def is_const(self): # for backward compatibility with custom resolvers
+        return self.is_constant
 
 # A term is either a variable or a constant.
 
@@ -91,8 +93,10 @@ class Fresh_var(object): # no interning needed
         self.id = str(Fresh_var.fresh_var_state)
         self.key = add_size('v' + self.id)
         Fresh_var.fresh_var_state += 1 # ensures freshness
+    
     def is_const(self):
         return False
+    is_constant = False
     def get_tag(self, env):
         env.setdefault(self, 'v%i' % len(env)) # TODO return the result of this statement directly ?
         return env[self] 
@@ -157,8 +161,7 @@ class Const(Interned):
                     else 'o' + str(id(o)) )
             cls.registry[_id] = o
         return o
-    def is_const(self):
-        return True
+    is_constant = True
     def get_tag(self, env):
         return self.key
     def subst(self, env):
@@ -196,26 +199,29 @@ class VarTuple(Interned):
             o = object.__new__(cls) # o is the ref that keeps it alive
             o._id = _id
             o.key = add_size('o' + str(id(o)) )
+            o.id = tuple([element.id for element in _id])
+            o.is_constant = all(element.is_constant for element in _id)
             cls.registry[_id] = o
         return o
     
-    @property # TODO use lazy property
-    def id(self):
-        return tuple([element.id for element in self._id])
     def __len__(self):
         return len(self._id)        
     
-    def is_const(self):
-        return all(element.is_const() for element in self._id)
-    
     def get_tag(self, env):
+        if self.is_constant: # can use lazy property only for constants
+            return self.key
         return repr([t.get_tag(env) for t in self._id])#TODO
     def subst(self, env):
+        if self.is_constant: # can use lazy property only for constants
+            return self
         return VarTuple([element.subst(env) for element in self._id])
     def shuffle(self, env):
-        for element in self._id:
-            element.shuffle(env)
+        if not self.is_constant:
+            for element in self._id:
+                element.shuffle(env)
     def chase(self, env):
+        if self.is_constant:
+            return self
         return VarTuple([element.chase(env) for element in self._id])
     
     def unify(self, term, env):
@@ -522,7 +528,7 @@ def relevant_clauses(literal):
     #returns matching clauses for a literal query, using index
     result = None
     for i, term in enumerate(literal.terms):
-        if term.is_const():
+        if term.is_constant:
             facts = literal.pred.index[i].get(term) or set({})
             result = facts if result == None else result.intersection(facts)
     if result == None: # no constants found
@@ -712,7 +718,7 @@ def search(subgoal):
     class0 = literal0.pred._class()
     terms = literal0.terms
     
-    if class0 and terms[0].is_const() and terms[0].id is None: return
+    if class0 and terms[0].is_constant and terms[0].id is None: return
     if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
         if Debug : print("pyDatalog will search negation of %s" % literal0)
         """ 
@@ -743,7 +749,7 @@ def search(subgoal):
                        _search(base_literal, subgoal, literal)))
         return
 
-    assert not class0 or not terms[0].is_const() or isinstance(terms[0].id, class0), \
+    assert not class0 or not terms[0].is_constant or isinstance(terms[0].id, class0), \
         "TypeError: First argument of %s must be a %s, not a %s " % (str(literal0), class0.__name__, type(terms[0].id).__name__)
     for _class in literal0.pred.parent_classes():
         literal = literal0.rebased(_class)
@@ -1025,22 +1031,22 @@ def add_expr_to_predicate(pred, operator, expression):
     def expression_iter(literal):
         x = literal.terms[0]
         args = []
-        assert operator in ('==', 'in') or x.is_const(), "Error: left hand side of comparison must be bound: %s" % literal.pred.id
+        assert operator in ('==', 'in') or x.is_constant, "Error: left hand side of comparison must be bound: %s" % literal.pred.id
         for term in literal.terms[1:]:
-            if not term.is_const():
+            if not term.is_constant:
                 #unbound: can't raise error if right side is unbound, because split(a,b,c) would fail (see test.py)
                 assert operator == '==', "Error: right hand side of comparison must be unbound: %s" % literal.pred.id
                 return
             args.append(term.id)
             
         Y = literal.pred.expression.eval(args) if literal.pred.expression else args[0]
-        if literal.pred.operator == "==" and (not x.is_const() or x.id == Y):
+        if literal.pred.operator == "==" and (not x.is_constant or x.id == Y):
             args.insert(0,Y)
             yield args
-        elif x.is_const() and compare(x.id, literal.pred.operator, Y):
+        elif x.is_constant and compare(x.id, literal.pred.operator, Y):
             args.insert(0,x.id)
             yield args
-        elif (literal.pred.operator == "in" and not x.is_const()):
+        elif (literal.pred.operator == "in" and not x.is_constant):
             for v in Y:
                 values = list(args) # makes a copy
                 values.insert(0,v)

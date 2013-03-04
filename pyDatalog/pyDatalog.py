@@ -242,29 +242,29 @@ class metaMixin(type):
 
         if len(terms)==2:
             X, Y = terms[0], terms[1]
-            if X.is_const():
+            if X.is_constant:
                 # try accessing the attribute of the first term in literal
                 check_attribute(X.id)
                 Y1 = getattr(X.id, attr_name)
-                if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
-                    yield (X.id, Y.id if Y.is_const() else Y1 if operator=='==' else None)
+                if not Y.is_constant or not operator or pyEngine.compare(Y1,operator,Y.id):
+                    yield (X.id, Y.id if Y.is_constant else Y1 if operator=='==' else None)
             elif cls.has_SQLAlchemy:
                 if cls.session:
                     q = cls.session.query(cls)
                     check_attribute(cls)
-                    if Y.is_const():
+                    if Y.is_constant:
                         q = q.filter(pyEngine.compare(getattr(cls, attr_name), operator, Y.id))
                     for r in q:
                         Y1 = getattr(r, attr_name)
-                        if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
-                                yield (r, Y.id if Y.is_const() else Y1 if operator=='==' else None)
+                        if not Y.is_constant or not operator or pyEngine.compare(Y1,operator,Y.id):
+                                yield (r, Y.id if Y.is_constant else Y1 if operator=='==' else None)
             else:
                 # python object with Mixin
                 for X in metaMixin.__refs__[cls]:
                     check_attribute(X)
                     Y1 = getattr(X, attr_name)
-                    if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
-                        yield (X, Y.id if Y.is_const() else Y1 if operator=='==' else None)
+                    if not Y.is_constant or not operator or pyEngine.compare(Y1,operator,Y.id):
+                        yield (X, Y.id if Y.is_constant else Y1 if operator=='==' else None)
             return
         else:
             raise AttributeError ("%s could not be resolved" % literal.pred.name)
