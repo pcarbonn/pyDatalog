@@ -32,6 +32,7 @@ Some differences between python and lua:
 * lua variables are global by default, python ones are local by default
 * variable bindings in a closure.  See http://tiny.cc/7837cw, http://tiny.cc/rq47cw
 """
+from collections import deque
 import copy
 import gc
 from itertools import groupby
@@ -197,7 +198,8 @@ class VarTuple(Interned):
         if o is Interned.notFound: 
             o = object.__new__(cls) # o is the ref that keeps it alive
             o._id = _id
-            o.key = add_size('o' + str(id(o)) )
+            #o.key = add_size('o' + str(id(o)) )
+            o.key = '('+ ''.join([e.key for e in _id]) + ')'
             o.id = tuple([element.id for element in _id])
             o.is_constant = all(element.is_constant for element in _id)
             cls.registry[_id] = o
@@ -594,7 +596,7 @@ def resolve(clause, literal):
 
 Fast = None
 tasks = None
-Stack = []        
+Stack = []       
 
 # Schedule a task for later invocation
 
@@ -613,24 +615,24 @@ def complete(thunk, post_thunk):
     """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
     global Fast, subgoals, tasks, Stack
     Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
-    subgoals, tasks = {}, []
+    subgoals, tasks = {}, deque()
     schedule(Thunk(thunk))
     if Fast: 
         #TODO pop to recover memory space
         return post_thunk() # don't bother with thunks if Fast
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
-    Stack[-1][1].insert(0, Thunk(post_thunk)) 
+    Stack[-1][1].appendleft(Thunk(post_thunk)) 
     
 # Invoke the tasks. Each task may append new tasks on the schedule.
 
 def invoke(thunk):
     global tasks, subgoals
     if Fast: return thunk()
-    tasks = [Thunk(thunk),]
+    tasks = deque([Thunk(thunk),])
     while tasks or Stack:
         while tasks:
-            tasks.pop(0).do() # get the thunk and execute it
+            tasks.popleft().do() # get the thunk and execute it
         if Stack: 
             subgoals, tasks = Stack.pop()
             if Debug: print('pop')
@@ -787,7 +789,7 @@ def search(subgoal):
             #TODO thunking to avoid possible stack overflow
             global Fast, subgoals, tasks, Stack
             Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop() when tasks is empty
-            subgoals, tasks = {}, []
+            subgoals, tasks = {}, deque()
             #result = ask(base_literal)
             base_subgoal = make_subgoal(base_literal)
             merge(base_subgoal)
