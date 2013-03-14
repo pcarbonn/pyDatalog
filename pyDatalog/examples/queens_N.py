@@ -3,22 +3,25 @@ from pyDatalog import pyDatalog
 import time
 from pyDatalog import pyEngine
 
-pyDatalog.create_atoms('N,N1, X,Y, X0,X1,X2')
-pyDatalog.create_atoms('ok,queens')
+pyDatalog.create_atoms('N,N1, X,Y, X0,X1,X2,X3,X4,X5,X6,X7')
+pyDatalog.create_atoms('ok,queens, pred')
 
 # when is it ok to have a queen in row X1 and another in row X2, separated by N columns
 # this is memoized !
-size=7
-ok(X1, N, X2) <= (X1._in(range(size))) & (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
-queens(1, X) <= (X1._in(range(size))) & (X==(X1,)) #TODO
-queens(N, X) <= (N>1) & (N1==N-1) & X0._in(range(size)) & queens(N1, Y) &  ok(Y[0], N1, X0) & queens(N1, Y[1:]+(X0,)) & (X==Y+(X0,))  
-print(queens(size, X))
+size=8
+ok(X1, N, X2) <= (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
+pred(N, N1) <= (N>1) & (N1==N-1)
+queens(1, X) <= (X1._in(range(size))) & (X1==X[0])
+queens(N, X) <= pred(N, N1) & queens(N1, X[slice(-1)]) & queens(N1, X[1:]) & ok(X[0], N1, X[-1])
 
+start_time = time.time()
+print(queens(size, (X0,X1,X2,X3,X4,X5,X6,X7)))
+print("First datalog run in %f seconds" % (time.time() - start_time))
 
 # counting is 0-based, so this is actually the 8-queens solution
 # there is a fixed penalty the first time around (JIT, ...), so let's measure performance the second time
 start_time = time.time()
-datalog_count = len(queens(size, X).data)
+datalog_count = len(queens(size, (X0,X1,X2,X3,X4,X5,X6,X7)).data)
 datalog_time = (time.time() - start_time)
 
 

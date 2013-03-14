@@ -244,19 +244,15 @@ class Expression(object):
         if isinstance(operand, (Expression, Aggregate)):
             return operand
         if isinstance(operand, type(lambda: None)):
-            return Lambda(operand)
+            return Operation(None, operand, [Symbol(var) for var in getattr(operand,func_code).co_varnames])
         return Symbol(operand, forced_type="constant")
     
     def _precalculation(self):
         return Body() # by default, there is no precalculation needed to evaluate an expression
     
     def __eq__(self, other):
-        assert isinstance(self, (VarSymbol, Function)), "Left-hand side of equality must be a symbol or function, not an expression."
-        other = Expression._for(other)
-        if self._pyD_type == 'variable' and (not isinstance(other, VarSymbol) or other._pyD_type=='constant'):
-            return Literal.make_for_comparison(self, '==', other)
-        else:
-            return Literal.make("=", (self, other))
+        #TODO assert isinstance(self, (VarSymbol, Function)), "Left-hand side of equality must be a symbol or function, not an expression."
+        return Literal.make_for_comparison(self, "==", other)
     def __ne__(self, other):
         return Literal.make_for_comparison(self, '!=', other)
     def __le__(self, other):
@@ -269,10 +265,10 @@ class Expression(object):
         return Literal.make_for_comparison(self, '>', other)
     def _in(self, values):
         """ called when compiling (X in (1,2)) """
-        return Literal.make_for_comparison(self, 'in', values)
+        return Literal.make_for_comparison(self, '_pyD_in', values)
     def _not_in(self, values):
         """ called when compiling (X not in (1,2)) """
-        return Literal.make_for_comparison(self, 'not in', values)
+        return Literal.make_for_comparison(self, '_pyD_not_in', values)
     
     def __pos__(self):
         """ called when compiling -X """
@@ -309,6 +305,8 @@ class Expression(object):
 
     def __getitem__(self, keys):
         """ called when compiling expression[keys] """
+        if isinstance(keys, slice):
+            return Operation(self, 'slice', [keys.start, keys.stop, keys.step])
         return Operation(self, 'slice', keys)
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i,j))
@@ -326,10 +324,10 @@ class VarSymbol(Expression):
             self._pyD_lua = pyEngine.Interned.of([e._pyD_lua for e in self._pyD_value])
         elif isinstance(name, slice):
             start, stop, step = map(Expression._for, (name.start, name.stop, name.step))
-            self._pyD_value = slice(start, stop, step)
+            self._pyD_value = (start, stop, step)
             self._pyD_name = '[%s:%s:%s]' % (start._pyD_name, stop._pyD_name, step._pyD_name)
             self._pyD_type = 'slice'
-            self._pyD_lua = slice(start, stop, step) # TODO ._pyD_lua ?
+            self._pyD_lua = pyEngine.Interned.of([start._pyD_lua, stop._pyD_lua, step._pyD_lua])
         elif forced_type=="constant" or isinstance(name, int) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_value = name
             self._pyD_name = str(name)
@@ -350,18 +348,6 @@ class VarSymbol(Expression):
         expr.variable = neg
         return expr
     
-    def lua_expr(self, variables):
-        if self._pyD_type == 'variable':
-            return pyEngine.Operand('variable', variables.index(self._pyD_name))
-        elif self._pyD_type == 'tuple':
-            return pyEngine.Operand('tuple', [element.lua_expr(variables) for element in self._pyD_value])
-        elif self._pyD_type == 'slice':
-            return pyEngine.Operand('slice', slice(self._pyD_lua.start.lua_expr(variables),
-                                                   self._pyD_lua.stop.lua_expr(variables),
-                                                   self._pyD_lua.step.lua_expr(variables),))
-        else:
-            return pyEngine.Operand('constant', self._pyD_value)
-    
     def _variables(self):
         if self._pyD_type == 'variable':
             return OrderedDict({self._pyD_name : self})
@@ -372,9 +358,9 @@ class VarSymbol(Expression):
             return variables
         elif self._pyD_type == 'slice':
             variables = OrderedDict()
-            variables.update(self._pyD_lua.start._variables())
-            variables.update(self._pyD_lua.stop._variables())
-            variables.update(self._pyD_lua.step._variables())
+            variables.update(self._pyD_value[0]._variables())
+            variables.update(self._pyD_value[1]._variables())
+            variables.update(self._pyD_value[2]._variables())
             return variables
         else:
             return OrderedDict()
@@ -423,7 +409,7 @@ class Symbol(VarSymbol):
         else:
             new_args, pre_calculations = [], Body()
             for arg in args:
-                if isinstance(arg, (Operation, Function, Lambda)):
+                if isinstance(arg, Function):
                     Y = Function.newSymbol()
                     new_args.append(Y)
                     pre_calculations = pre_calculations & (Y == arg)
@@ -464,7 +450,7 @@ class Function(Expression):
         self.name = "%s[%i]" % (name, len(keys))
         self.keys, self.pre_calculations = [], Body()
         for key in keys:
-            if isinstance(key, (Operation, Function, Lambda)):
+            if isinstance(key, (Operation, Function)):
                 Y = Function.newSymbol()
                 self.keys.append(Y)
                 self.pre_calculations = self.pre_calculations & (Y == key)
@@ -473,6 +459,7 @@ class Function(Expression):
                 
         self.symbol = Function.newSymbol()
         self.dummy_variable_name = '_pyD_X%i' % Function.Counter
+        self._pyD_lua = self.symbol._pyD_lua
     
     @property
     def _pyD_name(self):
@@ -485,9 +472,6 @@ class Function(Expression):
     def _variables(self):
         return {self.dummy_variable_name : self.symbol}
 
-    def lua_expr(self, variables):
-        return pyEngine.Operand('variable', variables.index(self.dummy_variable_name))
-
     def _precalculation(self): 
         return self.pre_calculations & (self == self.symbol)
     
@@ -495,9 +479,9 @@ class Operation(Expression):
     """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
-        
         self.lhs = Expression._for(lhs)
         self.rhs = Expression._for(rhs)
+        self._pyD_lua = pyEngine.Operation(self.lhs._pyD_lua, self.operator, self.rhs._pyD_lua)
         
     @property
     def _pyD_name(self):
@@ -511,32 +495,9 @@ class Operation(Expression):
     def _precalculation(self):
         return self.lhs._precalculation() & self.rhs._precalculation()
     
-    def lua_expr(self, variables):
-        return pyEngine.Expression(self.operator, self.lhs.lua_expr(variables), self.rhs.lua_expr(variables))
-    
     def __str__(self):
         return '(' + str(self.lhs._pyD_name) + self.operator + str(self.rhs._pyD_name) + ')'
 
-class Lambda(Expression):
-    """represents a lambda function, used in expressions"""
-    def __init__(self, other):
-        self.operator = '<lambda>'
-        self.lambda_object = other
-        
-    @property
-    def _pyD_name(self):
-        return str(self)
-    
-    def _variables(self):
-        return dict([ [var, Symbol(var)] for var in getattr(self.lambda_object,func_code).co_varnames])
-    
-    def lua_expr(self, variables):
-        operands = [pyEngine.Operand('variable', variables.index(varname)) for varname in getattr(self.lambda_object,func_code).co_varnames] 
-        return pyEngine.make_lambda(self.lambda_object, operands)
-    
-    def __str__(self):
-        return 'lambda%i(%s)' % (id(self.lambda_object), ','.join(getattr(self.lambda_object,func_code).co_varnames))
-        
 class Literal(object):
     """
     created by source code like 'p(a, b)'
@@ -595,22 +556,19 @@ class Literal(object):
                 terms.extend(other.args)
                 prearity = len(terms) # (X,Y,Z)
                 return Literal.make(name + '!', terms, prearity=prearity)
-            elif operator != '==' or isinstance(other, (Operation, Function, Lambda)):
+            elif operator != '==' or isinstance(other, (Operation, Function)):
                 if '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
                     literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
                     return literal & pyEngine.compare2(self.symbol, operator, other)
-                elif isinstance(other, (Operation, Function, Lambda)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
+                elif isinstance(other, (Operation, Function)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
                     Y2 = Function.newSymbol()
                     return (Y2 == other) & Literal.make(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
             return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
         else:
             if not isinstance(other, Expression):
                 raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
-            name = '=' + self._pyD_name + operator + str(other._pyD_name)
-            literal = Literal.make(name, [self] + list(other._variables().values()))
-            expr = other.lua_expr(list(self._variables().keys())+list(other._variables().keys()))
-            literal.pre_calculations = other._precalculation()
-            pyEngine.add_expr_to_predicate(literal.lua.pred, operator, expr)
+            literal = Literal.make(operator, [self] + [other])
+            literal.pre_calculations = self._precalculation() & other._precalculation()
             return literal
 
     @property
@@ -661,6 +619,9 @@ class Query(Literal, LazyListOfList):
                 if isinstance(arg, pyDatalog.Variable) and len(arg._data)==0:
                     arg._data.extend(transposed[i])
                     arg.todo = None
+                    result.append(transposed[i])
+                elif isinstance(arg, Symbol) and arg._pyD_type=='tuple' and \
+                    any(isinstance(a, pyDatalog.Variable) for a in arg._pyD_value):
                     result.append(transposed[i])
             self._data = list(zip(*result)) if result else [()]
 
