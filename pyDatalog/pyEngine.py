@@ -66,7 +66,7 @@ class Interned(object):
     # registry = weakref.WeakValueDictionary()
     @classmethod
     def of(cls, atom):
-        if isinstance(atom, (Interned, Fresh_var)):
+        if isinstance(atom, (Interned, Fresh_var, Operation)):
             return atom
         elif isinstance(atom, (list, tuple, xrange)):
             return VarTuple(tuple([Interned.of(element) for element in atom]))
@@ -123,7 +123,7 @@ class Fresh_var(object): # no interning needed
         return env
     
     def is_safe(self, clause):
-        return any(is_in(self, bodi) for bodi in clause.body)
+        return any(is_in_literal(self, bodi) for bodi in clause.body)
     def __str__(self): 
         return "variable_%s" % self.id
     def equals_primitive(self, term, subgoal):
@@ -146,6 +146,8 @@ class Var(Fresh_var, Interned):
             return self==other
         if isinstance(other, VarTuple):
             return any(self.is_in(element) for element in other._id)
+        if isinstance(other, Operation):
+            return self.is_in(other.lhs) or self.is_in(other.rhs)
     def __str__(self): 
         return self.id 
 
@@ -188,7 +190,7 @@ class Const(Interned):
         return "'%s'" % self.id
     def equals_primitive(self, term, subgoal):
         if self == term:          # Both terms are constant and equal.
-            literal = Literal(binary_equals_pred, (self, self))
+            literal = Literal("==", (self, self))
             return fact(subgoal, literal)
 
 class VarTuple(Interned):
@@ -247,8 +249,61 @@ class VarTuple(Interned):
         return "'%s'" % str([str(e) for e in self.id])
     def equals_primitive(self, term, subgoal):
         if self == term:          # Both terms are constant and equal.
-            literal = Literal(binary_equals_pred, (self, self))
+            literal = Literal("==", (self, self))
             return fact(subgoal, literal)
+
+class Operation(object): #TODO Interned ?
+    def __init__(self, lhs, operator, rhs):
+        self.operator = operator
+        self.lhs = lhs
+        self.rhs = rhs
+        self.is_constant = False
+        self.id = "(%s%s%s)" % (self.lhs.id, str(self.operator), self.rhs.id)
+        self.key = "(%s%s%s)" % (self.lhs.key, str(self.operator), self.rhs.key)
+    
+    def get_tag(self, env):
+        return "(%s%s%s)" % (self.lhs.get_tag(env), str(self.operator), self.rhs.get_tag(env))
+    def subst(self, env):
+        lhs = self.lhs.subst(env)
+        rhs = self.rhs.subst(env)
+        if self.operator == 'slice' and isinstance(lhs, VarTuple) and rhs.is_constant:
+            if isinstance(rhs, VarTuple):
+                return Interned.of(lhs._id.__getitem__(slice(*(rhs.id))))
+            return Interned.of(lhs._id.__getitem__(rhs.id))
+        if lhs.is_constant and rhs.is_constant:
+            # calculate expression of constants
+            if self.operator == '+':
+                return Interned.of(lhs.id + rhs.id)
+            elif self.operator == '-':
+                return Interned.of(lhs.id - rhs.id)
+            elif self.operator == '*':
+                return Interned.of(lhs.id * rhs.id)
+            elif self.operator == '/':
+                return Interned.of(lhs.id / rhs.id)
+            elif self.operator == '//':
+                return Interned.of(lhs.id // rhs.id)
+            elif isinstance(self.operator, type(lambda: None)):
+                return Interned.of(self.operator(*(rhs.id)))
+            assert False # dead code
+        return Operation(lhs, self.operator, rhs)
+            
+    def shuffle(self, env):
+        self.lhs.shuffle(env)
+        self.rhs.shuffle(env)
+    def chase(self, env):
+        return Operation(self.lhs.chase(env), self.operator, self.rhs.chase(env))
+    
+    def unify(self, term, env):
+        return None
+    def unify_const(self, const, env):
+        return None
+    def unify_var(self, var, env):
+        return None
+    def unify_tuple(self, tuple, env):
+        return None
+
+    def __str__(self): 
+        return "(%s%s%s)" % (str(self.lhs), str(self.operator), str(self.rhs))
 
 # Predicate symbols
 
@@ -406,7 +461,7 @@ def unify(literal, other):
 # Does a literal have a given term?  Internalizing terms ensures an
 # efficient implementation of this operation.
 
-def is_in(term, literal):
+def is_in_literal(term, literal):
     return any(term.is_in(term2) for term2 in literal.terms)
 
 # These methods are used to handle a set of facts.
@@ -822,9 +877,7 @@ def search(subgoal):
             if literal1.pred.db: # equality has a datalog definition
                 Y1 = Fresh_var()
                 literal1.terms[-1] = Y1
-                literal2 = Literal('='+Y1.id, (Y1, terms[-1]))
-                literal2.pred.operator = literal.pred.comparison
-                add_expr_to_predicate(literal2.pred, literal.pred.comparison, literal0.pred.expression)
+                literal2 = Literal(literal.pred.comparison, (Y1, terms[-1]))
                 clause = Clause(literal, (literal1, literal2))
                 renamed = rename_clause(clause)
                 env = unify(literal, renamed.head)
@@ -909,8 +962,6 @@ sequence of answers, each answer being an array of strings or numbers.
 # Other parts of the Datalog system depend on the equality primitive,
 # so carefully consider any modifications to it.
 
-binary_equals_pred = Pred("=", 2)
-
 def equals_primitive(literal, subgoal):
     x = literal.terms[0]
     y = literal.terms[1]
@@ -920,7 +971,6 @@ def equals_primitive(literal, subgoal):
         y = y.subst(env)
     #unbound: can't raise error if both are still unbound, because split(a,b,c) would fail (see test.py)
     return x.equals_primitive(y, subgoal)
-binary_equals_pred.prim = equals_primitive
 
 # Does a literal unify with an fact known to contain only constant
 # terms?
@@ -959,110 +1009,41 @@ def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
                     fact(subgoal, new)
     pred.prim = prim
     
-# Support for expression
-
-# Expressions (such as X = Y-1) are represented by a predicate (P(X,Y)) with :
-#    an attached expression Y-1 (stored in pred.expression)
-#    an operator (=, <=, >=, !=) (stored in pred.operator)
-#    and an iterative function (stored in pred.prim)
-
-# An Operand is either a constant or an index in the list of arguments of a literal
-# e.g. in P(X,Y) for X = Y-1, Y has an index of 1
-
-class Operand(object):
-    def __init__(self, type, value):
-        self.value = value if type != 'variable' else None
-        self.index = value if type == 'variable' else None
-    def eval(self, environment):
-        if self.index != None:
-            return environment[self.index-1]
-        elif isinstance(self.value, (list, tuple)):
-            return tuple(element.eval(environment) for element in self.value)
-        elif isinstance(self.value, slice):
-            return slice(self.value.start.eval(environment), 
-                         self.value.stop.eval(environment),
-                         self.value.step.eval(environment),)
+def compare_primitive(literal):
+    x = literal.terms[0]
+    y = literal.terms[1]
+    if not x.is_constant:
+        if literal.pred.name == '_pyD_in':
+            assert y.is_const, "Error: right hand side must be bound: %s" % literal
+            for v in y.id:
+                yield [v, y]
         else:
-            return self.value
-        
-class Expression(object):
-    def __init__(self, operator, operand1, operand2):
-        self.operator = operator
-        self.operand1 = operand1
-        self.operand2 = operand2
-    def eval(self, env):
-        if self.operator == '+':
-            return self.operand1.eval(env) + self.operand2.eval(env)
-        elif self.operator == '-':
-            return self.operand1.eval(env) - self.operand2.eval(env)
-        elif self.operator == '*':
-            return self.operand1.eval(env) * self.operand2.eval(env)
-        elif self.operator == '/':
-            return self.operand1.eval(env) / self.operand2.eval(env)
-        elif self.operator == '//':
-            return self.operand1.eval(env) // self.operand2.eval(env)
-        elif self.operator == 'slice':
-            return self.operand1.eval(env).__getitem__(self.operand2.eval(env))
-        assert False # dead code
-        
-"""
-lambda
-"""
-class Lambda(object):
-    def __init__(self, lambda_object, operands):
-        self.lambda_object = lambda_object
-        self.operands = operands
-    def eval(self, env):
-        operands = [operand.eval(env) for operand in self.operands]
-        return self.lambda_object(*operands)
-        
-def make_lambda(lambda_object, operands):
-    return Lambda(lambda_object, operands)
+            assert False, "Error: left hand side of comparison must be bound: %s" % literal.pred.id
+    elif y.is_constant:
+        if compare(x.id, literal.pred.name, y.id):
+            yield [x, y]
+    else:
+        assert False, "Error: right hand side of comparison must be bound: %s" % literal.pred.id
 
 # generic comparison function
 def compare(l,op,r):
-    return l in r if op=='in' else l not in r if op=='not in' else l==r if op=='==' else l!=r if op=='!=' else l<r if op=='<' \
+    return l in r if op=='_pyD_in' else l not in r if op=='_pyD_not_in' else l==r if op=='==' else l!=r if op=='!=' else l<r if op=='<' \
         else l<=r if op=='<=' else l>=r if op=='>=' else l>r if op=='>' else None
 def compare2(l,op,r):
-    return l._in(r) if op=='in' else l._not_in(r) if op=='not in' else compare(l,op,r)
-
-# this functions adds an expression to an existing predicate
-
-def add_expr_to_predicate(pred, operator, expression):
-    def expression_iter(literal):
-        x = literal.terms[0]
-        args = []
-        assert operator in ('==', 'in') or x.is_constant, "Error: left hand side of comparison must be bound: %s" % literal.pred.id
-        for term in literal.terms[1:]:
-            if not term.is_constant:
-                #unbound: can't raise error if right side is unbound, because split(a,b,c) would fail (see test.py)
-                assert operator == '==', "Error: right hand side of comparison must be unbound: %s" % literal.pred.id
-                return
-            args.append(term.id)
-            
-        Y = literal.pred.expression.eval(args) if literal.pred.expression else args[0]
-        if literal.pred.operator == "==" and (not x.is_constant or x.id == Y):
-            args.insert(0,Y)
-            yield args
-        elif x.is_constant and compare(x.id, literal.pred.operator, Y):
-            args.insert(0,x.id)
-            yield args
-        elif (literal.pred.operator == "in" and not x.is_constant):
-            for v in Y:
-                values = list(args) # makes a copy
-                values.insert(0,v)
-                yield values
-
-    add_iter_prim_to_predicate(pred, expression_iter)
-    pred.operator = operator
-    pred.expression = expression
-    insert(pred)
+    return l._in(r) if op=='_pyD_in' else l._not_in(r) if op=='_pyD_not_in' else compare(l,op,r)
 
 def clear():
-    global binary_equals_pred, db
+    global db
     db = {}
     Pred.registry = weakref.WeakValueDictionary()
-    binary_equals_pred = Pred("=", 2)
-    binary_equals_pred.prim = equals_primitive
+
+    insert(Pred("==", 2)).prim = equals_primitive
+    add_iter_prim_to_predicate(insert(Pred("<" , 2)), compare_primitive)
+    add_iter_prim_to_predicate(insert(Pred("<=", 2)), compare_primitive)
+    add_iter_prim_to_predicate(insert(Pred("!=", 2)), compare_primitive)
+    add_iter_prim_to_predicate(insert(Pred(">=", 2)), compare_primitive)
+    add_iter_prim_to_predicate(insert(Pred(">" , 2)), compare_primitive)
+    add_iter_prim_to_predicate(insert(Pred("_pyD_in", 2)), compare_primitive)
+    add_iter_prim_to_predicate(insert(Pred("_pyD_not_in", 2)), compare_primitive)
 
 clear()

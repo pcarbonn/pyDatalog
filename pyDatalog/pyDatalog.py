@@ -56,12 +56,12 @@ try:
     from . import version
     from . import pyEngine
     from . import pyParser
-    from .pyParser import Symbol, Expression, Lambda, Literal, Body
+    from .pyParser import Symbol, Expression, Literal, Body
 except ValueError:
     import version
     import pyEngine
     import pyParser
-    from pyParser import Symbol, Expression, Lambda, Literal, Body
+    from pyParser import Symbol, Expression, Literal, Body
     
 print("pyDatalog version %s" % version.__version__)
 
