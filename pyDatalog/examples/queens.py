@@ -19,7 +19,9 @@ queens6(X0,X1,X2,X3,X4,X5,X6) <= queens5(X0,X1,X2,X3,X4,X5) & queens5(X1,X2,X3,X
 queens7(X0,X1,X2,X3,X4,X5,X6,X7) <= queens6(X0,X1,X2,X3,X4,X5,X6) & queens6(X1,X2,X3,X4,X5,X6,X7) & ok(X0,7,X7)
 
 # counting is 0-based, so this is actually the 8-queens solution
+start_time = time.time()
 print(queens7(X0,X1,X2,X3,X4,X5,X6,X7))
+print("First datalog run in %f seconds" % (time.time() - start_time))
     
 # there is a fixed penalty the first time around (JIT, ...), so let's measure performance the second time
 start_time = time.time()
