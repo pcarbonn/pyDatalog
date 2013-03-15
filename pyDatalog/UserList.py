@@ -32,9 +32,11 @@ class UserList(collections.MutableSequence):
     def __getitem__(self, i): return self.data[i]
     def __setitem__(self, i, item): self.data[i] = item
     def __delitem__(self, i): del self.data[i]
-    def __getslice__(self, i, j):
-        i = max(i, 0); j = max(j, 0)
-        return self.__class__(self.data[i:j])
+    # need to drop this to allow X[:-1] in pyDatalog query / clauses
+    # otherwise X[:-1] triggers X.__len__(), which triggers answering the query prematurely !
+    #def __getslice__(self, i, j):  
+    #    i = max(i, 0); j = max(j, 0)
+    #    return self.__class__(self.data[i:j])
     def __setslice__(self, i, j, other):
         i = max(i, 0); j = max(j, 0)
         if isinstance(other, UserList):

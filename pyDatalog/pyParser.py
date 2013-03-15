@@ -309,8 +309,6 @@ class Expression(object):
         if isinstance(keys, slice):
             return Operation(self, 'slice', [keys.start, keys.stop, keys.step])
         return Operation(self, 'slice', keys)
-    def __getslice__(self, i, j):
-        return self.__getitem__(slice(i,j))
     
     
 class VarSymbol(Expression):
