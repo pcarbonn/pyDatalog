@@ -12,7 +12,7 @@ size=8
 ok(X1, N, X2) <= (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
 pred(N, N1) <= (N>1) & (N1==N-1)
 queens(1, X) <= (X1._in(range(size))) & (X1==X[0])
-queens(N, X) <= pred(N, N1) & queens(N1, X[slice(-1)]) & queens(N1, X[1:]) & ok(X[0], N1, X[-1])
+queens(N, X) <= pred(N, N1) & queens(N1, X[:-1]) & queens(N1, X[1:]) & ok(X[0], N1, X[-1])
 
 start_time = time.time()
 print(queens(size, (X0,X1,X2,X3,X4,X5,X6,X7)))
