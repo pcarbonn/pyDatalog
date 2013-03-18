@@ -930,7 +930,10 @@ if __name__ == "__main__":
     assert ((X==(1,2)) & (X1==1) & (Y==X[X1:X1+1])) == [((1, 2), 1, (2,))]
 
     tuple12(X) <= (X==(1,2))
-    assert tuple12( (X1,X2) ) == set([((1, 2),)])
+    assert tuple12( (X1,X2) ) == set([(1, 2)])
+    +tuple12( (1,(2,(3,))))
+    +tuple12( (1,(2,(4,))))
+    assert tuple12((1,(2,(X,)))) == set([(3,), (4,)])
 
     print("Test completed successfully.")
 
