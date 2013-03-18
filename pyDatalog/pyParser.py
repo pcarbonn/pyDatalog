@@ -609,20 +609,8 @@ class Query(Literal, LazyListOfList):
         Literal.__init__(self, predicate_name, terms, prearity, aggregate)
         
     def ask(self):
-        self._data = self.lua.ask(False)
+        self._data = Body(self).ask()
         self.todo = None
-        if not ProgramMode and self.data: 
-            transposed = list(zip(*(self._data))) # transpose result
-            result = []
-            for i, arg in enumerate(self.terms):
-                if isinstance(arg, pyDatalog.Variable) and len(arg._data)==0:
-                    arg._data.extend(transposed[i])
-                    arg.todo = None
-                    result.append(transposed[i])
-                elif isinstance(arg, Symbol) and arg._pyD_type=='tuple' and \
-                    any(isinstance(a, pyDatalog.Variable) for a in arg._pyD_value):
-                    result.append(transposed[i])
-            self._data = list(zip(*result)) if result else [()]
 
     def __pos__(self):
         " unary + means insert into database as fact "
@@ -670,34 +658,32 @@ class Body(LazyListOfList):
         self.literals = []
         for arg in args:
             self.literals += [arg] if isinstance(arg, Literal) else arg.literals
-        self.has_variables = False
-        self.todo = self
+            
+        env = OrderedDict()
         for literal in self.literals:
-            if literal._variables():
-                self.has_variables = True
-                for arg in literal.terms:
-                    if isinstance(arg, pyDatalog.Variable):
-                        arg.todo = self
+            for term in literal._variables().values():
+                env[term._pyD_name] = term
+        self._variables = env.values()
+        
+        self.todo = self
+        for variable in self._variables:
+            variable.todo = self
 
     def __and__(self, body2):
         return Body(self, body2)
     
     def __str__(self):
-        if self.has_variables:
+        if self._variables: # an in-line query --> evaluate it
             return LazyListOfList.__str__(self)
         return ' & '.join(list(map (str, self.literals)))
 
     def literal(self, permanent=False):
         # return a literal that can be queried to resolve the body
-        env = OrderedDict()
-        for literal in self.literals:
-            for term in literal._variables().values():
-                env[term._pyD_name] = term
         if permanent:
-            literal = Literal.make('_pyD_query' + str(Body.Counter), list(env.values()))
+            literal = Literal.make('_pyD_query' + str(Body.Counter), list(self._variables))
             Body.Counter = Body.Counter + 1
         else:
-            literal = Literal.make('_pyD_query', list(env.values()))
+            literal = Literal.make('_pyD_query', list(self._variables))
             literal.lua.pred.reset_clauses()
         literal <= self
         return literal
@@ -708,8 +694,18 @@ class Body(LazyListOfList):
 
     def ask(self):
         literal = self.literal()
-        literal.ask()
-        self._data = literal.data
+        self._data = literal.lua.ask(False)
+        literal.todo, self.todo = None, None
+        if not ProgramMode and self._data: 
+            transposed = list(zip(*(self._data))) # transpose result
+            result = []
+            for i, arg in enumerate(literal.terms):
+                if isinstance(arg, pyDatalog.Variable) and len(arg._data)==0:
+                    arg._data.extend(transposed[i])
+                    arg.todo = None
+                    result.append(transposed[i])
+            self._data = list(zip(*result)) if result else [()]
+        return self._data
 
 ##################################### Aggregation #####################################
     
