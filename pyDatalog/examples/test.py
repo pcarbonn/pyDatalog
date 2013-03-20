@@ -54,6 +54,7 @@ def test():
         assert ask(p(_X)) == set([('a',)])
         assert ask(p(b)) == None
         assert ask(p(a) & p(b)) == None
+        assert ask(~p(X)) == None
         
         + p(b)
         assert ask(p(X), _fast=True) == set([('a',), ('b',)])
@@ -66,6 +67,7 @@ def test():
         
         - p(a)
         assert ask(p(X)) == None
+        assert ask(~p(X)) == set([()])
         + p(a)
         
         # strings and integers
