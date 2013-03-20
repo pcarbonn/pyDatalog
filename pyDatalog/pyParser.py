@@ -201,8 +201,7 @@ def ask(code, _fast=None):
         newglobals = {}
         add_symbols(code.co_names, newglobals)
         parsed_code = eval(code, newglobals)
-        parsed_code = parsed_code.literal() if isinstance(parsed_code, Body) else parsed_code
-        return pyEngine.toAnswer(parsed_code.lua, parsed_code.lua.ask(_fast))
+        return pyDatalog.Answer.make(parsed_code.ask())
 
 """                             Parser classes                                                   """
 
@@ -348,7 +347,7 @@ class VarSymbol(Expression):
         return expr
     
     def _variables(self):
-        if self._pyD_type == 'variable':
+        if self._pyD_type == 'variable' and not self._pyD_name.startswith('_pyD_'):
             return OrderedDict({self._pyD_name : self})
         elif self._pyD_type == 'tuple':
             variables = OrderedDict()
@@ -377,8 +376,7 @@ class Symbol(VarSymbol):
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
-            literal = args[0] if not isinstance(args[0], Body) else args[0].literal()
-            return pyEngine.toAnswer(literal.lua, literal.lua.ask(fast))
+            return pyDatalog.Answer.make(args[0].ask())
         elif self._pyD_name == '_sum':
             if isinstance(args[0], VarSymbol):
                 return Sum_aggregate(args[0], for_each=kwargs.get('for_each', kwargs.get('key', [])))
@@ -469,7 +467,7 @@ class Function(Expression):
     
     # following methods are used when the function is used in an expression
     def _variables(self):
-        return {self.dummy_variable_name : self.symbol}
+        return self.pre_calculations._variables()
 
     def _precalculation(self): 
         return self.pre_calculations & (self == self.symbol)
@@ -575,6 +573,8 @@ class Literal(object):
         return [self]
     
     def _variables(self):
+        if self.predicate_name[0] == '~':
+            return OrderedDict()
         variables = OrderedDict()
         for term in self.terms:
             variables.update(term._variables())
@@ -609,8 +609,9 @@ class Query(Literal, LazyListOfList):
         Literal.__init__(self, predicate_name, terms, prearity, aggregate)
         
     def ask(self):
-        self._data = Body(self).ask()
+        self._data = Body(self.pre_calculations, self).ask()
         self.todo = None
+        return self._data
 
     def __pos__(self):
         " unary + means insert into database as fact "
@@ -663,27 +664,30 @@ class Body(LazyListOfList):
         for literal in self.literals:
             for term in literal._variables().values():
                 env[term._pyD_name] = term
-        self._variables = env.values()
+        self.__variables = env
         
         self.todo = self
-        for variable in self._variables:
+        for variable in env.values():
             variable.todo = self
+
+    def _variables(self):
+        return self.__variables
 
     def __and__(self, body2):
         return Body(self, body2)
     
     def __str__(self):
-        if self._variables: # an in-line query --> evaluate it
+        if self._variables().values(): # an in-line query --> evaluate it
             return LazyListOfList.__str__(self)
         return ' & '.join(list(map (str, self.literals)))
 
     def literal(self, permanent=False):
         # return a literal that can be queried to resolve the body
         if permanent:
-            literal = Literal.make('_pyD_query' + str(Body.Counter), list(self._variables))
+            literal = Literal.make('_pyD_query' + str(Body.Counter), list(self._variables().values()))
             Body.Counter = Body.Counter + 1
         else:
-            literal = Literal.make('_pyD_query', list(self._variables))
+            literal = Literal.make('_pyD_query', list(self._variables().values()))
             literal.lua.pred.reset_clauses()
         literal <= self
         return literal

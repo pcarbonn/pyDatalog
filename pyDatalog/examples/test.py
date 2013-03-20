@@ -32,10 +32,10 @@ def test():
     pyDatalog.load("""
         + p(a) # p is a proposition
     """)
-    assert pyDatalog.ask('p(a)') == set([('a',)])
+    assert pyDatalog.ask('p(a)') == set([()])
     
     pyDatalog.assert_fact('p', 'a', 'b')
-    assert pyDatalog.ask('p(a, "b")') == set([('a', 'b')])
+    assert pyDatalog.ask('p(a, "b")') == set([()])
     pyDatalog.retract_fact('p', 'a', 'b')
     assert pyDatalog.ask('p(a, "b")') == None
     
@@ -48,7 +48,7 @@ def test():
         
         + p(a) 
         # check that unary queries work
-        assert ask(p(a)) == set([('a',)])
+        assert ask(p(a)) == set([()])
         assert ask(p(X)) == set([('a',)])
         assert ask(p(Y)) == set([('a',)])
         assert ask(p(_X)) == set([('a',)])
@@ -70,14 +70,14 @@ def test():
         
         # strings and integers
         + p('c')
-        assert ask(p(c)) == set([('c',)])
+        assert ask(p(c)) == set([()])
         
         + p(1)
-        assert ask(p(1)) == set([(1,)])
+        assert ask(p(1)) == set([()])
         
         + n(None)
         assert ask(n(X)) == set([(None,)])
-        assert ask(n(None)) == set([(None,)])
+        assert ask(n(None)) == set([()])
         
         # spaces and uppercase in strings
         + farmer('Moshe dayan')
@@ -86,35 +86,39 @@ def test():
 
     # execute queries in a python program
     moshe_is_a_farmer = pyDatalog.ask("farmer('Moshe dayan')")
-    assert moshe_is_a_farmer == set([('Moshe dayan',)])
+    assert moshe_is_a_farmer == set([()])
 
     """ binary facts                                                         """
     
     @pyDatalog.program()
     def binary(): 
         + q(a, b)
-        assert ask(q(a, b)) == set([('a', 'b')])
-        assert ask(q(X, b)) == set([('a', 'b')])
-        assert ask(q(a, Y)) == set([('a', 'b')])
+        assert ask(q(a, b)) == set([()])
+        assert ask(q(X, b)) == set([('a',)])
+        assert ask(q(a, Y)) == set([('b',)])
         assert ask(q(a, c)) == None
         assert ask(q(X, Y)) == set([('a', 'b')])
         
         + q(a,c)
-        assert ask(q(a, Y)) == set([('a', 'b'), ('a', 'c')])
+        assert ask(q(a, Y)) == set([('b',), ('c',)])
         
         - q(a,c)
-        assert ask(q(a, Y)) == set([('a', 'b')])
+        assert ask(q(a, Y)) == set([('b',)])
         
         assert ask(q(X, X)) == None 
         +q(a, a)
-        assert ask(q(X, X)) == set([('a', 'a')])
+        assert ask(q(X, X)) == set([('a',)])
         -q(a, a) 
+
+        +tuple12( (1,(2,(3,))))
+        +tuple12( (1,(2,(4,))))
+        assert ask(tuple12((1,(2,(X,))))) == set([(3,), (4,)])
         
     """ (in)equality                                             """
 
     @pyDatalog.program()
     def equality():
-        assert ask(X==1) == set([(1,1)]) 
+        assert ask(X==1) == set([(1,)]) 
         assert ask(X==Y) == None
         assert ask(X==Y+1) == None
         assert ask((X==1) & (Y==1) & (X==Y)) == set([(1,1)])
@@ -153,8 +157,8 @@ def test():
         assert ask((X==1) & (X<=1)) == set([(1,)])
         assert ask((X==1) & (X>1)) == None
         assert ask((X==1) & (X>=1)) == set([(1,)])
-        assert ask(X==(1,2)) == set([((1,2), (1,2))]) #TODO
-        assert ask(X in (1,)) == set([(1,(1,))]) #TODO
+        assert ask(X==(1,2)) == set([((1,2),)]) 
+        assert ask(X in (1,)) == set([(1,)]) 
         assert ask((X==1) & (X not in (2,))) == set([(1,)])
         assert ask((X==1) & ~(X in (2,))) == set([(1,)])
         assert ask((X==1) & (X not in (1,))) == None
@@ -169,12 +173,12 @@ def test():
         assert ask(s(X)) == set([(1,), ('a',)])
         
         s(X, Y) <= p(X) & (X == Y)
-        assert ask(s(a, a)) == set([('a', 'a')])
+        assert ask(s(a, a)) == set([()])
         assert ask(s(a, b)) == None
-        assert ask(s(X,a)) == set([('a', 'a')])
+        assert ask(s(X,a)) == set([('a',)])
         assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),(1, 1)])
 
-    assert pyDatalog.ask('p(a)') == set([('a',)])
+    assert pyDatalog.ask('p(a)') == set([()])
 
     """ clauses                                                         """
     
@@ -182,14 +186,14 @@ def test():
     def clauses(): 
     
         p2(X) <= p(X)
-        assert ask(p2(a)) == set([('a',)])
+        assert ask(p2(a)) == set([()])
         p2(X) <= p(X)
         
         r(X, Y) <= p(X) & p(Y)
-        assert ask(r(a, a)) == set([('a', 'a')])
-        assert ask(r(a, c)) == set([('a', 'c')])
+        assert ask(r(a, a)) == set([()])
+        assert ask(r(a, c)) == set([()])
         r(X, b) <= p(X)
-        assert ask(r(a, b)) == set([('a', 'b')])
+        assert ask(r(a, b)) == set([()])
         
         - (r(X, b) <= p(X))
         assert ask(r(a, b)) == None
@@ -199,7 +203,7 @@ def test():
         # integer variable
         for i in range(10):
             + successor(i+1, i)
-        assert ask(successor(2, 1)) == set([(2, 1)])
+        assert ask(successor(2, 1)) == set([()])
         
         # built-in
         assert abs(-3)==3
@@ -214,7 +218,7 @@ def test():
     def _in(): 
         assert ((X==1) & (X in (1,2))) == [(1,)]
         _in(X) <= (X in [1,2])
-        assert ask(_in(1)) == set([(1,)])
+        assert ask(_in(1)) == set([()])
         assert ask(_in(9)) == None
         assert ask(_in(X)) == set([(1,), (2,)])
         
@@ -231,11 +235,11 @@ def test():
         + even(0)
         even(N) <= successor(N, N1) & odd(N1)
         odd(N) <= ~ even(N)
-        assert ask(even(0)) == set([(0,)])
+        assert ask(even(0)) == set([()])
         assert ask(even(X)) == set([(4,), (10,), (6,), (0,), (2,), (8,)])
-        assert ask(even(10)) == set([(10,)])
-        assert ask(odd(1)) == set([(1,)])
-        assert ask(odd(5)) == set([(5,)])
+        assert ask(even(10)) == set([()])
+        assert ask(odd(1)) == set([()])
+        assert ask(odd(5)) == set([()])
         assert ask(even(5)) == None
     
     """ recursion with expressions                                         """
@@ -245,19 +249,19 @@ def test():
     def recursive_expression(): 
         
         predecessor(X,Y) <= (X==Y-1)
-        assert ask(predecessor(X,11)) == set([(10, 11)])
+        assert ask(predecessor(X,11)) == set([(10,)])
         
         p(X,Z) <= (Y==Z-1) & (X==Y-1)
-        assert ask(p(X,11)) == set([(9, 11)])
+        assert ask(p(X,11)) == set([(9,)])
         
         # odd and even
         + even(0)
         even(N) <= (N > 0) & odd(N-1)
-        assert ask(even(0)) == set([(0,)])
+        assert ask(even(0)) == set([()])
         odd(N) <= (N > 0) & ~ even(N)
-        assert ask(even(0)) == set([(0,)])
-        assert ask(odd(1)) == set([(1,)])
-        assert ask(odd(5)) == set([(5,)])
+        assert ask(even(0)) == set([()])
+        assert ask(odd(1)) == set([()])
+        assert ask(odd(5)) == set([()])
         assert ask(even(5)) == None
         assert ask((X==3) & odd(X+2)) == set([(3,)])
         
@@ -268,9 +272,9 @@ def test():
         (factorial[N] == F) <= (N < 1) & (F== -factorial[-N])
         + (factorial[1]==1)
         (factorial[N] == F) <= (N > 1) & (F == N*factorial[N-1])
-        assert ask(factorial[1] == F) == set([(1, 1)])
-        assert ask(factorial[4] == F) == set([(4, 24)])
-        assert ask(factorial[-4] == F) == set([(-4, -24)])
+        assert ask(factorial[1] == F) == set([(1,)])
+        assert ask(factorial[4] == F) == set([(24,)])
+        assert ask(factorial[-4] == F) == set([(-24,)])
     
     # Fibonacci
     pyDatalog.clear()
@@ -279,21 +283,21 @@ def test():
         (fibonacci[N] == F) <= (N == 0) & (F==0)
         (fibonacci[N] == F) <= (N == 1) & (F==1)
         (fibonacci[N] == F) <= (N > 1) & (F == fibonacci[N-1]+fibonacci[N-2])
-        assert ask(fibonacci[1] == F) == set([(1, 1)])
-        assert ask(fibonacci[4] == F) == set([(4, 3)])
-        assert ask(fibonacci[18] == F) == set([(18, 2584)])
+        assert ask(fibonacci[1] == F) == set([(1,)])
+        assert ask(fibonacci[4] == F) == set([(3,)])
+        assert ask(fibonacci[18] == F) == set([(2584,)])
 
     # string manipulation
     @pyDatalog.program()
     def _lambda(): 
         split(X, Y,Z) <= (X == Y+'-'+Z)
-        assert ask(split(X, 'a', 'b')) == set([('a-b', 'a', 'b')])
+        assert ask(split(X, 'a', 'b')) == set([('a-b',)])
         split(X, Y,Z) <= (Y == (lambda X: X.split('-')[0])) & (Z == (lambda X: X.split('-')[1]))
-        assert ask(split('a-b', Y, Z)) == set([('a-b', 'a', 'b')])
-        assert ask(split(X, 'a', 'b')) == set([('a-b', 'a', 'b')])
+        assert ask(split('a-b', Y, Z)) == set([('a', 'b',)])
+        assert ask(split(X, 'a', 'b')) == set([('a-b',)])
         
         (two[X]==Z) <= (Z==X+(lambda X: X))
-        assert ask(two['A']==Y) == set([('A','AA')])
+        assert ask(two['A']==Y) == set([('AA',)])
 
     """ negation                                                     """    
     
@@ -301,7 +305,7 @@ def test():
     def _negation():
         +p(a, b)
         assert ask(~p(X, b)) == None
-        assert ask(~p(X, c)) == set([('X', 'c')])
+        assert ask(~p(X, c)) == set([()])
 
     pyDatalog.load("""
         + even(0)
@@ -309,11 +313,11 @@ def test():
         odd(N) <= (N2==N+2) & ~ even(N) & (N2>0)
     """)
     assert pyDatalog.ask('~ odd(7)', _fast=True) == None
-    assert pyDatalog.ask('~ odd(2)', _fast=True) == set([(2,)])
-    assert pyDatalog.ask('odd(3)', _fast=True) == set([(3,)])
-    assert pyDatalog.ask('odd(3)'             ) == set([(3,)])
-    assert pyDatalog.ask('odd(5)', _fast=True) == set([(5,)])
-    assert pyDatalog.ask('odd(5)'            ) == set([(5,)])
+    assert pyDatalog.ask('~ odd(2)', _fast=True) == set([()])
+    assert pyDatalog.ask('odd(3)', _fast=True) == set([()])
+    assert pyDatalog.ask('odd(3)'             ) == set([()])
+    assert pyDatalog.ask('odd(5)', _fast=True) == set([()])
+    assert pyDatalog.ask('odd(5)'            ) == set([()])
     assert pyDatalog.ask('even(5)', _fast=True) == None
     assert pyDatalog.ask('even(5)'            ) == None
     
@@ -323,12 +327,12 @@ def test():
     def function(): 
         + (f[a]==b)
         assert ask(f[X]==Y) == set([('a', 'b')])
-        assert ask(f[X]==b) == set([('a', 'b')]) #TODO remove 'b' from result
-        assert ask(f[a]==X) == set([('a', 'b')])
-        assert ask(f[a]==b) == set([('a', 'b')])
+        assert ask(f[X]==b) == set([('a',)])
+        assert ask(f[a]==X) == set([('b',)])
+        assert ask(f[a]==b) == set([()])
     
         + (f[a]==c)
-        assert ask(f[a]==X) == set([('a', 'c')])
+        assert ask(f[a]==X) == set([('c',)])
         
         + (f[a]==a)
         assert ask(f[f[a]]==X) == set([('a',)])
@@ -338,36 +342,36 @@ def test():
         assert ask(f[f[a]]==X) == None
 
         + (f[a]==None)
-        assert (ask(f[a]==X)) == set([('a',None)])
+        assert (ask(f[a]==X)) == set([(None,)])
         + (f[a]==(1,2))
-        assert (ask(f[a]==X)) == set([('a',(1,2))])
-        assert (ask(f[X]==(1,2))) == set([('a',(1,2))])
+        assert (ask(f[a]==X)) == set([((1,2),)])
+        assert (ask(f[X]==(1,2))) == set([('a',)])
 
         + (f[a]==c)
 
         + (f2[a,x]==b)
-        assert ask(f2[a,x]==b) == set([('a', 'x', 'b')])
+        assert ask(f2[a,x]==b) == set([()])
     
         + (f2[a,x]==c)
-        assert ask(f2[a,x]==X) == set([('a', 'x', 'c')])
+        assert ask(f2[a,x]==X) == set([('c',)])
         
         g[X] = f[X]+f[X]
-        assert(ask(g[a]==X)) == set([('a', 'cc')])
+        assert(ask(g[a]==X)) == set([('cc',)])
         
         h(X,Y) <= (f[X]==Y)
-        assert (ask(h(X,'c'))) == set([('a', 'c')])
+        assert (ask(h(X,'c'))) == set([('a',)])
         assert (ask(h(X,Y))) == set([('a', 'c')])
         
     @pyDatalog.program()
     def function_comparison(): 
         assert ask(f[X]==Y) == set([('a', 'c')])
-        assert ask(f[a]<'d') == set([('c',)])
-        assert ask(f[a]>'a') == set([('c',)])
-        assert ask(f[a]>='c') == set([('c',)])
+        assert ask(f[a]<'d') == set([()])
+        assert ask(f[a]>'a') == set([()])
+        assert ask(f[a]>='c') == set([()])
         assert ask(f[a]>'c') == None
-        assert ask(f[a]<='c') == set([('c',)])
+        assert ask(f[a]<='c') == set([()])
         assert ask(f[a]>'c') == None
-        assert ask(f[a] in ['c',]) == set([('c',)])
+        assert ask(f[a] in ['c',]) == set([()])
         
         assert ask((f[X]=='c') & (f[Y]==f[X])) == set([('a', 'a')])
         assert ask((f[X]=='c') & (f[Y]==f[X]+'')) == set([('a', 'a')])
@@ -401,35 +405,35 @@ def test():
         assert(sum(1,2)) == 3
         (a_sum[X] == sum(Y, key=Z)) <= p(X, Z, Y)
         assert ask(a_sum[X]==Y) == set([('a', 2), ('b', 4)])
-        assert ask(a_sum[a]==X) == set([('a', 2)])
-        assert ask(a_sum[a]==2) == set([('a', 2)])
-        assert ask(a_sum[X]==4) == set([('b', 4)])
+        assert ask(a_sum[a]==X) == set([(2,)])
+        assert ask(a_sum[a]==2) == set([()])
+        assert ask(a_sum[X]==4) == set([('b',)])
         assert ask(a_sum[c]==X) == None
         assert ask((a_sum[X]==2) & (p(X, Z, Y))) == set([('a', 'c', 1), ('a', 'b', 1)])
 
         (a_sum2[X] == sum(Y, for_each=X)) <= p(X, Z, Y)
-        assert ask(a_sum2[a]==X) == set([('a', 1)])
+        assert ask(a_sum2[a]==X) == set([(1,)])
 
         (a_sum3[X] == sum(Y, key=(X,Z))) <= p(X, Z, Y)
         assert ask(a_sum3[X]==Y) == set([('a', 2), ('b', 4)])
-        assert ask(a_sum3[a]==X) == set([('a', 2)])
+        assert ask(a_sum3[a]==X) == set([(2,)])
 
     @pyDatalog.program()
     def len(): 
         assert(len((1,2))) == 2
         (a_len[X] == len(Z)) <= p(X, Z, Y)
         assert ask(a_len[X]==Y) == set([('a', 2), ('b', 1)])
-        assert ask(a_len[a]==X) == set([('a', 2)])
-        assert ask(a_len[X]==1) == set([('b', 1)])
+        assert ask(a_len[a]==X) == set([(2,)])
+        assert ask(a_len[X]==1) == set([('b',)])
         assert ask(a_len[X]==5) == None
         
         (a_lenY[X] == len(Y)) <= p(X, Z, Y)
-        assert ask(a_lenY[a]==X) == set([('a', 1)])
+        assert ask(a_lenY[a]==X) == set([(1,)])
         assert ask(a_lenY[c]==X) == None
         
         (a_len2[X,Y] == len(Z)) <= p(X, Y, Z)
-        assert ask(a_len2[a,b]==X) == set([('a', 'b', 1)])
-        assert ask(a_len2[a,X]==Y) == set([('a', 'b', 1), ('a', 'c', 1)])
+        assert ask(a_len2[a,b]==X) == set([(1,)])
+        assert ask(a_len2[a,X]==Y) == set([('b', 1), ('c', 1)])
 
         + q(a, c, 1)
         + q(a, b, 2)
@@ -439,70 +443,70 @@ def test():
     def concat(): 
         (a_concat[X] == concat(Y, key=Z, sep='+')) <= q(X, Y, Z)
         assert ask(a_concat[X]==Y) == set([('b', 'b'), ('a', 'c+b')])
-        assert ask(a_concat[a]=='c+b') == set([('a', 'c+b')])
-        assert ask(a_concat[a]==X) == set([('a', 'c+b')])
-        assert ask(a_concat[X]==b) == set([('b', 'b')])
+        assert ask(a_concat[a]=='c+b') == set([()])
+        assert ask(a_concat[a]==X) == set([('c+b',)])
+        assert ask(a_concat[X]==b) == set([('b',)])
 
         (a_concat2[X] == concat(Y, order_by=(Z,), sep='+')) <= q(X, Y, Z)
-        assert ask(a_concat2[a]==X) == set([('a', 'c+b')])
+        assert ask(a_concat2[a]==X) == set([('c+b',)])
 
         (a_concat3[X] == concat(Y, key=(-Z,), sep='-')) <= q(X, Y, Z)
-        assert ask(a_concat3[a]==X) == set([('a', 'b-c')])
+        assert ask(a_concat3[a]==X) == set([('b-c',)])
 
     @pyDatalog.program()
     def min(): 
         assert min(1,2) == 1
         (a_min[X] == min(Y, key=Z)) <= q(X, Y, Z)
         assert ask(a_min[X]==Y) == set([('b', 'b'), ('a', 'c')])
-        assert ask(a_min[a]=='c') == set([('a', 'c')])
-        assert ask(a_min[a]==X) == set([('a', 'c')])
-        assert ask(a_min[X]=='b') == set([('b', 'b')])
+        assert ask(a_min[a]=='c') == set([()])
+        assert ask(a_min[a]==X) == set([('c',)])
+        assert ask(a_min[X]=='b') == set([('b',)])
         
         (a_minD[X] == min(Y, order_by=-Z)) <= q(X, Y, Z)
-        assert ask(a_minD[a]==X) == set([('a', 'b')])
+        assert ask(a_minD[a]==X) == set([('b',)])
         
         (a_min2[X, Y] == min(Z, key=(X,Y))) <= q(X, Y, Z)
-        assert ask(a_min2[Y, b]==X) == set([('a', 'b', 2),('b', 'b', 4)])
-        assert ask(a_min2[Y, Y]==X) == set([('b', 'b', 4)]), "a_min2"
+        assert ask(a_min2[Y, b]==X) == set([('a', 2),('b', 4)])
+        assert ask(a_min2[Y, Y]==X) == set([('b', 4)]), "a_min2"
         
         (a_min3[Y] == min(Z, key=(-X,Z))) <= q(X, Y, Z)
-        assert ask(a_min3[b]==Y) == set([('b', 4)]), "a_min3"
+        assert ask(a_min3[b]==Y) == set([(4,)]), "a_min3"
         
     @pyDatalog.program()
     def max(): 
         assert max(1,2) == 2
         (a_max[X] == max(Y, key=-Z)) <= q(X, Y, Z)
-        assert ask(a_max[a]==X) == set([('a', 'c')])
+        assert ask(a_max[a]==X) == set([('c',)])
         
         (a_maxD[X] == max(Y, order_by=Z)) <= q(X, Y, Z)
-        assert ask(a_maxD[a]==X) == set([('a', 'b')])
+        assert ask(a_maxD[a]==X) == set([('b',)])
 
     @pyDatalog.program()
     def rank(): 
         (a_rank1[Z] == rank(for_each=Z, order_by=Z)) <= q(X, Y, Z)
         assert ask(a_rank1[X]==Y) == set([(1, 0), (2, 0), (4, 0)])
-        assert ask(a_rank1[X]==0) == set([(1, 0), (2, 0), (4, 0)])
-        assert ask(a_rank1[1]==X) == set([(1, 0)])
-        assert ask(a_rank1[1]==0) == set([(1, 0)])
+        assert ask(a_rank1[X]==0) == set([(1,), (2,), (4,)])
+        assert ask(a_rank1[1]==X) == set([(0,)])
+        assert ask(a_rank1[1]==0) == set([()])
         assert ask(a_rank1[1]==1) == None
 
         # rank
         (a_rank[X,Y] == rank(for_each=(X,Y2), order_by=Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
         assert ask(a_rank[X,Y]==Z) == set([('a', 'b', 1), ('a', 'c', 0), ('b', 'b', 0)])
-        assert ask(a_rank[a,b]==1) == set([('a', 'b', 1)])
-        assert ask(a_rank[a,b]==Y) == set([('a', 'b', 1)])
-        assert ask(a_rank[a,X]==0) == set([('a', 'c', 0)])
-        assert ask(a_rank[a,X]==Y) == set([('a', 'b', 1), ('a', 'c', 0)])
-        assert ask(a_rank[X,Y]==1) == set([('a', 'b', 1)])
+        assert ask(a_rank[a,b]==1) == set([()])
+        assert ask(a_rank[a,b]==Y) == set([(1,)])
+        assert ask(a_rank[a,X]==0) == set([('c',)])
+        assert ask(a_rank[a,X]==Y) == set([('b', 1), ('c', 0)])
+        assert ask(a_rank[X,Y]==1) == set([('a', 'b')])
         assert ask(a_rank[a,y]==Y) == None
         # reversed
         (b_rank[X,Y] == rank(for_each=(X,Y2), order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
         assert ask(b_rank[X,Y]==Z) == set([('a', 'b', 0), ('a', 'c', 1), ('b', 'b', 0)])
-        assert ask(b_rank[a,b]==0) == set([('a', 'b', 0)])
-        assert ask(b_rank[a,b]==Y) == set([('a', 'b', 0)])
-        assert ask(b_rank[a,X]==1) == set([('a', 'c', 1)])
-        assert ask(b_rank[a,X]==Y) == set([('a', 'b', 0), ('a', 'c', 1)])
-        assert ask(b_rank[X,Y]==0) == set([('a', 'b', 0), ('b', 'b', 0)])
+        assert ask(b_rank[a,b]==0) == set([()])
+        assert ask(b_rank[a,b]==Y) == set([(0,)])
+        assert ask(b_rank[a,X]==1) == set([('c',)])
+        assert ask(b_rank[a,X]==Y) == set([('b', 0), ('c', 1)])
+        assert ask(b_rank[X,Y]==0) == set([('a', 'b'), ('b', 'b')])
         assert ask(b_rank[a,y]==Y) == None
 
     @pyDatalog.program()
@@ -510,20 +514,20 @@ def test():
         # running_sum
         (a_run_sum[X,Y] == running_sum(Z2, for_each=(X,Y2), order_by=Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
         assert ask(a_run_sum[X,Y]==Z) == set([('a', 'b', 3), ('a', 'c', 1), ('b', 'b', 4)])
-        assert ask(a_run_sum[a,b]==3) == set([('a', 'b', 3)])
-        assert ask(a_run_sum[a,b]==Y) == set([('a', 'b', 3)])
-        assert ask(a_run_sum[a,X]==1) == set([('a', 'c', 1)])
-        assert ask(a_run_sum[a,X]==Y) == set([('a', 'b', 3), ('a', 'c', 1)])
-        assert ask(a_run_sum[X,Y]==4) == set([('b', 'b', 4)])
+        assert ask(a_run_sum[a,b]==3) == set([()])
+        assert ask(a_run_sum[a,b]==Y) == set([(3,)])
+        assert ask(a_run_sum[a,X]==1) == set([('c',)])
+        assert ask(a_run_sum[a,X]==Y) == set([('b', 3), ('c', 1)])
+        assert ask(a_run_sum[X,Y]==4) == set([('b', 'b')])
         assert ask(a_run_sum[a,y]==Y) == None
 
         (b_run_sum[X,Y] == running_sum(Z2, for_each=(X,Y2), order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
         assert ask(b_run_sum[X,Y]==Z) == set([('a', 'b', 2), ('a', 'c', 3), ('b', 'b', 4)])
-        assert ask(b_run_sum[a,b]==2) == set([('a', 'b', 2)])
-        assert ask(b_run_sum[a,b]==Y) == set([('a', 'b', 2)])
-        assert ask(b_run_sum[a,X]==3) == set([('a', 'c', 3)])
-        assert ask(b_run_sum[a,X]==Y) == set([('a', 'b', 2), ('a', 'c', 3)])
-        assert ask(b_run_sum[X,Y]==4) == set([('b', 'b', 4)])
+        assert ask(b_run_sum[a,b]==2) == set([()])
+        assert ask(b_run_sum[a,b]==Y) == set([(2,)])
+        assert ask(b_run_sum[a,X]==3) == set([('c',)])
+        assert ask(b_run_sum[a,X]==Y) == set([('b', 2), ('c', 3)])
+        assert ask(b_run_sum[X,Y]==4) == set([('b', 'b')])
         assert ask(b_run_sum[a,y]==Y) == None
 
     """ simple in-line queries                                        """
@@ -696,8 +700,8 @@ def test():
         yield (2,3)
     
     assert pyDatalog.ask('p(X,Y)') == set([(1, 2), (2, 3)])
-    assert pyDatalog.ask('p(1,Y)') == set([(1, 2)])
-    assert pyDatalog.ask('p(1,2)') == set([(1, 2)])
+    assert pyDatalog.ask('p(1,Y)') == set([(2,)])
+    assert pyDatalog.ask('p(1,2)') == set([()])
     
     """ error detection                                              """
     
@@ -717,7 +721,7 @@ def test():
         except Exception as e:
             e_message = e.message if hasattr(e, 'message') else e.args[0] # python 2 and 3
             if not re.match(message, e_message):
-                print(e_message) 
+                print(code + "|" + e_message) 
             _error = True
         assert _error
         
@@ -728,7 +732,7 @@ def test():
         except Exception as e: 
             e_message = e.message if hasattr(e, 'message') else e.args[0]
             if not re.match(message, e_message):
-                print(e_message) 
+                print(code + "|" + e_message) 
             _error = True
         assert _error
 
@@ -753,7 +757,7 @@ def test():
     assert_error('(a_sum[X] == sum(Y, key=Y)) <= p(X, Z, Y)', "Error: Duplicate definition of aggregate function.")
     assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
     assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')
-    assert_error('ask(- manager[X]==1)', "'Operation' object has no attribute 'equals_primitive'")
+    #TODO assert_error('ask(- manager[X]==1)', "'Operation' object has no attribute 'equals_primitive'")
     assert_error("p(X) <= (X=={})", "unhashable type: 'dict'")
 
     """ SQL Alchemy                    """

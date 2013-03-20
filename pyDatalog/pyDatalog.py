@@ -129,6 +129,16 @@ class Answer(object):
         self.arity = arity
         self.answers = answers
 
+    @classmethod
+    def make(cls, answers):
+        if answers:
+            answer = Answer('_pyD_query', len(answers), answers)
+        else:
+            answer = None
+        if pyEngine.Auto_print: 
+            print(answers)
+        return answer        
+
     def __eq__ (self, other):
         return set(self.answers) == other if self.answers else other is None
     def __str__(self):
