@@ -741,7 +741,8 @@ def test():
     assert_error('ask(z(a),True)', 'Too many arguments for ask \!')
     assert_error('ask(z(a))', 'Predicate without definition \(or error in resolver\): z/1')
     assert_error("+ farmer(farmer(moshe))", "Syntax error: Literals cannot have a literal as argument : farmer\[\]")
-    #TODO assert_error("+ manager[Mary]==John", "Left-hand side of equality must be a symbol or function, not an expression.")
+    assert_error("+ manager[Mary]==John", "Did you mean to assert or retract a fact \? Please add parenthesis.")
+    assert_error('ask(- manager[X]==1)', "Did you mean to assert or retract a fact \? Please add parenthesis.")
     assert_error("manager[X]==Y <= (X==Y)", "Syntax error: please verify parenthesis around \(in\)equalities")
     assert_error("p(X) <= (Y==2)", "Can't create clause")
     assert_error("p(X) <= X==1 & X==2", "Syntax error: please verify parenthesis around \(in\)equalities")
@@ -759,7 +760,6 @@ def test():
     assert_error('(a_sum[X] == sum(Y, key=Y)) <= p(X, Z, Y)', "Error: Duplicate definition of aggregate function.")
     assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
     assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')
-    #TODO assert_error('ask(- manager[X]==1)', "'Operation' object has no attribute 'equals_primitive'")
     assert_error("p(X) <= (X=={})", "unhashable type: 'dict'")
 
     """ SQL Alchemy                    """
