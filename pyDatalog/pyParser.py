@@ -251,7 +251,8 @@ class Expression(object):
         return Body() # by default, there is no precalculation needed to evaluate an expression
     
     def __eq__(self, other):
-        #TODO assert isinstance(self, (VarSymbol, Function)), "Left-hand side of equality must be a symbol or function, not an expression."
+        if isinstance(self, Operation) and self.operator in '+-' and self.lhs._pyD_value == 0:
+            assert False, "Did you mean to assert or retract a fact ? Please add parenthesis."
         return Literal.make_for_comparison(self, "==", other)
     def __ne__(self, other):
         return Literal.make_for_comparison(self, '!=', other)
