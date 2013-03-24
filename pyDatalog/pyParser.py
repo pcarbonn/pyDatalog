@@ -27,30 +27,43 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 """
 Design principle:
-Instead of writing our own parser, we use python's parser.  The datalog code is first compiled in python byte code, 
-then "undefined" variables are initialized as instance of Symbol, then the code is finally executed to load the clauses.
-This is done in the load() and add_program() method of Parser class.
+Instead of writing our own parser, we use python's parser.  
 
-Methods exposed by this file:
+The base objects are Symbol and VarSymbol : they represent atoms and variables respectively
+and have methods to implement the datalog language.
+
+Methods exposed by this file include:
 * load(code)
 * add_program(func)
 * ask(code)
+
+For these methods, the datalog code is first compiled in python byte code, 
+then undefined variables are initialized as instance of Symbol, 
+then the code is finally executed to load the clauses.
+This is done in the load() and add_program() method of Parser class.
 
 Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRnMPH
 * ProgramContext : class to safely differentiate between In-line queries and pyDatalog program / ask(), using ProgramMode global variable
 * _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
 * LazyList : a subclassable list that is populated when it is accessed. Mixin for pyDatalog.Variable.
-    * LazyListOfList : Mixin for Literal and Body
-        * Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
-        * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
-* Expression : base class for objects that can be part of an inequality or operation
+    * LazyListOfList : Mixin for Query and Body
+* Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
+    * HeadLiteral
+    * Query
+* Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
+* Expression : base class for objects that can be part of an inequality, operation or slice
     * VarSymbol : represents the symbol of a variable. Mixin for pyDatalog.Variable
         * Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
     * Function : represents f[X]
     * Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
-    * Lambda : represents a lambda function, used in expressions
 * Aggregate : represents calls to aggregation method, e.g. min(X)
-
+    * Sum_aggregate
+    * Len_aggregate
+    * Concat_aggregate
+    * Min_aggregate
+    * Max_aggregate
+    * Rank_aggregate
+    * Running_sum
 """
 
 import ast
@@ -75,7 +88,7 @@ except ValueError:
     import UserList
 pyDatalog = None #circ: later set by pyDatalog to avoid circular import
 
-""" global variable to differentiate between in-line queries and pyDatalog program / ask"""
+# global variable to differentiate between in-line queries and pyDatalog program / ask
 ProgramMode = False
 
 class ProgramContext(object):
@@ -90,6 +103,7 @@ class ProgramContext(object):
 """                             Parser methods                                                   """
 
 def add_symbols(names, variables):
+    """ add the names to the variables dictionary"""
     for name in names:
         variables[name] = Symbol(name)            
     
@@ -194,6 +208,7 @@ def add_program(func):
     return _NoCallFunction()
 
 def ask(code, _fast=None):
+    """ runs the query in the code string """
     with ProgramContext():
         tree = ast.parse(code, 'ask', 'eval')
         tree = _transform_ast().visit(tree)
@@ -215,32 +230,36 @@ class LazyList(UserList.UserList):
     
     @property
     def data(self):
-        # returns the list, after recalculation if needed
+        """ returns the list, after recalculation if needed """
         if self.todo is not None: self.todo.ask()
         return self._data
 
-    def _value(self):
+    def _value(self): #TODO remove it
         return self.data
     
     def v(self):
+        """ returns the first value in the list, or None """
         return self._data[0] if self.data else None
 
 class LazyListOfList(LazyList):
     """ represents the result of an inline query (a Literal or Body)"""
     def __eq__(self, other):
+        """ uses set comparison"""
         return set(self.data) == set(other)
     
-    def __ge__(self, other):
-        # returns the first occurrence of 'other' variable in the result of a function
+    def __ge__(self, variable):
+        """ returns the first value of the variable in the result of a query, or None """
         if self.data:
-            assert isinstance(other, pyDatalog.Variable)
+            assert isinstance(variable, pyDatalog.Variable)
             for t in self.literal().terms:
-                if id(t) == id(other):
+                if id(t) == id(variable):
                     return t.data[0]
     
 class Expression(object):
+    """ base class for objects that can be part of an inequality, operation or slice """
     @classmethod
     def _for(cls, operand):
+        """ factory that converts an operand to an Expression """
         if isinstance(operand, (Expression, Aggregate)):
             return operand
         if isinstance(operand, type(lambda: None)):
@@ -248,8 +267,10 @@ class Expression(object):
         return Symbol(operand, forced_type="constant")
     
     def _precalculation(self):
-        return Body() # by default, there is no precalculation needed to evaluate an expression
+        """ by default, there is no precalculation needed to evaluate an expression """
+        return Body()
     
+    # handlers of inequality and operations
     def __eq__(self, other):
         if isinstance(self, Operation) and self.operator in '+-' and self.lhs._pyD_value == 0:
             assert False, "Did you mean to assert or retract a fact ? Please add parenthesis."
@@ -265,17 +286,17 @@ class Expression(object):
     def __gt__(self, other):
         return Literal.make_for_comparison(self, '>', other)
     def _in(self, values):
-        """ called when compiling (X in (1,2)) """
+        """ called when evaluating (X in (1,2)) """
         return Literal.make_for_comparison(self, '_pyD_in', values)
     def _not_in(self, values):
-        """ called when compiling (X not in (1,2)) """
+        """ called when evaluating (X not in (1,2)) """
         return Literal.make_for_comparison(self, '_pyD_not_in', values)
     
     def __pos__(self):
-        """ called when compiling -X """
+        """ called when evaluating -X """
         return 0 + self
     def __neg__(self):
-        """ called when compiling -X """
+        """ called when evaluating -X """
         return 0 - self
 
     def __add__(self, other):
@@ -291,6 +312,7 @@ class Expression(object):
     def __floordiv__(self, other):
         return Operation(self, '//', other)
     
+    # called by constant + Symbol (or lambda + symbol)
     def __radd__(self, other):
         return Operation(other, '+', self)
     def __rsub__(self, other):
@@ -305,15 +327,14 @@ class Expression(object):
         return Operation(other, '//', self)
 
     def __getitem__(self, keys):
-        """ called when compiling expression[keys] """
+        """ called when evaluating expression[keys] """
         if isinstance(keys, slice):
             return Operation(self, 'slice', [keys.start, keys.stop, keys.step])
         return Operation(self, 'slice', keys)
     
     
 class VarSymbol(Expression):
-    """ represents the symbol of a variable, both inline and in pyDatalog program 
-    """
+    """ represents the symbol of a variable, both inline and in pyDatalog program """
     def __init__ (self, name, forced_type=None):
         self._pyD_negated = False # for aggregate with sort in descending order
         if isinstance(name, (list, tuple, xrange)):
@@ -339,7 +360,7 @@ class VarSymbol(Expression):
             self._pyD_lua = pyEngine.Var(name)
 
     def __neg__(self):
-        """ called when compiling -X """
+        """ called when evaluating -X. Used in aggregate arguments """
         neg = Symbol(self._pyD_value)
         neg._pyD_negated = True
 
@@ -348,6 +369,7 @@ class VarSymbol(Expression):
         return expr
     
     def _variables(self):
+        """ returns an ordered dictionary of the variables in the varSymbol """
         if self._pyD_type == 'variable' and not self._pyD_name.startswith('_pyD_'):
             return OrderedDict({self._pyD_name : self})
         elif self._pyD_type == 'tuple':
@@ -368,16 +390,16 @@ class Symbol(VarSymbol):
     """
     can be constant, list, tuple, variable or predicate name
     ask() creates a query
-    created when analysing the datalog program
     """
     def __call__ (self, *args, **kwargs):
-        """ called when compiling p(args) """
-        "time to create a literal !"
-        if self._pyD_name == 'ask':
+        """ called when evaluating p(args) """
+        if self._pyD_name == 'ask': # call ask() and return an answer
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             return pyDatalog.Answer.make(args[0].ask())
+        
+        # manage the aggregate functions
         elif self._pyD_name == '_sum':
             if isinstance(args[0], VarSymbol):
                 return Sum_aggregate(args[0], for_each=kwargs.get('for_each', kwargs.get('key', [])))
@@ -404,10 +426,10 @@ class Symbol(VarSymbol):
                 return Len_aggregate(args[0])
             else: 
                 return len(args[0]) 
-        else:
+        else: # create a literal
             new_args, pre_calculations = [], Body()
             for arg in args:
-                if isinstance(arg, Function):
+                if isinstance(arg, (Operation, Function)):
                     Y = Function.newSymbol()
                     new_args.append(Y)
                     pre_calculations = pre_calculations & (Y == arg)
@@ -418,27 +440,28 @@ class Symbol(VarSymbol):
             return literal
 
     def __getattr__(self, name):
-        """ called when compiling class.attribute """
+        """ called when evaluating class.attribute """
         return Symbol(self._pyD_name + '.' + name)
     
     def __getitem__(self, keys):
-        """ called when compiling name[keys] """
+        """ called when evaluating name[keys] """
         return Function(self._pyD_name, keys)
 
     def __str__(self):
         return str(self._pyD_name)
     
     def __setitem__(self, keys, value):
-        """  called when compiling f[X] = expression """
+        """  called when evaluating f[X] = expression """
         function = Function(self._pyD_name, keys)
         # following statement translates it into (f[X]==V) <= (V==expression)
         (function == function.symbol) <= (function.symbol == value)
         
 class Function(Expression):
     """ represents predicate[a, b]"""
-    Counter = 0
+    Counter = 0 # counter of functions evaluated so far
     @classmethod
     def newSymbol(cls):
+        """ returns a new unique Symbol associated to a Function """
         Function.Counter += 1
         return Symbol('_pyD_X%i' % Function.Counter)
         
@@ -464,20 +487,23 @@ class Function(Expression):
         return str(self)
     
     def __eq__(self, other):
+        #TODO precalculations ??
         return Literal.make_for_comparison(self, '==', other)
     
     # following methods are used when the function is used in an expression
     def _variables(self):
+        """ returns an ordered dictionary of the variables in the keys of the function"""
         return self.pre_calculations._variables()
 
-    def _precalculation(self): 
+    def _precalculation(self):
+        """ returns the literal(s) that must be pre-calculated before the Literal that uses this function""" 
         return self.pre_calculations & (self == self.symbol)
     
 class Operation(Expression):
-    """made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program"""
+    """created when evaluating an operation (+, -, *, /, //) """
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
-        self.lhs = Expression._for(lhs)
+        self.lhs = Expression._for(lhs) # left  hand side
         self.rhs = Expression._for(rhs)
         self._pyD_lua = pyEngine.Operation(self.lhs._pyD_lua, self.operator, self.rhs._pyD_lua)
         
@@ -486,11 +512,13 @@ class Operation(Expression):
         return str(self)
     
     def _variables(self):
+        """ returns an ordered dictionary of the variables in this Operation"""
         temp = self.lhs._variables()
         temp.update(self.rhs._variables())
         return temp
     
     def _precalculation(self):
+        """ returns the literal(s) that must be pre-calculated before the Literal that uses this Operation""" 
         return self.lhs._precalculation() & self.rhs._precalculation()
     
     def __str__(self):
@@ -501,16 +529,16 @@ class Literal(object):
     created by source code like 'p(a, b)'
     operator '<=' means 'is true if', and creates a Clause
     """
-    def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
+    def __init__(self, predicate_name, args, prearity=None, aggregate=None):
         self.predicate_name = predicate_name
-        self.prearity = prearity or len(terms)
+        self.prearity = prearity or len(args)
         self.pre_calculations = Body()
         
-        self.args = terms # TODO simplify
+        self.args = args
         self.todo = self
         cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
-        self.terms = []
-        for i, arg in enumerate(terms):
+        self.terms = [] # the list of args converted to Expression
+        for i, arg in enumerate(args):
             if isinstance(arg, Literal):
                 raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, self.terms), None, None)
             elif not isinstance(arg, VarSymbol) and i==0 and cls_name and cls_name not in [c.__name__ for c in arg.__class__.__mro__]:
@@ -519,7 +547,7 @@ class Literal(object):
                 raise pyDatalog.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
             if isinstance(arg, pyDatalog.Variable):
                 arg.todo = self
-                del arg._data[:] # reset variables
+                del arg._data[:] # reset the variable. For use in in-line queries
             self.terms.append(Expression._for(arg))
                             
         tbl = [a._pyD_lua for a in self.terms]
@@ -529,13 +557,15 @@ class Literal(object):
 
     @classmethod
     def make(cls, predicate_name, terms, prearity=None, aggregate=None):
-        if predicate_name[-1]=='!':
+        """ factory class that creates a Query or HeadLiteral """
+        if predicate_name[-1]=='!': # e.g. aggregation literal
             return HeadLiteral(predicate_name, terms, prearity, aggregate)
         else:
             return Query(predicate_name, terms, prearity, aggregate)
     
     @classmethod
     def make_for_comparison(cls, self, operator, other):
+        """ factory of Literal for a comparison """
         assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
         other = Expression._for(other)
         if isinstance(self, Function):
@@ -574,7 +604,8 @@ class Literal(object):
         return [self]
     
     def _variables(self):
-        if self.predicate_name[0] == '~':
+        """ returns an ordered dictionary of the variables in the Literal"""
+        if self.predicate_name[0] == '~': # ignore variables of negated literals
             return OrderedDict()
         variables = OrderedDict()
         for term in self.terms:
@@ -582,7 +613,7 @@ class Literal(object):
         return variables
     
     def __le__(self, body):
-        " head <= body"
+        " head <= body creates a clause"
         if not isinstance(body, (Literal, Body)):
             raise pyDatalog.DatalogError("Invalid body for clause", None, None)
         newBody = Body()
@@ -621,7 +652,7 @@ class Query(Literal, LazyListOfList):
 
     def __neg__(self):
         " unary - means retract fact from database "
-        assert not self._variables(), "Cannot assert a fact containing Variables"
+        assert not self._variables(), "Cannot retract a fact containing Variables"
         pyDatalog._retract_fact(self)
         
     def __invert__(self):
@@ -650,10 +681,7 @@ class Query(Literal, LazyListOfList):
         return self
 
 class Body(LazyListOfList):
-    """
-    created by p(a,b) & q(c,d)
-    operator '&' means 'and', and returns a Body
-    """
+    """ created by p(a,b) & q(c,d)  """
     Counter = 0
     def __init__(self, *args):
         LazyListOfList.__init__(self)
@@ -675,6 +703,7 @@ class Body(LazyListOfList):
         return self.__variables
 
     def __and__(self, body2):
+        """ operator '&' means 'and', and returns a Body """
         return Body(self, body2)
     
     def __str__(self):
@@ -683,7 +712,7 @@ class Body(LazyListOfList):
         return ' & '.join(list(map (str, self.literals)))
 
     def literal(self, permanent=False):
-        # return a literal that can be queried to resolve the body
+        """ return a literal that can be queried to resolve the body """
         if permanent:
             literal = Literal.make('_pyD_query' + str(Body.Counter), list(self._variables().values()))
             Body.Counter = Body.Counter + 1
@@ -698,6 +727,7 @@ class Body(LazyListOfList):
         return ~(self.literal(permanent=True))
 
     def ask(self):
+        """ resolve the query and determine the values of its variables"""
         literal = self.literal()
         self._data = literal.lua.ask(False)
         literal.todo, self.todo = None, None
@@ -751,10 +781,11 @@ class Aggregate(object):
         
     @property
     def arity(self):
-        # of the aggregate function, not of the full predicate 
+        """returns the arity of the aggregate function, not of the full predicate """
         return len(self.args)
         
     def sort_result(self, result):
+        """ sort result according to the aggregate argument """
         # significant indexes in the result rows
         order_by_start = len(result[0]) - len(self.order_by) - self.sep_arity
         for_each_start = order_by_start - len(self.for_each)
@@ -772,18 +803,21 @@ class Aggregate(object):
         pass
     
     def key(self, result):
-        # return the grouping key of a result
+        """ return the grouping key of a result """
         return list(result[:len(result)-self.arity])
     
     def reset(self):
+        """ by default, _value is 0 """
         self._value = 0
         
     @property
     def value(self):
+        """ by default, value is _value"""
         return self._value
     
-    def fact(self,k):
-        return k + [pyEngine.Const(self.value)]
+    def fact(self, key):
+        """ returns the terms of an aggregated fact"""
+        return key + [pyEngine.Const(self.value)]
        
 class Sum_aggregate(Aggregate):
     """ represents sum(Y, for_each=(Z,T))"""

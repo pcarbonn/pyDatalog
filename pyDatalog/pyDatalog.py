@@ -26,6 +26,7 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 """
 methods / classes exposed by this file:
+DatalogError class
 methods for direct access to datalog knowledge base:
   * assert_fact(predicate_name, *args) : assert predicate_name(args)
   * retract_fact(predicate_name, *args) : retracts predicate_name(args)
@@ -35,12 +36,13 @@ methods for direct access to datalog knowledge base:
   * ask(code) : returns the result of the query contained in the code string
   * variables(n) : convenience function to create multiple variables in one statement
   * clear() : resets the datalog database
-DatalogError class
+  * create_atoms() : creates atoms for in-line queries
+  * variables() : creates variables for in-line queries
+Variable : a class to define Variable, for use in datalog queries. Inherits from pyParser.
 Answer class defines the object returned by ask()
   * __eq__ for equality test
   * __str__ for printing
 classes for Python Mixin:
-  * Variable : a class to define Variable, for use in datalog queries
   * Mixin : a class that can be mixed in another class to give it datalog capability
   * sqlMetaMixin : a metaclass to be used when creating a class with both SQLAlchemy and datalog capability
   
@@ -122,6 +124,40 @@ def clear():
     """ resets the default datalog database """
     pyEngine.clear()
 
+def create_atoms(*args):
+    """ create atoms for in-line queries """
+    stack = inspect.stack()
+    try:
+        locals_ = stack[1][0].f_locals
+        args = [arg.split(',') for arg in args]
+        args = [arg.strip() for argl in args for arg in argl]
+        for arg in set(args + ['_sum','_min', '_max', '_len', 'concat', 'rank', 'running_sum']):
+            if arg in locals_: 
+                assert isinstance(locals_[arg], (pyParser.Symbol, pyDatalog.Variable)), \
+                    "Name conflict.  Can't redefine %s as atom" % arg
+            else:
+                if arg[0] not in string.ascii_uppercase:
+                    locals_[arg] = pyParser.Symbol(arg)
+                else:
+                    locals_[arg] = pyDatalog.Variable(arg)    
+    finally:
+        del stack
+
+def variables(n):
+    """ create variables for in-line queries """
+    return [pyDatalog.Variable() for i in range(n)]
+
+class Variable(pyParser.VarSymbol, pyParser.LazyList):
+    def __init__(self, name=None):
+        name = 'X%i' % id(self) if name is None else name
+        pyParser.LazyList.__init__(self)
+        pyParser.VarSymbol.__init__(self, name)
+
+    def __add__(self, other):
+        return pyParser.Operation(self, '+', other)
+    def __radd__(self, other):
+        return pyParser.Operation(other, '+', self)
+
 class Answer(object):
     """ object returned by ask() """
     def __init__(self, name, arity, answers):
@@ -143,27 +179,6 @@ class Answer(object):
         return set(self.answers) == other if self.answers else other is None
     def __str__(self):
         return str(set(self.answers))
-
-def create_atoms(*args):
-    stack = inspect.stack()
-    try:
-        locals_ = stack[1][0].f_locals
-        args = [arg.split(',') for arg in args]
-        args = [arg.strip() for argl in args for arg in argl]
-        for arg in set(args + ['_sum','_min', '_max', '_len', 'concat', 'rank', 'running_sum']):
-            if arg in locals_: 
-                assert isinstance(locals_[arg], (pyParser.Symbol, pyDatalog.Variable)), \
-                    "Name conflict.  Can't redefine %s as atom" % arg
-            else:
-                if arg[0] not in string.ascii_uppercase:
-                    locals_[arg] = pyParser.Symbol(arg)
-                else:
-                    locals_[arg] = pyDatalog.Variable(arg)    
-    finally:
-        del stack
-
-def variables(n):
-    return [pyDatalog.Variable() for i in range(n)]
 
 #utility functions, also used by pyParser
 
@@ -190,25 +205,14 @@ pyDatalog.add_clause = add_clause
 pyDatalog._assert_fact = _assert_fact
 pyDatalog._retract_fact = _retract_fact
 pyDatalog.Answer = Answer
+pyDatalog.Variable = Variable
 pyParser.pyDatalog = pyDatalog
 pyEngine.pyDatalog = pyDatalog
 
 """ ****************** python Mixin ***************** """
 
-class Variable(pyParser.VarSymbol, pyParser.LazyList):
-    def __init__(self, name=None):
-        name = 'X%i' % id(self) if name is None else name
-        pyParser.LazyList.__init__(self)
-        pyParser.VarSymbol.__init__(self, name)
-
-    def __add__(self, other):
-        return pyParser.Operation(self, '+', other)
-    def __radd__(self, other):
-        return pyParser.Operation(other, '+', self)
-
-pyDatalog.Variable = Variable
-
-"""Keep a dictionary of classes with datalog capabilities.  This list is used by pyEngine to resolve prefixed literals."""
+#Keep a dictionary of classes with datalog capabilities.  
+#This list is used by pyEngine to resolve prefixed literals.
 Class_dict = {}
 pyEngine.Class_dict = Class_dict # TODO better way to share it with pyEngine.py ?
 
@@ -283,8 +287,9 @@ class metaMixin(type):
 Mixin = metaMixin('Mixin', (object,), {})
 pyDatalog.Mixin = Mixin
 
-""" When creating a Mixin object without SQLAlchemy, add it to the list of instances,
-    so that it can be included in the result of queries"""
+#When creating a Mixin object without SQLAlchemy, add it to the list of instances,
+#so that it can be included in the result of queries
+
 def __init__(self):
     if not self.__class__.has_SQLAlchemy:
         for cls in self.__class__.__mro__:
