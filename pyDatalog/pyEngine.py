@@ -23,9 +23,12 @@ USA
 This file contains the port of the datalog engine of J. D. Ramsdell, 
 from lua to python, with some enhancements:
 * indexing of facts,
-* support for lambda.
+* support for lambda
+* evaluation of arithmetic expression and comparison.
 
-Some differences between python and lua:
+See also doc.py for additional source code documentation.
+
+Some notable differences between python and lua:
 * lua indices start at 1, not 0
 * any variable is true in lua if it is not nil or false.
 * lua tables contain both a list and a dictionary --> need to change them to objects
@@ -49,23 +52,22 @@ Auto_print = False # True => automatically prints the result of a query
 
 Python_resolvers = {} # dictionary  of python functions that can resolve a predicate
 
-# DATA TYPES
+#       DATA TYPES          #####################################
 
 # Internalize objects based on an identifier.
 
 # To make comparisons between items of the same type efficient, each
 # item is internalized so there is at most one of them associated
-# with an identifier.  An identifier is always a string.
+# with an identifier.
 
 # For example, after internalization, there is one constant for each
 # string used to name a constant.
 
-
 class Interned(object):
-    # beware, they should be one registry per class --> copy the following line in the child class !!
-    # registry = weakref.WeakValueDictionary()
+    """ Abstract class for objects having only one instance in memory """
     @classmethod
     def of(cls, atom):
+        """ factory function for interned objects """
         if isinstance(atom, (Interned, Fresh_var, Operation)):
             return atom
         elif isinstance(atom, (list, tuple, xrange)):
@@ -75,50 +77,50 @@ class Interned(object):
     notFound = object()
     def __eq__(self, other):
         return self is other
-    def __hash__(self): return id(self)
+    def __hash__(self): 
+        return id(self)
     def __ne__(self, other):
         return not self is other
     def is_const(self): # for backward compatibility with custom resolvers
         return self.is_constant
 
-# A term is either a variable or a constant.
-
-# Variables as simple objects.
-
 def add_size(s):
+    """ prepends the size of the string """
     return "%i:%s" % (len(s), s)
 
-class Fresh_var(object): # no interning needed
+
+class Fresh_var(object): 
+    """ a variable created by the search algorithm """
     fresh_var_state = 0  
     def __init__(self):
-        self.id = str(Fresh_var.fresh_var_state)
-        self.key = add_size('v' + self.id)
+        self.id = str(Fresh_var.fresh_var_state) #id
+        self.key = add_size('v' + self.id) #id
         Fresh_var.fresh_var_state += 1 # ensures freshness
     
     def is_const(self):
         return False
     is_constant = False
-    def get_tag(self, env):
+    def get_tag(self, env): #id
         env.setdefault(self, 'v%i' % len(env)) # TODO return the result of this statement directly ?
         return env[self] 
 
-    def subst(self, env):
+    def subst(self, env): #unify
         return env.get(self, self)
-    def shuffle(self, env):
+    def shuffle(self, env): #shuffle
         env.setdefault(self, Fresh_var())
         return env[self] #TODO no need to return a value
-    def chase(self, env):
+    def chase(self, env): #unify
         return env[self].chase(env) if self in env else self
     
-    def unify(self, term, env):
+    def unify(self, term, env): #unify
         return term.unify_var(self, env)
-    def unify_const(self, const, env):
+    def unify_const(self, const, env): #unify
         env[self] = const
         return env
-    def unify_var(self, var, env):
+    def unify_var(self, var, env): #unify
         env[var] = self
         return env
-    def unify_tuple(self, tuple, env):
+    def unify_tuple(self, tuple, env): #unify
         env[self] = tuple
         return env
     
@@ -127,16 +129,19 @@ class Fresh_var(object): # no interning needed
     def __str__(self): 
         return "variable_%s" % self.id
     def equals_primitive(self, term, subgoal):
+        """ by default, self==term fails """
         return None
 
+
 class Var(Fresh_var, Interned):
+    """ A variable in a clause or query """
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
         o = cls.registry.get(_id, Interned.notFound)
         if o is Interned.notFound:
             o = object.__new__(cls) # o is the ref that keeps it alive
-            o.id = _id
-            o.key = add_size('v' + _id)
+            o.id = _id #id
+            o.key = add_size('v' + _id) #id
             cls.registry[_id] = o
         return o
     def __init__(self, name):
@@ -151,36 +156,37 @@ class Var(Fresh_var, Interned):
     def __str__(self): 
         return self.id 
 
-# Constants as simple objects.
 
 class Const(Interned):
+    """ a constant """
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
         o = cls.registry.get(_id, Interned.notFound)
         if o is Interned.notFound: 
             o = object.__new__(cls) # o is the ref that keeps it alive
-            o.id = _id
+            o.id = _id #id
             o.key = add_size( 'c' + str(o.id) if isinstance(o.id, (six.string_types, int)) 
-                    else 'o' + str(id(o)) )
+                    else 'o' + str(id(o)) ) #id
             cls.registry[_id] = o
         return o
     is_constant = True
-    def get_tag(self, env):
+    def get_tag(self, env): #id
         return self.key
-    def subst(self, env):
+    
+    def subst(self, env): #unify
         return self
-    def shuffle(self, env):
+    def shuffle(self, env): #shuffle
         return None  #TODO no need to return a value
-    def chase(self, env):
+    def chase(self, env): #unify
         return self
     
-    def unify(self, term, env):
+    def unify(self, term, env): #unify
         return term.unify_const(self, env)
-    def unify_const(self, const, env):
+    def unify_const(self, const, env): #unify
         return None
-    def unify_var(self, var, env):
+    def unify_var(self, var, env): #unify
         return var.unify_const(self, env)
-    def unify_tuple(self, tuple, env):
+    def unify_tuple(self, tuple, env): #unify
         return None
     
     def is_safe(self, clause): 
@@ -194,14 +200,15 @@ class Const(Interned):
             return fact(subgoal, literal)
 
 class VarTuple(Interned):
+    """ a tuple / list of variables, constants or tuples """
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
         o = cls.registry.get(_id, Interned.notFound)
         if o is Interned.notFound: 
             o = object.__new__(cls) # o is the ref that keeps it alive
-            o._id = _id
+            o._id = _id #id
             #o.key = add_size('o' + str(id(o)) )
-            o.key = '('+ ''.join([e.key for e in _id]) + ')'
+            o.key = '('+ ''.join([e.key for e in _id]) + ')' #id
             o.id = tuple([element.id for element in _id])
             o.is_constant = all(element.is_constant for element in _id)
             cls.registry[_id] = o
@@ -210,30 +217,31 @@ class VarTuple(Interned):
     def __len__(self):
         return len(self._id)        
     
-    def get_tag(self, env):
+    def get_tag(self, env): #id
         if self.is_constant: # can use lazy property only for constants
             return self.key
         return repr([t.get_tag(env) for t in self._id])#TODO
-    def subst(self, env):
+    
+    def subst(self, env): #unify
         if self.is_constant: # can use lazy property only for constants
             return self
         return VarTuple(tuple([element.subst(env) for element in self._id]))
-    def shuffle(self, env):
+    def shuffle(self, env): #shuffle
         if not self.is_constant:
             for element in self._id:
                 element.shuffle(env)
-    def chase(self, env):
+    def chase(self, env): #unify
         if self.is_constant:
             return self
         return VarTuple(tuple([element.chase(env) for element in self._id]))
     
-    def unify(self, term, env):
+    def unify(self, term, env): #unify
         return term.unify_tuple(self, env)
-    def unify_const(self, const, env):
+    def unify_const(self, const, env): #unify
         return None
-    def unify_var(self, var, env):
+    def unify_var(self, var, env): #unify
         return var.unify_tuple(self, env)
-    def unify_tuple(self, tuple, env):
+    def unify_tuple(self, tuple, env): #unify
         if len(self) != len(tuple):
             return None
         for e1, e2 in zip(self._id, tuple._id):
@@ -252,18 +260,21 @@ class VarTuple(Interned):
             literal = Literal("==", (self, self))
             return fact(subgoal, literal)
 
+
 class Operation(object): #TODO Interned ?
+    """ an arithmetic operation, a slice or a lambda """
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
         self.lhs = lhs
         self.rhs = rhs
         self.is_constant = False
-        self.id = "(%s%s%s)" % (self.lhs.id, str(self.operator), self.rhs.id)
-        self.key = "(%s%s%s)" % (self.lhs.key, str(self.operator), self.rhs.key)
+        self.id = "(%s%s%s)" % (self.lhs.id, str(self.operator), self.rhs.id) #id
+        self.key = "(%s%s%s)" % (self.lhs.key, str(self.operator), self.rhs.key) #id
     
-    def get_tag(self, env):
+    def get_tag(self, env): #id
         return "(%s%s%s)" % (self.lhs.get_tag(env), str(self.operator), self.rhs.get_tag(env))
-    def subst(self, env):
+    
+    def subst(self, env): #unify
         lhs = self.lhs.subst(env)
         rhs = self.rhs.subst(env)
         if self.operator == 'slice' and isinstance(lhs, VarTuple) and rhs.is_constant:
@@ -287,30 +298,28 @@ class Operation(object): #TODO Interned ?
             assert False # dead code
         return Operation(lhs, self.operator, rhs)
             
-    def shuffle(self, env):
+    def shuffle(self, env): #shuffle
         self.lhs.shuffle(env)
         self.rhs.shuffle(env)
-    def chase(self, env):
+    def chase(self, env): #unify
         return Operation(self.lhs.chase(env), self.operator, self.rhs.chase(env))
     
-    def unify(self, term, env):
+    def unify(self, term, env): #unify
         return None
-    def unify_const(self, const, env):
+    def unify_const(self, const, env): #unify
         return None
-    def unify_var(self, var, env):
+    def unify_var(self, var, env): #unify
         return None
-    def unify_tuple(self, tuple, env):
+    def unify_tuple(self, tuple, env): #unify
         return None
 
     def __str__(self): 
         return "(%s%s%s)" % (str(self.lhs), str(self.operator), str(self.rhs))
 
-# Predicate symbols
-
-# A predicate symbol has a name, an arity, and a database table.  It
-# can also have a function used to implement a primitive.
 
 class Pred(Interned):
+    """ A predicate symbol has a name, an arity, and a database table.  
+        It can also have a function used to implement a primitive."""
     registry = weakref.WeakValueDictionary()
     def __new__(cls, pred_name, arity, aggregate=None):
         assert isinstance(pred_name, six.string_types)
@@ -345,22 +354,23 @@ class Pred(Interned):
         return self._cls
     
     def reset_clauses(self):
+        """ clears the database of clauses for the predicate """
         for clause in list(self.clauses):
             retract(clause)
     
-    def __str__(self): return "%s()" % self.name
+    def __str__(self): 
+        return "%s()" % self.name
 
-# Literals
-
-# A literal is a predicate and a sequence of terms, the number of
-# which must match the predicate's arity.
 
 class Literal(object):
+    """ A literal is a predicate and a sequence of terms, 
+        the number of which must match the predicate's arity.
+    """
     def __init__(self, pred, terms, prearity=None, aggregate=None):
         self.terms = terms
         if isinstance(pred, six.string_types):
             self.pred = Pred(pred, len(terms), aggregate)
-            if pred[:1] == '~':
+            if pred[:1] == '~': #pred
                 self.pred.base_pred = Pred(pred[1:], len(terms))
         else:
             self.pred = pred
@@ -373,80 +383,63 @@ class Literal(object):
         new = Literal(pred, list(self.terms), prearity=self.pred.prearity)
         return new
         
-    def rebased(self, parent_class): # returns a literal prefixed by parent class
+    def rebased(self, parent_class): 
+        """ returns a literal prefixed by parent class """
         pred = self.pred
         if not parent_class or not pred._class() or parent_class == pred._class(): 
             return self
         return self._renamed(re.sub('^((~)?)'+pred._class().__name__+'.', r'\1'+parent_class.__name__+'.', pred.name))
     
-    def equalized(self): # returns a new literal with '==' instead of comparison
+    def equalized(self): 
+        """ returns a new literal with '==' instead of comparison """
         return self._renamed(self.pred.name.replace(self.pred.comparison, '=='))
     
     def __str__(self): return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
 
-# A literal's id is computed on demand, but then cached.  It is used
-# by a clause when creating its id.
 
-# The id's encoding ensures that two literals are structurally the
-# same if they have the same id.
-
-def get_id(literal):
-    if not hasattr(literal, 'id'):
+def get_id(literal): #id
+    """ The id's encoding ensures that two literals are structurally the
+        same if they have the same id. """
+    if not hasattr(literal, 'id'): # cached
         literal.id = add_size(literal.pred.id) + ''.join([term.key for term in literal.terms])
     return literal.id
 
-# A literal's key is similar to get_id, but only uses the terms up to the prearity. 
-# It is used to ensure unicity of results of functions like "pred[k]=v"
 
-def get_key(literal):
-    if not hasattr(literal, 'key'):
+def get_key(literal): #id
+    """ A literal's key is similar to get_id, but only uses the terms up to the prearity. 
+        It is used to ensure unicity of results of functions like "pred[k]=v" """
+    if not hasattr(literal, 'key'): # cached
         terms = literal.terms
-        if literal.pred.prearity and len(terms) == literal.pred.prearity:
+        if len(terms) == literal.pred.prearity:
             literal.key = get_id(literal)
         else:
-            literal.key = add_size(literal.pred.id) + ''.join([terms[i].key for i in range(literal.pred.prearity or len(terms))])
+            literal.key = add_size(literal.pred.id) + ''.join([terms[i].key for i in range(literal.pred.prearity)])
     return literal.key
     
-# Variant tag
 
-# Two literal's variant tags are the same if there is a one-to-one
-# mapping of variables to variables, such that when the mapping is
-# applied to one literal, the result is a literal that is the same as
-# the other one, when compared using structural equality.  The
-# variant tag is used as a key by the subgoal table.
-
-def get_tag(literal):
-    if not hasattr(literal, 'tag'):
+def get_tag(literal): #id
+    """ the tag is used as a key by the subgoal table """
+    if not hasattr(literal, 'tag'): # cached
         literal.tag = add_size(literal.pred.id)
         env = {}
         literal.tag += ''.join([add_size(term.get_tag(env)) for term in literal.terms])
     return literal.tag
      
-# An environment is a map from variables to terms.
 
-def subst(literal, env):
+def subst(literal, env): #unify
     if len(env) == 0: return literal
     return Literal(literal.pred, [term.subst(env) for term in literal.terms])
 
-# Shuffle creates an environment in which all variables are mapped to
-# freshly generated variables.
 
-def shuffle(literal, env):
+def shuffle(literal, env): #shuffle
     for term in literal.terms:
         term.shuffle(env)
     return env
 
-# Renames a literal using an environment generated by shuffle.
-
-def rename(literal):
+def rename(literal): #shuffle
     return subst(literal, shuffle(literal, {}))
 
-# Unify two literals.  The result is either an environment or nil.
-# Nil is returned when the two literals cannot be unified.  When they
-# can, applying the substitutions defined by the environment on both
-# literals will create two literals that are structurally equal.
-
-def unify(literal, other):
+def unify(literal, other): #unify
     if literal.pred != other.pred: return None
     env = {}
     for term, otherterm in zip(literal.terms, other.terms):
@@ -458,10 +451,9 @@ def unify(literal, other):
     return env
 
 
-# Does a literal have a given term?  Internalizing terms ensures an
-# efficient implementation of this operation.
-
 def is_in_literal(term, literal):
+    """ true if term is in literal """
+    #TODO ignore negated literal
     return any(term.is_in(term2) for term2 in literal.terms)
 
 # These methods are used to handle a set of facts.
@@ -471,17 +463,11 @@ def is_member(literal, tbl):
 def adjoin(literal, tbl):
     tbl[get_key(literal)] = literal
     
-# Clauses
-
-# A clause has a head literal, and a sequence of literals that form
-# its body.  If there are no literals in its body, the clause is
-# called a fact.  If there is at least one literal in its body, it is
-# called a rule.
-
-# A clause asserts that its head is true if every literal in its body is
-# true.
 
 class Clause(object):
+    """ A clause asserts that its head is true if every literal in its body is
+        true.  If there are no literals in the body, the clause is a fact
+    """
     def __init__(self, head, body):
         self.head = head
         self.body = body
@@ -491,42 +477,36 @@ class Clause(object):
         """retract clause"""
         retract(self) 
 
-# A clause's id is computed on demand, but then cached.
 
-# The id's encoding ensures that two clauses are structurally equal
-# if they have the same id.  A clause's id is used as a key into the
-# clause database.
-
-def get_clause_id(clause):
-    if not hasattr(clause, 'id'):
+def get_clause_id(clause): #id
+    """ The id's encoding ensures that two clauses are structurally equal
+        if they have the same id.  A clause's id is used as a key into the
+        clause database. """
+    if not hasattr(clause, 'id'): # cached
         clause.id = add_size(get_key(clause.head)) + ''.join([add_size(get_key(bodi)) for bodi in clause.body])
     return clause.id
     
-# Clause substitution in which the substitution is applied to each
-# literal that makes up the clause.
-
 def subst_in_clause(clause, env, parent_class=None):
+    """ apply the env mapping and rebase to parent_class, if any """
     if len(env) == 0 and not parent_class: return clause
     return Clause(subst(clause.head, env).rebased(parent_class),
                        [subst(bodi, env).rebased(parent_class) for bodi in clause.body])
     
-# Renames the variables in a clause.  Every variable in the head is
-# in the body, so the head can be ignored while generating an
-# environment.
-
 def rename_clause(clause):
+    """ returns the clause with fresh variables """
     env = {}
+    # Every variable in the head is in the body, 
+    # so the head can be ignored
     for bodi in clause.body:
         env = shuffle(bodi, env)
     if len(env) == 0: return clause
     return subst_in_clause(clause, env)
 
-# A clause is safe if every variable in its head is in its body.
-
 def is_safe(clause):
+    """ A clause is safe if every variable in its head is in its body. """
     return all(term.is_safe(clause) for term in clause.head.terms)
 
-# DATABASE
+# DATABASE  #####################################################
 
 # The database stores predicates that contain clauses.  Predicates
 # not in the database are subject to garbage collection.
@@ -542,9 +522,9 @@ def remove(pred):
     if pred.id in db : del db[pred.id]
     return pred
     
-# Add a safe clause to the database.
 
 def assert_(clause):
+    """ Add a safe clause to the database """
     if not is_safe(clause): return None  # An unsafe clause was detected.
     pred = clause.head.pred
     if not pred.prim:                   # Ignore assertions for primitives.
@@ -562,6 +542,7 @@ def assert_(clause):
     return clause
 
 def retract(clause):
+    """ retract a clause from the database"""
     pred = clause.head.pred
     id_ = get_clause_id(clause)
     
@@ -581,7 +562,7 @@ def retract(clause):
     return clause
 
 def relevant_clauses(literal):
-    #returns matching clauses for a literal query, using index
+    """ returns matching clauses for a literal query, using index """
     result = None
     for i, term in enumerate(literal.terms):
         if term.is_constant:
@@ -593,8 +574,6 @@ def relevant_clauses(literal):
         #result= [ literal.pred.db[id_] for id_ in result ] + [ literal.pred.db[id_] for id_ in literal.pred.clauses]
         return list(result) + list(literal.pred.clauses)
     
-# PROVER
-
 """
 The remaining functions in this file implement the tabled logic
 programming algorithm described in "Efficient Top-Down Computation of
@@ -609,7 +588,7 @@ It should be noted that a simplified version of the algorithm of
 supported. 
 """
 
-# The subgoal table is a map from the variant tag of a subgoal's
+# The subgoal table is a map from the tag of a subgoal's
 # literal to a subgoal.
 
 subgoals = {}
@@ -622,31 +601,35 @@ def merge(subgoal):
     global subgoals
     subgoals[get_tag(subgoal.literal)] = subgoal
 
-# A subgoal is the item that is tabled by this algorithm.
-
-# A subgoal has a literal, a set of facts, and an array of waiters.
-# A waiter is a pair containing a subgoal and a clause.
 
 class Subgoal(object):
+    """
+    A subgoal has a literal, a set of facts, and an array of waiters.
+    A waiter is a pair containing a subgoal and a clause.
+    """
     def __init__(self, literal):
         self.literal = literal
         self.facts = {}
         self.waiters = []
-def make_subgoal(literal):
+def make_subgoal(literal): #TODO remove
     return Subgoal(literal)
     
-# Resolve the selected literal of a clause with a literal.  The
-# selected literal is the first literal in body of a rule.  If the
-# two literals unify, a new clause is generated that has a body with
-# one less literal.
 
 def resolve(clause, literal):
+    """
+    Resolve the selected literal of a clause with a literal.  The
+    selected literal is the first literal in body of a rule.  If the
+    two literals unify, a new clause is generated that has a body with
+    one less literal.
+    """
     env = unify(clause.body[0], rename(literal))
     if env == None: 
         return None # dead code ?
     return Clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
  
-# A stack of thunks used to avoid the stack overflow problem
+################# Task management ###############################
+
+# A stack of thunks is used to avoid the stack overflow problem
 # by delaying the evaluation of some functions
 
 Fast = None
@@ -679,9 +662,10 @@ def complete(thunk, post_thunk):
     # so that it is run immediately by invoke() after the search() thunk is complete
     Stack[-1][1].appendleft(Thunk(post_thunk)) 
     
-# Invoke the tasks. Each task may append new tasks on the schedule.
+
 
 def invoke(thunk):
+    """ Invoke the tasks. Each task may append new tasks on the schedule."""
     global tasks, subgoals
     if Fast: return thunk()
     tasks = deque([Thunk(thunk),])
@@ -707,9 +691,10 @@ class Add_clause(object):
     def do(self):
         add_clause(self.subgoal, self.clause)
         
-# Store a fact, and inform all waiters of the fact too.
+################## add derived facts and use rules ##############
 
 def fact(subgoal, literal):
+    """ Store a derived fact, and inform all waiters of the fact too. """
     if not is_member(literal, subgoal.facts):
         if Trace: print("New fact : %s" % str(literal))
         adjoin(literal, subgoal.facts)
@@ -718,7 +703,6 @@ def fact(subgoal, literal):
             if resolvent != None:
                 schedule(Add_clause(waiter.subgoal, resolvent))
 
-# Use a newly derived rule.
 
 class Waiter(object):
     def __init__(self, subgoal, clause):
@@ -726,6 +710,7 @@ class Waiter(object):
         self.clause = clause
         
 def rule(subgoal, clause, selected):
+    """ Use a newly derived rule. """
     sg = find(selected)
     if sg != None:
         sg.waiters.append(Waiter(subgoal, clause))
@@ -748,7 +733,17 @@ def add_clause(subgoal, clause):
     else:
         return rule(subgoal, clause, clause.body[0])
     
-# Search for derivations of the literal associated with this subgoal.
+def fact_candidate(subgoal, class0, result):
+    """ add result as a candidate fact of class0 for subgoal"""
+    result = [Interned.of(r) for r in result]
+    if class0 and result[0].id and not isinstance(result[0].id, class0): 
+        return
+    result = Literal(subgoal.literal.pred.name, result)
+    env = unify(subgoal.literal, result)
+    if env != None:
+        fact(subgoal, result)
+
+###############     SEARCH     ##################################
 
 def _(self):
     " iterator of the parent classes that have pyDatalog capabilities"
@@ -760,16 +755,8 @@ def _(self):
         yield None
 Pred.parent_classes = _
 
-def fact_candidate(subgoal, class0, result):
-    result = [Interned.of(r) for r in result]
-    if class0 and result[0].id and not isinstance(result[0].id, class0): 
-        return
-    result = Literal(subgoal.literal.pred.name, result)
-    env = unify(subgoal.literal, result)
-    if env != None:
-        fact(subgoal, result)
-
 def search(subgoal):
+    """ Search for derivations of the literal associated with this subgoal """
     literal0 = subgoal.literal
     class0 = literal0.pred._class()
     terms = literal0.terms
@@ -777,7 +764,7 @@ def search(subgoal):
     if class0 and terms[0].is_constant and terms[0].id is None: return
     if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
         if Debug : print("pyDatalog will search negation of %s" % literal0)
-        """ 
+        """ #TODO : remove ?
         for term in terms:
             if not term.is_const(): # all terms of a negated predicate must be bound
                 raise RuntimeError('Terms of a negated literal must be bound : %s' % str(literal0))
@@ -839,7 +826,7 @@ def search(subgoal):
             base_terms = list(terms)
             del base_terms[-1]
             base_terms.extend([ Var('V%i' % i) for i in range(aggregate.arity)])
-            base_literal = Literal(literal.pred.name + '!', base_terms)
+            base_literal = Literal(literal.pred.name + '!', base_terms) #pred
     
             #TODO thunking to avoid possible stack overflow
             global Fast, subgoals, tasks, Stack
@@ -916,7 +903,7 @@ def _(literal, fast):
     return [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]    
 Literal.ask = _
 
-# PRIMITIVES
+# PRIMITIVES   ##################################################
 
 """
 

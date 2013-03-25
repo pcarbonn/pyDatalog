@@ -558,7 +558,7 @@ class Literal(object):
     @classmethod
     def make(cls, predicate_name, terms, prearity=None, aggregate=None):
         """ factory class that creates a Query or HeadLiteral """
-        if predicate_name[-1]=='!': # e.g. aggregation literal
+        if predicate_name[-1]=='!': #pred e.g. aggregation literal
             return HeadLiteral(predicate_name, terms, prearity, aggregate)
         else:
             return Query(predicate_name, terms, prearity, aggregate)
@@ -583,7 +583,7 @@ class Literal(object):
                 del terms[-1] # --> (X,)
                 terms.extend(other.args)
                 prearity = len(terms) # (X,Y,Z)
-                return Literal.make(name + '!', terms, prearity=prearity)
+                return Literal.make(name + '!', terms, prearity=prearity) #pred
             elif operator != '==' or isinstance(other, (Operation, Function)):
                 if '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
                     literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
@@ -605,7 +605,7 @@ class Literal(object):
     
     def _variables(self):
         """ returns an ordered dictionary of the variables in the Literal"""
-        if self.predicate_name[0] == '~': # ignore variables of negated literals
+        if self.predicate_name[0] == '~': #pred ignore variables of negated literals
             return OrderedDict()
         variables = OrderedDict()
         for term in self.terms:
@@ -658,7 +658,7 @@ class Query(Literal, LazyListOfList):
     def __invert__(self):
         """unary ~ means negation """
         # TODO test with python queries
-        return Literal.make('~' + self.predicate_name, self.terms)
+        return Literal.make('~' + self.predicate_name, self.terms) #pred
 
     def __and__(self, other):
         " literal & literal" 
