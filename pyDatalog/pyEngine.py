@@ -108,7 +108,6 @@ class Fresh_var(object):
         return env.get(self, self)
     def shuffle(self, env): #shuffle
         env.setdefault(self, Fresh_var())
-        return env[self] #TODO no need to return a value
     def chase(self, env): #unify
         return env[self].chase(env) if self in env else self
     
@@ -176,7 +175,7 @@ class Const(Interned):
     def subst(self, env): #unify
         return self
     def shuffle(self, env): #shuffle
-        return None  #TODO no need to return a value
+        pass
     def chase(self, env): #unify
         return self
     
@@ -261,7 +260,7 @@ class VarTuple(Interned):
             return fact(subgoal, literal)
 
 
-class Operation(object): #TODO Interned ?
+class Operation(object):
     """ an arithmetic operation, a slice or a lambda """
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
@@ -453,7 +452,6 @@ def unify(literal, other): #unify
 
 def is_in_literal(term, literal):
     """ true if term is in literal """
-    #TODO ignore negated literal
     return any(term.is_in(term2) for term2 in literal.terms)
 
 # These methods are used to handle a set of facts.
@@ -611,8 +609,6 @@ class Subgoal(object):
         self.literal = literal
         self.facts = {}
         self.waiters = []
-def make_subgoal(literal): #TODO remove
-    return Subgoal(literal)
     
 
 def resolve(clause, literal):
@@ -656,13 +652,12 @@ def complete(thunk, post_thunk):
     subgoals, tasks = {}, deque()
     schedule(Thunk(thunk))
     if Fast: 
-        #TODO pop to recover memory space
+        Stack.pop() # to recover memory space
         return post_thunk() # don't bother with thunks if Fast
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
     Stack[-1][1].appendleft(Thunk(post_thunk)) 
     
-
 
 def invoke(thunk):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
@@ -722,7 +717,7 @@ def rule(subgoal, clause, selected):
         for t in todo:
             schedule(Add_clause(subgoal, t))
     else:
-        sg = make_subgoal(selected)
+        sg = Subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
         merge(sg)
         return schedule(Search(sg))
@@ -764,11 +759,6 @@ def search(subgoal):
     if class0 and terms[0].is_constant and terms[0].id is None: return
     if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
         if Debug : print("pyDatalog will search negation of %s" % literal0)
-        """ #TODO : remove ?
-        for term in terms:
-            if not term.is_const(): # all terms of a negated predicate must be bound
-                raise RuntimeError('Terms of a negated literal must be bound : %s' % str(literal0))
-        """
         base_literal = Literal(literal0.pred.base_pred, terms)
         """ the rest of the processing essentially performs the following, 
         but in its own environment, and with precautions to avoid stack overflow :
@@ -781,7 +771,7 @@ def search(subgoal):
             #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
             # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
             
-            base_subgoal = make_subgoal(base_literal)
+            base_subgoal = Subgoal(base_literal)
 
             complete(lambda base_subgoal=base_subgoal: merge(base_subgoal) or search(base_subgoal),
                      lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
@@ -833,7 +823,7 @@ def search(subgoal):
             Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop() when tasks is empty
             subgoals, tasks = {}, deque()
             #result = ask(base_literal)
-            base_subgoal = make_subgoal(base_literal)
+            base_subgoal = Subgoal(base_literal)
             merge(base_subgoal)
             Fast = True # TODO why is it needed ??  Side effects !
             search(base_subgoal)
@@ -896,7 +886,7 @@ def _(literal, fast):
     Fast = fast
     
     subgoals = {}
-    subgoal = make_subgoal(literal)
+    subgoal = Subgoal(literal)
     merge(subgoal)
     invoke(lambda subgoal=subgoal: search(subgoal))
     subgoals = None
