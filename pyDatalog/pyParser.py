@@ -234,7 +234,7 @@ class LazyList(UserList.UserList):
         if self.todo is not None: self.todo.ask()
         return self._data
 
-    def _value(self): #TODO remove it
+    def _value(self): # for backward compatibility ?
         return self.data
     
     def v(self):
@@ -385,6 +385,22 @@ class VarSymbol(Expression):
             return variables
         else:
             return OrderedDict()
+
+def pre_calculations(args):
+    """ returns a new list of args, and pre_calculations"""
+    # logic shared by Symbol and Function 
+    new_args, pre_calculations = [], Body()
+    for arg in args:
+        if isinstance(arg, Operation):
+            pre_calculations = pre_calculations & arg._precalculation()
+            new_args.append(arg)
+        elif isinstance(arg, (Operation, Function)):
+            Y = Function.newSymbol()
+            new_args.append(Y)
+            pre_calculations = pre_calculations & (Y == arg)
+        else:
+            new_args.append(arg)
+    return new_args, pre_calculations
         
 class Symbol(VarSymbol):
     """
@@ -427,16 +443,9 @@ class Symbol(VarSymbol):
             else: 
                 return len(args[0]) 
         else: # create a literal
-            new_args, pre_calculations = [], Body()
-            for arg in args:
-                if isinstance(arg, (Operation, Function)):
-                    Y = Function.newSymbol()
-                    new_args.append(Y)
-                    pre_calculations = pre_calculations & (Y == arg)
-                else:
-                    new_args.append(arg)
+            new_args, pre_calc = pre_calculations(args)
             literal = Literal.make(self._pyD_name, tuple(new_args))
-            literal.pre_calculations = pre_calculations
+            literal.pre_calculations = pre_calc
             return literal
 
     def __getattr__(self, name):
@@ -469,14 +478,7 @@ class Function(Expression):
         if not isinstance(keys, tuple):
             keys = (keys,)
         self.name = "%s[%i]" % (name, len(keys))
-        self.keys, self.pre_calculations = [], Body()
-        for key in keys:
-            if isinstance(key, (Operation, Function)):
-                Y = Function.newSymbol()
-                self.keys.append(Y)
-                self.pre_calculations = self.pre_calculations & (Y == key)
-            else:
-                self.keys.append(key)
+        self.keys, self.pre_calculations = pre_calculations(keys)
                 
         self.symbol = Function.newSymbol()
         self.dummy_variable_name = '_pyD_X%i' % Function.Counter
@@ -487,7 +489,6 @@ class Function(Expression):
         return str(self)
     
     def __eq__(self, other):
-        #TODO precalculations ??
         return Literal.make_for_comparison(self, '==', other)
     
     # following methods are used when the function is used in an expression
