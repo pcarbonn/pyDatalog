@@ -164,7 +164,7 @@ class Const(Interned):
         if o is Interned.notFound: 
             o = object.__new__(cls) # o is the ref that keeps it alive
             o.id = _id #id
-            o.key = add_size( 'c' + str(o.id) if isinstance(o.id, (six.string_types, int)) 
+            o.key = add_size( 'c' + str(o.id) if isinstance(o.id, (six.string_types, int, float)) 
                     else 'o' + str(id(o)) ) #id
             cls.registry[_id] = o
         return o
@@ -278,7 +278,8 @@ class Operation(object):
         rhs = self.rhs.subst(env)
         if self.operator == 'slice' and isinstance(lhs, VarTuple) and rhs.is_constant:
             if isinstance(rhs, VarTuple):
-                return Interned.of(lhs._id.__getitem__(slice(*(rhs.id))))
+                args = [int(i) if i is not None and int(i)==i else i for i in rhs.id]
+                return Interned.of(lhs._id.__getitem__(slice(*args)))
             return Interned.of(lhs._id.__getitem__(rhs.id))
         if lhs.is_constant and rhs.is_constant:
             # calculate expression of constants

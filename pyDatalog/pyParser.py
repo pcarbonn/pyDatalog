@@ -348,7 +348,7 @@ class VarSymbol(Expression):
             self._pyD_name = '[%s:%s:%s]' % (start._pyD_name, stop._pyD_name, step._pyD_name)
             self._pyD_type = 'slice'
             self._pyD_lua = pyEngine.Interned.of([start._pyD_lua, stop._pyD_lua, step._pyD_lua])
-        elif forced_type=="constant" or isinstance(name, int) or not name or name[0] not in string.ascii_uppercase + '_':
+        elif forced_type=="constant" or isinstance(name, (int, float)) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_value = name
             self._pyD_name = str(name)
             self._pyD_type = 'constant'

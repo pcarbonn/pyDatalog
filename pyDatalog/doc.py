@@ -48,6 +48,7 @@ Element        id            key            tag
 variable_1     variable_1    11:vvariable_1 v1
 X              X             2:vX           v2
 1              1             2:c1           2:c1
+1.0            1.0           4:c1.0         4:c1.0
 'a'            'a'           2:ca           2:ca
 ('a', X)       ('a', X)      (2:ca2:vX)     (2:ca,v1)
 X+1            (X+1)         (2:vX+2:c1)    (v1+2:c1)

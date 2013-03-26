@@ -76,6 +76,9 @@ def test():
         
         + p(1)
         assert ask(p(1)) == set([()])
+        + p(2.0)
+        assert ask(p(2.0)) == set([()])
+        - p(2.0)
         
         + n(None)
         assert ask(n(X)) == set([(None,)])
