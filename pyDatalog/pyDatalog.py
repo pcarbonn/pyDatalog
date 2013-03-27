@@ -131,7 +131,8 @@ def create_atoms(*args):
         locals_ = stack[1][0].f_locals
         args = [arg.split(',') for arg in args]
         args = [arg.strip() for argl in args for arg in argl]
-        for arg in set(args + ['_sum','_min', '_max', '_len', 'concat', 'rank', 'running_sum']):
+        for arg in set(args + ['_sum','sum_','_min','min_','_max','max_',
+        '_len','len_','concat','concat_','rank','rank_','running_sum','running_sum_']):
             if arg in locals_: 
                 assert isinstance(locals_[arg], (pyParser.Symbol, pyDatalog.Variable)), \
                     "Name conflict.  Can't redefine %s as atom" % arg

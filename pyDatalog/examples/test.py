@@ -542,8 +542,8 @@ def test():
     X = pyDatalog.Variable()
     assert ((X==1) >= X) == 1
     assert ((X==1) & (X!=2) >= X) == 1
-    assert set(X._in((1,2))) == set([(1,),(2,)])
-    assert ((X==1) & (X._in ((1,2)))) == [(1,)]
+    assert set(X.in_((1,2))) == set([(1,),(2,)])
+    assert ((X==1) & (X.in_ ((1,2)))) == [(1,)]
 
     """ interface with python classes                                        """
 
@@ -616,12 +616,12 @@ def test():
     assert (A.c[X]<='a') == [(a,)]
     assert (A.c[X]<='a'+'') == [(a,)]
 
-    assert (A.c[X]._in(('a',))) == [(a,)]
-    assert (A.c[X]._in(('a',)+('z',))) == [(a,)]
-    assert ((Y==('a',)) & (A.c[X]._in(Y))) == [(('a',), a)] # TODO make ' in ' work
+    assert (A.c[X].in_(('a',))) == [(a,)]
+    assert (A.c[X].in_(('a',)+('z',))) == [(a,)]
+    assert ((Y==('a',)) & (A.c[X].in_(Y))) == [(('a',), a)] # TODO make ' in ' work
     
-    assert ((Y==('a',)) & (A.c[X]._in(Y+('z',)))) == [(('a',), a)] # TODO make ' in ' work
-    assert (A.c[X]._in(('z',))) == []
+    assert ((Y==('a',)) & (A.c[X].in_(Y+('z',)))) == [(('a',), a)] # TODO make ' in ' work
+    assert (A.c[X].in_(('z',))) == []
 
     # more complex queries
     assert ((Y=='a') & (A.b[X]!=Y)) == [('a', b)] # order of appearance of the variables !

@@ -113,10 +113,10 @@ class _transform_ast(ast.NodeTransformer):
         """rename builtins to allow customization"""
         self.generic_visit(node)
         if hasattr(node.func, 'id'):
-            node.func.id = '_sum' if node.func.id == 'sum' else node.func.id
-            node.func.id = '_len' if node.func.id == 'len' else node.func.id
-            node.func.id = '_min' if node.func.id == 'min' else node.func.id
-            node.func.id = '_max' if node.func.id == 'max' else node.func.id
+            node.func.id = 'sum_' if node.func.id == 'sum' else node.func.id
+            node.func.id = 'len_' if node.func.id == 'len' else node.func.id
+            node.func.id = 'min_' if node.func.id == 'min' else node.func.id
+            node.func.id = 'max_' if node.func.id == 'max' else node.func.id
         return node
     
     def visit_Compare(self, node):
@@ -128,7 +128,7 @@ class _transform_ast(ast.NodeTransformer):
         var = node.left # X, an _ast.Name object
         comparators = node.comparators[0] # (1,2), an _ast.Tuple object
         newNode = ast.Call(
-                ast.Attribute(var, '_in' if isinstance(node.ops[0], ast.In) else '_not_in', var.ctx), # func
+                ast.Attribute(var, 'in_' if isinstance(node.ops[0], ast.In) else 'not_in_', var.ctx), # func
                 [comparators], # args
                 [], # keywords
                 None, # starargs
@@ -285,12 +285,14 @@ class Expression(object):
         return Literal.make_for_comparison(self, '>=', other)
     def __gt__(self, other):
         return Literal.make_for_comparison(self, '>', other)
-    def _in(self, values):
+    def in_(self, values):
         """ called when evaluating (X in (1,2)) """
         return Literal.make_for_comparison(self, '_pyD_in', values)
-    def _not_in(self, values):
+    _in = in_ # for backward compatibility
+    def not_in_(self, values):
         """ called when evaluating (X not in (1,2)) """
         return Literal.make_for_comparison(self, '_pyD_not_in', values)
+    _not_in = not_in_  # for backward compatibility
     
     def __pos__(self):
         """ called when evaluating -X """
@@ -416,28 +418,28 @@ class Symbol(VarSymbol):
             return pyDatalog.Answer.make(args[0].ask())
         
         # manage the aggregate functions
-        elif self._pyD_name == '_sum':
+        elif self._pyD_name in ('_sum', 'sum_'):
             if isinstance(args[0], VarSymbol):
                 return Sum_aggregate(args[0], for_each=kwargs.get('for_each', kwargs.get('key', [])))
             else:
                 return sum(args)
-        elif self._pyD_name == 'concat':
+        elif self._pyD_name in ('concat', 'concat_'):
             return Concat_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])), sep=kwargs['sep'])
-        elif self._pyD_name == '_min':
+        elif self._pyD_name in ('_min', 'min_'):
             if isinstance(args[0], VarSymbol):
                 return Min_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
             else:
                 return min(args)
-        elif self._pyD_name == '_max':
+        elif self._pyD_name in ('_max', 'max_'):
             if isinstance(args[0], VarSymbol):
                 return Max_aggregate(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
             else:
                 return max(args)
-        elif self._pyD_name == 'rank':
+        elif self._pyD_name in ('rank', 'rank_'):
             return Rank_aggregate(None, for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
-        elif self._pyD_name == 'running_sum':
+        elif self._pyD_name in ('running_sum', 'running_sum_'):
             return Running_sum(args[0], for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
-        elif self._pyD_name == '_len':
+        elif self._pyD_name in ('_len', 'len_'):
             if isinstance(args[0], VarSymbol):
                 return Len_aggregate(args[0])
             else: 

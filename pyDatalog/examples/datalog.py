@@ -31,7 +31,7 @@ indirect_manager(X,Y) <= (manager[X] == Y) & (Y != None)
 indirect_manager(X,Y) <= (manager[X] == Z) & indirect_manager(Z,Y) & (Y != None)
 
 # count the number of reports of X
-(report_count[X] == _len(Y)) <= indirect_manager(Y,X)
+(report_count[X] == len_(Y)) <= indirect_manager(Y,X)
 
 """ 3. Query the datalog engine """
 
@@ -54,11 +54,11 @@ print(indirect_manager('X', X)) # prints []
 print(report_count[X] == 2) # prints [('John',)]
 
 # what is the total salary of the employees of John ? 
-(budget[X] == _sum(N, for_each=Y)) <= (indirect_manager(Y, X)) & (salary[Y]==N)
+(budget[X] == sum_(N, for_each=Y)) <= (indirect_manager(Y, X)) & (salary[Y]==N)
 print(budget['John']==N) # prints [(12200,)]
 
 # who has the lowest salary ?
-(lowest[1] == _min(X, order_by=N)) <= (salary[X]==N)
+(lowest[1] == min_(X, order_by=N)) <= (salary[X]==N)
 print(lowest[1]==N) # prints [('Sam',)]
 
 # start the datalog console, for interactive querying 

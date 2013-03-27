@@ -30,7 +30,7 @@ print(factorial[3]==F) # prints [(6,)]
 
 # aggregate function
 # calculate the list of descendents, sorted by their name, and separated by ','
-(descendents[X]==concat(Y, order_by=Y, sep=',')) <= ancestor(X,Y) 
+(descendents[X]==concat_(Y, order_by=Y, sep=',')) <= ancestor(X,Y) 
 
 print(descendents[bill]==X) # prints [('John Adams',)]
 
