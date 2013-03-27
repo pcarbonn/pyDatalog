@@ -108,11 +108,11 @@ print(X) # prints [Employee: John]
 # what is the total salary of the employees of John ?
 # note : it is better to place aggregation clauses in the class definition 
 Mary.salary = 6400 # queries use the latest, in-session, data
-(Employee.budget[X] == _sum(N, for_each=Y)) <= (Employee.indirect_manager(Y, X)) & (Employee.salary[Y]==N)
+(Employee.budget[X] == sum_(N, for_each=Y)) <= (Employee.indirect_manager(Y, X)) & (Employee.salary[Y]==N)
 Employee.budget[John]==X
 print(X) # prints [12300]
 
 # who has the lowest salary ?
-(lowest[1] == _min(X, order_by=N)) <= (Employee.salary[X]==N)
+(lowest[1] == min_(X, order_by=N)) <= (Employee.salary[X]==N)
 # must use ask() because inline queries cannot use unprefixed literals 
 print(lowest[1]==X) # prints [(Employee: Sam,)]
