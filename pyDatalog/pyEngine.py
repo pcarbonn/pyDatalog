@@ -37,6 +37,7 @@ Some notable differences between python and lua:
 """
 from collections import deque
 import copy
+from decimal import Decimal
 import gc
 from itertools import groupby
 import re
@@ -160,13 +161,14 @@ class Const(Interned):
     """ a constant """
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
-        o = cls.registry.get(_id, Interned.notFound)
+        r = repr(_id) if isinstance(_id, (six.string_types, float, Decimal)) else _id
+        o = cls.registry.get(r, Interned.notFound)
         if o is Interned.notFound: 
             o = object.__new__(cls) # o is the ref that keeps it alive
             o.id = _id #id
-            o.key = add_size( 'c' + str(o.id) if isinstance(o.id, (six.string_types, int, float)) 
+            o.key = add_size( 'c' + str(o.id) if isinstance(o.id, (six.string_types, int, float, Decimal)) 
                     else 'o' + str(id(o)) ) #id
-            cls.registry[_id] = o
+            cls.registry[r] = o
         return o
     is_constant = True
     def get_tag(self, env): #id
@@ -206,7 +208,6 @@ class VarTuple(Interned):
         if o is Interned.notFound: 
             o = object.__new__(cls) # o is the ref that keeps it alive
             o._id = _id #id
-            #o.key = add_size('o' + str(id(o)) )
             o.key = '('+ ''.join([e.key for e in _id]) + ')' #id
             o.id = tuple([element.id for element in _id])
             o.is_constant = all(element.is_constant for element in _id)
@@ -278,8 +279,7 @@ class Operation(object):
         rhs = self.rhs.subst(env)
         if self.operator == 'slice' and isinstance(lhs, VarTuple) and rhs.is_constant:
             if isinstance(rhs, VarTuple):
-                args = [int(i) if i is not None and int(i)==i else i for i in rhs.id]
-                return Interned.of(lhs._id.__getitem__(slice(*args)))
+                return Interned.of(lhs._id.__getitem__(slice(*rhs.id)))
             return Interned.of(lhs._id.__getitem__(rhs.id))
         if lhs.is_constant and rhs.is_constant:
             # calculate expression of constants
