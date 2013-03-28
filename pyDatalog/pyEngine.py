@@ -383,8 +383,7 @@ class Literal(object):
     def _renamed(self, new_name):
         _id = '%s/%i' % (new_name, len(self.terms))
         pred= Pred.registry.get(_id, new_name)
-        new = Literal(pred, list(self.terms), prearity=self.pred.prearity)
-        return new
+        return Literal(pred, list(self.terms), prearity=self.pred.prearity)
         
     def rebased(self, parent_class): 
         """ returns a literal prefixed by parent class """
@@ -789,27 +788,31 @@ def search(subgoal):
         "TypeError: First argument of %s must be a %s, not a %s " % (str(literal0), class0.__name__, type(terms[0].id).__name__)
     for _class in literal0.pred.parent_classes():
         literal = literal0.rebased(_class)
-        method_name = '_pyD_%s%i'% (literal.pred.suffix, int(literal.pred.arity)) # TODO special method for comparison
         
-        if literal.pred.id in Python_resolvers:
-            if Debug : print("pyDatalog uses python resolvers for %s" % literal)
-            for result in Python_resolvers[literal.pred.id](*terms):
-                fact_candidate(subgoal, class0, result)
-            return
-        elif _class and literal.pred.suffix and method_name in _class.__dict__:
-            if Debug : print("pyDatalog uses class resolvers for %s" % literal)
-            for result in getattr(_class, method_name)(*terms):
-                fact_candidate(subgoal, class0, result)
-            return        
-        try: # call class._pyD_query
-            resolver = _class._pyD_query
-            if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
-            for result in resolver(literal.pred.name, terms):
-                fact_candidate(subgoal, class0, result)
-            if Debug : print("pyDatalog has used _pyD_query resolvers for %s" % literal)
-            return
-        except:
-            pass
+        if Python_resolvers:
+            resolver = literal.pred.id if literal.pred.id in Python_resolvers \
+                    else literal.pred.id.replace(r'/', str(literal.pred.arity)+r"/")
+            if resolver in Python_resolvers:
+                if Debug : print("pyDatalog uses python resolvers for %s" % literal)
+                for result in Python_resolvers[resolver](*terms):
+                    fact_candidate(subgoal, class0, result)
+                return
+        if _class: 
+            method_name = '_pyD_%s%i'% (literal.pred.suffix, int(literal.pred.arity)) # TODO special method for comparison
+            if literal.pred.suffix and method_name in _class.__dict__:
+                if Debug : print("pyDatalog uses class resolvers for %s" % literal)
+                for result in getattr(_class, method_name)(*terms):
+                    fact_candidate(subgoal, class0, result)
+                return        
+            try: # call class._pyD_query
+                resolver = _class._pyD_query
+                if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
+                for result in resolver(literal.pred.name, terms):
+                    fact_candidate(subgoal, class0, result)
+                if Debug : print("pyDatalog has used _pyD_query resolvers for %s" % literal)
+                return
+            except:
+                pass
         if literal.pred.prim: # X==Y, X < Y+Z
             if Debug : print("pyDatalog uses comparison primitive for %s" % literal)
             return literal.pred.prim(literal, subgoal)

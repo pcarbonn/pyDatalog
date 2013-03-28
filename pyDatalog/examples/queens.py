@@ -5,10 +5,14 @@ import time
 pyDatalog.create_atoms('N,X0,X1,X2,X3,X4,X5,X6,X7')
 pyDatalog.create_atoms('ok,queens0,queens1,queens2,queens3,queens4,queens5,queens6,queens7')
 
+#ok(X1, N, X2) <= (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
+@pyDatalog.predicate()
+def ok3(X1, N, X2):
+    if (X1.id!=X2.id) and (X1.id!= X2.id+N.id) and (X1.id!=X2.id-N.id):
+        yield (X1.id, N.id, X2.id)
+
 # when is it ok to have a queen in row X1 and another in row X2, separated by N columns
 # this is memoized !
-ok(X1, N, X2) <= (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
-
 queens0(X0) <= (X0._in(range(8)))
 queens1(X0,X1) <= queens0(X0) & queens0(X1) & ok(X1,1,X0)
 queens2(X0,X1,X2) <= queens1(X0,X1) & queens1(X1,X2) & ok(X0,2,X2)
