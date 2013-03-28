@@ -9,7 +9,13 @@ pyDatalog.create_atoms('ok,queens, pred')
 # when is it ok to have a queen in row X1 and another in row X2, separated by N columns
 # this is memoized !
 size=8
-ok(X1, N, X2) <= (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
+
+#ok(X1, N, X2) <= (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
+@pyDatalog.predicate()
+def ok3(X1, N, X2):
+    if (X1.id!=X2.id) and (X1.id!= X2.id+N.id) and (X1.id!=X2.id-N.id):
+        yield (X1.id, N.id, X2.id)
+
 pred(N, N1) <= (N>1) & (N1==N-1)
 queens(1, X) <= (X1._in(range(size))) & (X1==X[0])
 queens(N, X) <= pred(N, N1) & queens(N1, X[:-1]) & queens(N1, X[1:]) & ok(X[0], N1, X[-1])
