@@ -82,9 +82,11 @@ func_code = '__code__' if PY3 else 'func_code'
 
 try:
     from . import pyEngine
+    from . import Counter
     from . import UserList
 except ValueError:
     import pyEngine
+    import Counter
     import UserList
 pyDatalog = None #circ: later set by pyDatalog to avoid circular import
 
@@ -469,12 +471,11 @@ class Symbol(VarSymbol):
         
 class Function(Expression):
     """ represents predicate[a, b]"""
-    Counter = 0 # counter of functions evaluated so far
+    counter = Counter.Counter() # counter of functions evaluated so far
     @classmethod
     def newSymbol(cls):
         """ returns a new unique Symbol associated to a Function """
-        Function.Counter += 1
-        return Symbol('_pyD_X%i' % Function.Counter)
+        return Symbol('_pyD_X%i' % Function.counter.next())
         
     def __init__(self, name, keys):
         if not isinstance(keys, tuple):
@@ -483,7 +484,6 @@ class Function(Expression):
         self.keys, self.pre_calculations = pre_calculations(keys)
                 
         self.symbol = Function.newSymbol()
-        self.dummy_variable_name = '_pyD_X%i' % Function.Counter
         self._pyD_lua = self.symbol._pyD_lua
     
     @property

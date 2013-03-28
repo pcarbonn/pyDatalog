@@ -45,6 +45,11 @@ import six
 from six.moves import xrange
 import weakref
 
+try:
+    from . import Counter
+except ValueError:
+    import Counter
+
 pyDatalog = None #circ: later set by pyDatalog to avoid circular import
 
 Trace = False # True --> show new facts when they are established
@@ -85,18 +90,13 @@ class Interned(object):
     def is_const(self): # for backward compatibility with custom resolvers
         return self.is_constant
 
-def add_size(s):
-    """ prepends the size of the string """
-    return "%i:%s" % (len(s), s)
-
 
 class Fresh_var(object): 
     """ a variable created by the search algorithm """
-    fresh_var_state = 0  
+    counter = Counter.Counter()  
     def __init__(self):
-        self.id = str(Fresh_var.fresh_var_state) #id
-        self.key = add_size('v' + self.id) #id
-        Fresh_var.fresh_var_state += 1 # ensures freshness
+        self.id = 'f' + str(Fresh_var.counter.next()) #id
+        self.key = self.id #id
     
     def is_const(self):
         return False
@@ -136,12 +136,13 @@ class Fresh_var(object):
 class Var(Fresh_var, Interned):
     """ A variable in a clause or query """
     registry = weakref.WeakValueDictionary()
+    counter = Counter.Counter()
     def __new__(cls,  _id):
         o = cls.registry.get(_id, Interned.notFound)
         if o is Interned.notFound:
             o = object.__new__(cls) # o is the ref that keeps it alive
             o.id = _id #id
-            o.key = add_size('v' + _id) #id
+            o.key = 'v' + str(Var.counter.next()) #id
             cls.registry[_id] = o
         return o
     def __init__(self, name):
@@ -160,14 +161,14 @@ class Var(Fresh_var, Interned):
 class Const(Interned):
     """ a constant """
     registry = weakref.WeakValueDictionary()
+    counter = Counter.Counter()
     def __new__(cls,  _id):
         r = repr(_id) if isinstance(_id, (six.string_types, float, Decimal)) else _id
         o = cls.registry.get(r, Interned.notFound)
         if o is Interned.notFound: 
             o = object.__new__(cls) # o is the ref that keeps it alive
             o.id = _id #id
-            o.key = add_size( 'c' + str(o.id) if isinstance(o.id, (six.string_types, int, float, Decimal)) 
-                    else 'o' + str(id(o)) ) #id
+            o.key = 'c' + str(Const.counter.next())
             cls.registry[r] = o
         return o
     is_constant = True
@@ -263,16 +264,18 @@ class VarTuple(Interned):
 
 class Operation(object):
     """ an arithmetic operation, a slice or a lambda """
+    counter = Counter.Counter()
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
+        self.operator_id = 'l' + str(Operation.counter.next()) if isinstance(self.operator, type(lambda: None)) else str(self.operator)
         self.lhs = lhs
         self.rhs = rhs
         self.is_constant = False
-        self.id = "(%s%s%s)" % (self.lhs.id, str(self.operator), self.rhs.id) #id
-        self.key = "(%s%s%s)" % (self.lhs.key, str(self.operator), self.rhs.key) #id
+        self.id = "(%s%s%s)" % (self.lhs.id, self.operator_id, self.rhs.id) #id
+        self.key = "(%s%s%s)" % (self.lhs.key, self.operator_id, self.rhs.key) #id
     
     def get_tag(self, env): #id
-        return "(%s%s%s)" % (self.lhs.get_tag(env), str(self.operator), self.rhs.get_tag(env))
+        return "(%s%s%s)" % (self.lhs.get_tag(env), self.operator_id, self.rhs.get_tag(env))
     
     def subst(self, env): #unify
         lhs = self.lhs.subst(env)
@@ -401,7 +404,7 @@ def get_id(literal): #id
     """ The id's encoding ensures that two literals are structurally the
         same if they have the same id. """
     if not hasattr(literal, 'id'): # cached
-        literal.id = add_size(literal.pred.id) + ''.join([term.key for term in literal.terms])
+        literal.id = literal.pred.id + ''.join([term.key for term in literal.terms])
     return literal.id
 
 
@@ -413,16 +416,15 @@ def get_key(literal): #id
         if len(terms) == literal.pred.prearity:
             literal.key = get_id(literal)
         else:
-            literal.key = add_size(literal.pred.id) + ''.join([terms[i].key for i in range(literal.pred.prearity)])
+            literal.key = literal.pred.id + ''.join([terms[i].key for i in range(literal.pred.prearity)])
     return literal.key
     
 
 def get_tag(literal): #id
     """ the tag is used as a key by the subgoal table """
     if not hasattr(literal, 'tag'): # cached
-        literal.tag = add_size(literal.pred.id)
         env = {}
-        literal.tag += ''.join([add_size(term.get_tag(env)) for term in literal.terms])
+        literal.tag = literal.pred.id + ''.join([term.get_tag(env) for term in literal.terms])
     return literal.tag
      
 
@@ -482,7 +484,7 @@ def get_clause_id(clause): #id
         if they have the same id.  A clause's id is used as a key into the
         clause database. """
     if not hasattr(clause, 'id'): # cached
-        clause.id = add_size(get_key(clause.head)) + ''.join([add_size(get_key(bodi)) for bodi in clause.body])
+        clause.id = get_key(clause.head) + '<=' + '&'.join([get_key(bodi) for bodi in clause.body])
     return clause.id
     
 def subst_in_clause(clause, env, parent_class=None):

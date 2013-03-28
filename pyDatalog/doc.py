@@ -45,16 +45,17 @@ variant tag is used as a key by the subgoal table.
 
 Element        id            key            tag
 -------        --            ---            ---
-variable_1     variable_1    11:vvariable_1 v1
-X              X             2:vX           v2
-1              1             2:c1           2:c1
-1.0            1.0           4:c1.0         4:c1.0
-'a'            'a'           2:ca           2:ca
-('a', X)       ('a', X)      (2:ca2:vX)     (2:ca,v1)
-X+1            (X+1)         (2:vX+2:c1)    (v1+2:c1)
+variable_1     variable_1    f1             v1
+X              X             v2             v2
+1              1             c2             c3
+1.0            1.0           c4             c4
+'a'            'a'           c5             c5
+('a', X)       ('a', X)      (c5v2)         (c5v1)
+lambda X:..    lambda X:..   l1(v2)         l1(v1)
+X+1            (X+1)         (v2+c1)        (v2+c1)
 p              p/2
-p(X,1)         3:p/22:vX2:c1 3:p/22:vX2:c1  3:p/2v12:c1
-p[X]==1        3:p/22:vX     3:p/22:vX      3:p/2v1
+p(X,1)         p/2v2c3       p/2v2c3        p/2v1c3
+p[X]==1        p/2v2c3       p/2v2c3        p/2v1
 
 
 
