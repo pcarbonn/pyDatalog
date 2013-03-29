@@ -6,10 +6,10 @@ from pyDatalog import pyEngine
 pyDatalog.create_atoms('N,N1, X,Y, X0,X1,X2,X3,X4,X5,X6,X7')
 pyDatalog.create_atoms('ok,queens, pred')
 
-# when is it ok to have a queen in row X1 and another in row X2, separated by N columns
-# this is memoized !
 size=8
 
+# when is it ok to have a queen in row X1 and another in row X2, separated by N columns
+# this is memoized !
 #ok(X1, N, X2) <= (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
 @pyDatalog.predicate()
 def ok3(X1, N, X2):
@@ -24,12 +24,12 @@ start_time = time.time()
 print(queens(size, (X0,X1,X2,X3,X4,X5,X6,X7)))
 print("First datalog run in %f seconds" % (time.time() - start_time))
 
-# counting is 0-based, so this is actually the 8-queens solution
-# there is a fixed penalty the first time around (JIT, ...), so let's measure performance the second time
-start_time = time.time()
-datalog_count = len(queens(size, (X0,X1,X2,X3,X4,X5,X6,X7)).data)
-datalog_time = (time.time() - start_time)
-
+for i in range(20):
+    # there is a warm-up period for the JIT --> let's compute it again
+    start_time = time.time()
+    datalog_count = len(queens(size, (X0,X1,X2,X3,X4,X5,X6,X7)).data)
+    datalog_time = (time.time() - start_time)
+    print(datalog_time)
 
 # pure python solution found on http://rosettacode.org/wiki/N-Queens#Python, for comparison purposes
 

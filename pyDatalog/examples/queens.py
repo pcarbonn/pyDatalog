@@ -5,14 +5,14 @@ import time
 pyDatalog.create_atoms('N,X0,X1,X2,X3,X4,X5,X6,X7')
 pyDatalog.create_atoms('ok,queens0,queens1,queens2,queens3,queens4,queens5,queens6,queens7')
 
+# when is it ok to have a queen in row X1 and another in row X2, separated by N columns
+# this is memoized !
 #ok(X1, N, X2) <= (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)
 @pyDatalog.predicate()
 def ok3(X1, N, X2):
     if (X1.id!=X2.id) and (X1.id!= X2.id+N.id) and (X1.id!=X2.id-N.id):
         yield (X1.id, N.id, X2.id)
 
-# when is it ok to have a queen in row X1 and another in row X2, separated by N columns
-# this is memoized !
 queens0(X0) <= (X0._in(range(8)))
 queens1(X0,X1) <= queens0(X0) & queens0(X1) & ok(X1,1,X0)
 queens2(X0,X1,X2) <= queens1(X0,X1) & queens1(X1,X2) & ok(X0,2,X2)
@@ -26,11 +26,13 @@ queens7(X0,X1,X2,X3,X4,X5,X6,X7) <= queens6(X0,X1,X2,X3,X4,X5,X6) & queens6(X1,X
 start_time = time.time()
 print(queens7(X0,X1,X2,X3,X4,X5,X6,X7))
 print("First datalog run in %f seconds" % (time.time() - start_time))
-    
-# there is a fixed penalty the first time around (JIT, ...), so let's measure performance the second time
-start_time = time.time()
-datalog_count = len(queens7(X0,X1,X2,X3,X4,X5,X6,X7))
-datalog_time = (time.time() - start_time)
+
+for i in range(20):  
+    # there is a warm-up period for the JIT --> let's compute it again
+    start_time = time.time()
+    datalog_count = len(queens7(X0,X1,X2,X3,X4,X5,X6,X7))
+    datalog_time = (time.time() - start_time)
+    print(datalog_time)
 
 # pure python solution found on http://rosettacode.org/wiki/N-Queens#Python, for comparison purposes
 
@@ -53,5 +55,5 @@ print("%i solutions by datalog in %f seconds" % (datalog_count, datalog_time))
 print("python : %f seconds" % python_time)
 
 # results with pypy 1.9 on Intel Core i7-2820 QM CPU @ 2.3 GHz (run from Command prompt):
-# 0.33 sec for Datalog
+# 0.17..0.24 sec for Datalog
 # 0.11 sec for python
