@@ -58,13 +58,11 @@ try:
     from . import version
     from . import pyEngine
     from . import pyParser
-    from .pyParser import Symbol, Expression, Literal, Body
     from . import util
 except ValueError:
     import version
     import pyEngine
     import pyParser
-    from pyParser import Symbol, Expression, Literal, Body
     import util
     
 print("pyDatalog version %s" % version.__version__)
@@ -87,11 +85,11 @@ DatalogError= util.DatalogError
 
 def assert_fact(predicate_name, *args):
     """ assert predicate_name(args) """
-    + Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
+    + pyParser.Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
 
 def retract_fact(predicate_name, *args):
     """ retracts predicate_name(args) """
-    - Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
+    - pyParser.Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
 
 def program():
     """ A decorator for datalog program  """
@@ -161,20 +159,24 @@ class metaMixin(type):
         """when creating a subclass of Mixin, save the subclass in Class_dict. """
         super(metaMixin, cls).__init__(name, bases, dct)
         Class_dict[name]=cls
-        cls.has_SQLAlchemy = any(base.__module__ in ('sqlalchemy.ext.declarative', 'sqlalchemy.ext.declarative.api') for base in bases)
+        cls.has_SQLAlchemy = any(base.__module__ in ('sqlalchemy.ext.declarative', 
+                            'sqlalchemy.ext.declarative.api') for base in bases)
         
         def _getattr(self, attribute):
             """ responds to instance.method by asking datalog engine """
             if not attribute == '__iter__' and not attribute.startswith('_sa_'):
                 predicate_name = "%s.%s[1]==" % (self.__class__.__name__, attribute)
-                literal = Literal.make(predicate_name, (self, Symbol("X")))
+                literal = pyParser.Literal.make(predicate_name, (self, pyParser.Symbol("X")))
                 result = literal.lua.ask(False)
                 return result[0][-1] if result else None                    
             raise AttributeError
         cls.__getattr__ = _getattr   
     
     def __getattr__(cls, method):
-        """when access to an attribute of a subclass of Mixin fails, return an object that responds to () and to [] """
+        """
+        when access to an attribute of a subclass of Mixin fails, 
+        return an object that responds to () and to [] 
+        """
         if cls in ('Mixin', 'metaMixin') or method in (
                 '__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__', 
                 '_sa_instance_state', '_sa_decl_prepare', '__table_cls__', '_pyD_query'):
