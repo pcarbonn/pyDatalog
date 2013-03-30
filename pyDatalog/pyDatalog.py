@@ -26,7 +26,7 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 """
 methods / classes exposed by this file:
-DatalogError class
+DatalogError class (defined in util.py)
 methods for direct access to datalog knowledge base:
   * assert_fact(predicate_name, *args) : assert predicate_name(args)
   * retract_fact(predicate_name, *args) : retracts predicate_name(args)
@@ -38,7 +38,7 @@ methods for direct access to datalog knowledge base:
   * clear() : resets the datalog database
   * create_atoms() : creates atoms for in-line queries
   * variables() : creates variables for in-line queries
-Variable : a class to define Variable, for use in datalog queries. Inherits from pyParser.
+Variable : a class to define Variable, for use in datalog queries. (defined in pyParser)
 Answer class defines the object returned by ask()
   * __eq__ for equality test
   * __str__ for printing
@@ -59,11 +59,13 @@ try:
     from . import pyEngine
     from . import pyParser
     from .pyParser import Symbol, Expression, Literal, Body
+    from . import util
 except ValueError:
     import version
     import pyEngine
     import pyParser
     from pyParser import Symbol, Expression, Literal, Body
+    import util
     
 print("pyDatalog version %s" % version.__version__)
 
@@ -81,23 +83,15 @@ except:
     
 
 """ ****************** direct access to datalog knowledge base ***************** """
-class DatalogError(Exception):
-    def __init__(self, value, lineno, function):
-        self.value = value
-        self.lineno = lineno
-        self.function = function
-    def __str__(self):
-        return "%s\nin line %s of %s" % (self.value, self.lineno, self.function)        
+DatalogError= util.DatalogError
 
 def assert_fact(predicate_name, *args):
     """ assert predicate_name(args) """
-    literal = Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
-    _assert_fact(literal)
+    + Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
 
 def retract_fact(predicate_name, *args):
     """ retracts predicate_name(args) """
-    literal = Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
-    _retract_fact(literal)
+    - Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
 
 def program():
     """ A decorator for datalog program  """
@@ -134,81 +128,23 @@ def create_atoms(*args):
         for arg in set(args + ['_sum','sum_','_min','min_','_max','max_',
         '_len','len_','concat','concat_','rank','rank_','running_sum','running_sum_']):
             if arg in locals_: 
-                assert isinstance(locals_[arg], (pyParser.Symbol, pyDatalog.Variable)), \
+                assert isinstance(locals_[arg], (pyParser.Symbol, pyParser.Variable)), \
                     "Name conflict.  Can't redefine %s as atom" % arg
             else:
                 if arg[0] not in string.ascii_uppercase:
                     locals_[arg] = pyParser.Symbol(arg)
                 else:
-                    locals_[arg] = pyDatalog.Variable(arg)    
+                    locals_[arg] = pyParser.Variable(arg)    
     finally:
         del stack
 
 def variables(n):
     """ create variables for in-line queries """
-    return [pyDatalog.Variable() for i in range(n)]
+    return [pyParser.Variable() for i in range(n)]
 
-class Variable(pyParser.VarSymbol, pyParser.LazyList):
-    def __init__(self, name=None):
-        name = 'X%i' % id(self) if name is None else name
-        pyParser.LazyList.__init__(self)
-        pyParser.VarSymbol.__init__(self, name)
+Variable = pyParser.Variable
+Answer = pyParser.Answer
 
-    def __add__(self, other):
-        return pyParser.Operation(self, '+', other)
-    def __radd__(self, other):
-        return pyParser.Operation(other, '+', self)
-
-class Answer(object):
-    """ object returned by ask() """
-    def __init__(self, name, arity, answers):
-        self.name = name
-        self.arity = arity
-        self.answers = answers
-
-    @classmethod
-    def make(cls, answers):
-        if answers:
-            answer = Answer('_pyD_query', len(answers), answers)
-        else:
-            answer = None
-        if pyEngine.Auto_print: 
-            print(answers)
-        return answer        
-
-    def __eq__ (self, other):
-        return set(self.answers) == other if self.answers else other is None
-    def __str__(self):
-        return str(set(self.answers))
-
-#utility functions, also used by pyParser
-
-def _assert_fact(literal):
-    clause = pyEngine.Clause(literal.lua, [])
-    pyEngine.assert_(clause)
-    
-def _retract_fact(literal):
-    clause = pyEngine.Clause(literal.lua, [])
-    pyEngine.retract(clause)
-
-def add_clause(head,body):
-    if isinstance(body, Body):
-        tbl = [a.lua for a in body.literals]
-    else: # body is a literal
-        tbl = (body.lua,)
-    clause = pyEngine.Clause(head.lua, tbl)
-    return pyEngine.assert_(clause)
-
-#circ: share functions with pyParser and avoid circular import
-pyDatalog = Dummy()
-pyDatalog.DatalogError= DatalogError
-pyDatalog.add_clause = add_clause
-pyDatalog._assert_fact = _assert_fact
-pyDatalog._retract_fact = _retract_fact
-pyDatalog.Answer = Answer
-pyDatalog.Variable = Variable
-pyParser.pyDatalog = pyDatalog
-pyEngine.pyDatalog = pyDatalog
 
 """ ****************** python Mixin ***************** """
 
@@ -286,7 +222,6 @@ class metaMixin(type):
 
 # following syntax to declare Mixin is used for compatibility with python 2 and 3
 Mixin = metaMixin('Mixin', (object,), {})
-pyDatalog.Mixin = Mixin
 
 #When creating a Mixin object without SQLAlchemy, add it to the list of instances,
 #so that it can be included in the result of queries
@@ -294,7 +229,7 @@ pyDatalog.Mixin = Mixin
 def __init__(self):
     if not self.__class__.has_SQLAlchemy:
         for cls in self.__class__.__mro__:
-            if cls.__name__ in Class_dict and cls not in (pyDatalog.Mixin, object):
+            if cls.__name__ in Class_dict and cls not in (Mixin, object):
                 metaMixin.__refs__[cls].add(self)
 Mixin.__init__ = __init__
 
