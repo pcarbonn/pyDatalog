@@ -46,9 +46,9 @@ from six.moves import xrange
 import weakref
 
 try:
-    from . import Counter
+    from . import util
 except ValueError:
-    import Counter
+    import util
 
 pyDatalog = None #circ: later set by pyDatalog to avoid circular import
 
@@ -93,7 +93,7 @@ class Interned(object):
 
 class Fresh_var(object): 
     """ a variable created by the search algorithm """
-    counter = Counter.Counter()  
+    counter = util.Counter()  
     def __init__(self):
         self.id = 'f' + str(Fresh_var.counter.next()) #id
         self.key = self.id #id
@@ -136,7 +136,7 @@ class Fresh_var(object):
 class Var(Fresh_var, Interned):
     """ A variable in a clause or query """
     registry = weakref.WeakValueDictionary()
-    counter = Counter.Counter()
+    counter = util.Counter()
     def __new__(cls,  _id):
         o = cls.registry.get(_id, Interned.notFound)
         if o is Interned.notFound:
@@ -161,7 +161,7 @@ class Var(Fresh_var, Interned):
 class Const(Interned):
     """ a constant """
     registry = weakref.WeakValueDictionary()
-    counter = Counter.Counter()
+    counter = util.Counter()
     def __new__(cls,  _id):
         r = repr(_id) if isinstance(_id, (six.string_types, float, Decimal)) else _id
         o = cls.registry.get(r, Interned.notFound)
@@ -264,7 +264,7 @@ class VarTuple(Interned):
 
 class Operation(object):
     """ an arithmetic operation, a slice or a lambda """
-    counter = Counter.Counter()
+    counter = util.Counter()
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
         self.operator_id = 'l' + str(Operation.counter.next()) if isinstance(self.operator, type(lambda: None)) else str(self.operator)
@@ -529,7 +529,7 @@ def assert_(clause):
     pred = clause.head.pred
     if not pred.prim:                   # Ignore assertions for primitives.
         if pred.aggregate and get_clause_id(clause) in pred.db:
-            raise pyDatalog.DatalogError("Error: Duplicate definition of aggregate function.", None, None)
+            raise util.DatalogError("Error: Duplicate definition of aggregate function.", None, None)
         retract(clause) # to ensure unicity of functions
         pred.db[get_clause_id(clause)] = clause
         if len(clause.body) == 0: # if it is a fact, update indexes
@@ -746,7 +746,7 @@ def _(self):
     " iterator of the parent classes that have pyDatalog capabilities"
     if self._class():
         for cls in self._cls.__mro__:
-            if cls.__name__ in Class_dict and cls not in (pyDatalog.Mixin, object):
+            if cls.__name__ in Class_dict and cls.__name__ not in ('Mixin', 'object'):
                 yield cls
     else:
         yield None

@@ -45,15 +45,16 @@ This is done in the load() and add_program() method of Parser class.
 Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRnMPH
 * ProgramContext : class to safely differentiate between In-line queries and pyDatalog program / ask(), using ProgramMode global variable
 * _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
-* LazyList : a subclassable list that is populated when it is accessed. Mixin for pyDatalog.Variable.
+* LazyList : a subclassable list that is populated when it is accessed. 
     * LazyListOfList : Mixin for Query and Body
 * Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
     * HeadLiteral
     * Query
 * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
 * Expression : base class for objects that can be part of an inequality, operation or slice
-    * VarSymbol : represents the symbol of a variable. Mixin for pyDatalog.Variable
-        * Symbol : contains a constant, a variable or a predicate. Instantiated before executing the datalog program
+    * VarSymbol : represents a constant, a variable or a predicate 
+        * Symbol : represents a constant, a variable or a predicate in ProgramMode. Instantiated before executing the datalog program
+        * Variable : represents a variable in in-line queries
     * Function : represents f[X]
     * Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
 * Aggregate : represents calls to aggregation method, e.g. min(X)
@@ -82,13 +83,12 @@ func_code = '__code__' if PY3 else 'func_code'
 
 try:
     from . import pyEngine
-    from . import Counter
+    from . import util
     from . import UserList
 except ValueError:
     import pyEngine
-    import Counter
+    import util
     import UserList
-pyDatalog = None #circ: later set by pyDatalog to avoid circular import
 
 # global variable to differentiate between in-line queries and pyDatalog program / ask
 ProgramMode = False
@@ -125,7 +125,7 @@ class _transform_ast(ast.NodeTransformer):
         """ rename 'in' to allow customization of (X in (1,2))"""
         self.generic_visit(node)
         if 1 < len(node.comparators): 
-            raise pyDatalog.DatalogError("Syntax error: please verify parenthesis around (in)equalities", node.lineno, None) 
+            raise util.DatalogError("Syntax error: please verify parenthesis around (in)equalities", node.lineno, None) 
         if not isinstance(node.ops[0], (ast.In, ast.NotIn)): return node
         var = node.left # X, an _ast.Name object
         comparators = node.comparators[0] # (1,2), an _ast.Tuple object
@@ -156,7 +156,7 @@ def load(code, newglobals=None, defined=None, function='load'):
     tree = ast.parse(code, function, 'exec')
     try:
         tree = _transform_ast().visit(tree)
-    except pyDatalog.DatalogError as e:
+    except util.DatalogError as e:
         e.function = function
         e.message = e.value
         e.value = "%s\n%s" % (e.value, lines[e.lineno-1])
@@ -170,7 +170,7 @@ def load(code, newglobals=None, defined=None, function='load'):
     try:
         with ProgramContext():
             six.exec_(code, newglobals)
-    except pyDatalog.DatalogError as e:
+    except util.DatalogError as e:
         e.function = function
         traceback = sys.exc_info()[2]
         e.lineno = 1
@@ -218,13 +218,36 @@ def ask(code, _fast=None):
         newglobals = {}
         add_symbols(code.co_names, newglobals)
         parsed_code = eval(code, newglobals)
-        return pyDatalog.Answer.make(parsed_code.ask())
+        return Answer.make(parsed_code.ask())
+
+class Answer(object):
+    """ object returned by ask() """
+    def __init__(self, name, arity, answers):
+        self.name = name
+        self.arity = arity
+        self.answers = answers
+
+    @classmethod
+    def make(cls, answers):
+        if answers:
+            answer = Answer('_pyD_query', len(answers), answers)
+        else:
+            answer = None
+        if pyEngine.Auto_print: 
+            print(answers)
+        return answer        
+
+    def __eq__ (self, other):
+        return set(self.answers) == other if self.answers else other is None
+    def __str__(self):
+        return str(set(self.answers))
+
 
 """                             Parser classes                                                   """
 
 class LazyList(UserList.UserList):
     """a subclassable list that is populated when it is accessed """
-    """used by Literal, Body, pyDatalog.Variable to delay evaluation of datalog queries written in python  """
+    """used by Literal, Body, Variable to delay evaluation of datalog queries written in python  """
     """ during debugging, beware that viewing a Lazylist will force its udpate""" 
     def __init__(self):
         self.todo = None # self.todo.ask() calculates self.data
@@ -252,7 +275,7 @@ class LazyListOfList(LazyList):
     def __ge__(self, variable):
         """ returns the first value of the variable in the result of a query, or None """
         if self.data:
-            assert isinstance(variable, pyDatalog.Variable)
+            assert isinstance(variable, Variable)
             for t in self.literal().terms:
                 if id(t) == id(variable):
                     return t.data[0]
@@ -390,6 +413,18 @@ class VarSymbol(Expression):
         else:
             return OrderedDict()
 
+class Variable(VarSymbol, LazyList):
+    def __init__(self, name=None):
+        name = 'X%i' % id(self) if name is None else name
+        LazyList.__init__(self)
+        VarSymbol.__init__(self, name)
+
+    def __add__(self, other):
+        return Operation(self, '+', other)
+    def __radd__(self, other):
+        return Operation(other, '+', self)
+
+
 def pre_calculations(args):
     """ returns a new list of args, and pre_calculations"""
     # logic shared by Symbol and Function 
@@ -417,7 +452,7 @@ class Symbol(VarSymbol):
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
             fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
-            return pyDatalog.Answer.make(args[0].ask())
+            return Answer.make(args[0].ask())
         
         # manage the aggregate functions
         elif self._pyD_name in ('_sum', 'sum_'):
@@ -471,7 +506,7 @@ class Symbol(VarSymbol):
         
 class Function(Expression):
     """ represents predicate[a, b]"""
-    counter = Counter.Counter() # counter of functions evaluated so far
+    counter = util.Counter() # counter of functions evaluated so far
     @classmethod
     def newSymbol(cls):
         """ returns a new unique Symbol associated to a Function """
@@ -543,12 +578,12 @@ class Literal(object):
         self.terms = [] # the list of args converted to Expression
         for i, arg in enumerate(args):
             if isinstance(arg, Literal):
-                raise pyDatalog.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, self.terms), None, None)
+                raise util.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, self.terms), None, None)
             elif not isinstance(arg, VarSymbol) and i==0 and cls_name and cls_name not in [c.__name__ for c in arg.__class__.__mro__]:
                 raise TypeError("Object is incompatible with the class that is queried.")
             elif isinstance(arg, Aggregate):
-                raise pyDatalog.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
-            if isinstance(arg, pyDatalog.Variable):
+                raise util.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
+            if isinstance(arg, Variable):
                 arg.todo = self
                 del arg._data[:] # reset the variable. For use in in-line queries
             self.terms.append(Expression._for(arg))
@@ -574,13 +609,13 @@ class Literal(object):
         if isinstance(self, Function):
             if isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
                 if operator != '==':
-                    raise pyDatalog.DatalogError("Aggregate operator can only be used with equality.", None, None)
+                    raise util.DatalogError("Aggregate operator can only be used with equality.", None, None)
                 name, terms, prearity = (self.name + '==', list(self.keys) + [other], len(self.keys))
                 
                 # 1 create literal for queries
                 terms[-1] = (Symbol('X')) # (X, X)
                 l = Literal.make(name, terms, prearity, other)
-                pyDatalog.add_clause(l, l) # body will be ignored, but is needed to make the clause safe
+                add_clause(l, l) # body will be ignored, but is needed to make the clause safe
 
                 # 2 prepare literal for the calculation. It can be used in the head only
                 del terms[-1] # --> (X,)
@@ -597,7 +632,7 @@ class Literal(object):
             return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
         else:
             if not isinstance(other, Expression):
-                raise pyDatalog.DatalogError("Syntax error: Symbol or Expression expected", None, None)
+                raise util.DatalogError("Syntax error: Symbol or Expression expected", None, None)
             literal = Literal.make(operator, [self] + [other])
             literal.pre_calculations = self._precalculation() & other._precalculation()
             return literal
@@ -618,16 +653,13 @@ class Literal(object):
     def __le__(self, body):
         " head <= body creates a clause"
         if not isinstance(body, (Literal, Body)):
-            raise pyDatalog.DatalogError("Invalid body for clause", None, None)
+            raise util.DatalogError("Invalid body for clause", None, None)
         newBody = Body()
         for literal in body.literals:
             if isinstance(literal, HeadLiteral):
-                raise pyDatalog.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
+                raise util.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
             newBody = newBody & literal.pre_calculations & literal
-        result = pyDatalog.add_clause(self, newBody)
-        if not result: 
-            raise pyDatalog.DatalogError("Can't create clause", None, None)
-        return result
+        return add_clause(self, newBody)
 
 class HeadLiteral(Literal):
     """ represents literals that can be used only in head of clauses, i.e. literals with aggregate function"""
@@ -651,12 +683,14 @@ class Query(Literal, LazyListOfList):
     def __pos__(self):
         " unary + means insert into database as fact "
         assert not self._variables(), "Cannot assert a fact containing Variables"
-        pyDatalog._assert_fact(self)
+        clause = pyEngine.Clause(self.lua, [])
+        pyEngine.assert_(clause)
 
     def __neg__(self):
         " unary - means retract fact from database "
         assert not self._variables(), "Cannot retract a fact containing Variables"
-        pyDatalog._retract_fact(self)
+        clause = pyEngine.Clause(self.lua, [])
+        pyEngine.retract(clause)
         
     def __invert__(self):
         """unary ~ means negation """
@@ -676,7 +710,7 @@ class Query(Literal, LazyListOfList):
     
     def __eq__(self, other):
         if ProgramMode:
-            raise pyDatalog.DatalogError("Syntax error near equality: consider using brackets. %s" % str(self), None, None)
+            raise util.DatalogError("Syntax error near equality: consider using brackets. %s" % str(self), None, None)
         else:
             return super(Literal, self).__eq__(other)
 
@@ -685,7 +719,7 @@ class Query(Literal, LazyListOfList):
 
 class Body(LazyListOfList):
     """ created by p(a,b) & q(c,d)  """
-    Counter = 0
+    counter = util.Counter()
     def __init__(self, *args):
         LazyListOfList.__init__(self)
         self.literals = []
@@ -717,8 +751,7 @@ class Body(LazyListOfList):
     def literal(self, permanent=False):
         """ return a literal that can be queried to resolve the body """
         if permanent:
-            literal = Literal.make('_pyD_query' + str(Body.Counter), list(self._variables().values()))
-            Body.Counter = Body.Counter + 1
+            literal = Literal.make('_pyD_query' + str(Body.counter.next()), list(self._variables().values()))
         else:
             literal = Literal.make('_pyD_query', list(self._variables().values()))
             literal.lua.pred.reset_clauses()
@@ -738,12 +771,24 @@ class Body(LazyListOfList):
             transposed = list(zip(*(self._data))) # transpose result
             result = []
             for i, arg in enumerate(literal.terms):
-                if isinstance(arg, pyDatalog.Variable) and len(arg._data)==0:
+                if isinstance(arg, Variable) and len(arg._data)==0:
                     arg._data.extend(transposed[i])
                     arg.todo = None
                     result.append(transposed[i])
             self._data = list(zip(*result)) if result else [()]
         return self._data
+
+def add_clause(head,body):
+    if isinstance(body, Body):
+        tbl = [a.lua for a in body.literals]
+    else: # body is a literal
+        tbl = (body.lua,)
+    clause = pyEngine.Clause(head.lua, tbl)
+    result = pyEngine.assert_(clause)
+    if not result: 
+        raise util.DatalogError("Can't create clause", None, None)
+    return result
+
 
 ##################################### Aggregation #####################################
     
@@ -768,14 +813,14 @@ class Aggregate(object):
         assert all([isinstance(e, VarSymbol) for e in self.order_by]), "order_by argument of aggregate must be variable(s), not expression(s)."
         
         if sep and not isinstance(sep, six.string_types):
-            raise pyDatalog.DatalogError("Separator in aggregation must be a string", None, None)
+            raise util.DatalogError("Separator in aggregation must be a string", None, None)
         self.sep = sep
         
         # verify presence of keyword arguments
         for kw in self.required_kw:
             arg = getattr(self, kw)
             if arg is None or (isinstance(arg, tuple) and arg == tuple()):
-                raise pyDatalog.DatalogError("Error: argument missing in aggregate", None, None)
+                raise util.DatalogError("Error: argument missing in aggregate", None, None)
         
         # used to create literal. TODO : filter on symbols
         self.args = ((Y,) if Y is not None else tuple()) + self.for_each + self.order_by + ((sep,) if sep is not None else tuple())
