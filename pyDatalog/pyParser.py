@@ -356,8 +356,8 @@ class Expression(object):
     def __getitem__(self, keys):
         """ called when evaluating expression[keys] """
         if isinstance(keys, slice):
-            return Operation(self, 'slice', [keys.start, keys.stop, keys.step])
-        return Operation(self, 'slice', keys)
+            return Operation(self, '[', [keys.start, keys.stop, keys.step])
+        return Operation(self, '[', keys)
     
     
 class VarSymbol(Expression):

@@ -102,8 +102,7 @@ class Fresh_var(object):
         return False
     is_constant = False
     def get_tag(self, env): #id
-        env.setdefault(self, 'v%i' % len(env)) # TODO return the result of this statement directly ?
-        return env[self] 
+        return env.setdefault(self, 'v%i' % len(env))
 
     def subst(self, env): #unify
         return env.get(self, self)
@@ -280,7 +279,7 @@ class Operation(object):
     def subst(self, env): #unify
         lhs = self.lhs.subst(env)
         rhs = self.rhs.subst(env)
-        if self.operator == 'slice' and isinstance(lhs, VarTuple) and rhs.is_constant:
+        if self.operator == '[' and isinstance(lhs, VarTuple) and rhs.is_constant:
             if isinstance(rhs, VarTuple):
                 return Interned.of(lhs._id.__getitem__(slice(*rhs.id)))
             return Interned.of(lhs._id.__getitem__(rhs.id))
@@ -396,7 +395,8 @@ class Literal(object):
         """ returns a new literal with '==' instead of comparison """
         return self._renamed(self.pred.name.replace(self.pred.comparison, '=='))
     
-    def __str__(self): return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
+    def __str__(self): 
+        return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
 
 
 def get_id(literal): #id

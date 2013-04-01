@@ -51,8 +51,9 @@ X              X             v2             v2
 1.0            1.0           c4             c4
 'a'            'a'           c5             c5
 ('a', X)       ('a', X)      (c5v2)         (c5v1)
-lambda X:..    lambda X:..   l1(v2)         l1(v1)
 X+1            (X+1)         (v2+c1)        (v2+c1)
+lambda X:..    (c1l1v2)      (c1l1v2)       (c1l1v2)
+X[0]           (X[0)         (v2[c2)        (v2[c2)
 p              p/2
 p(X,1)         p/2v2c3       p/2v2c3        p/2v1c3
 p[X]==1        p/2v2c3       p/2v2c3        p/2v1
