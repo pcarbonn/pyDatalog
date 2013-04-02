@@ -372,12 +372,12 @@ class Literal(object):
         self.terms = terms
         if isinstance(pred, six.string_types):
             self.pred = Pred(pred, len(terms), aggregate)
+            self.pred.prearity = prearity or len(terms)
             if pred[:1] == '~': #pred
                 self.pred.base_pred = Pred(pred[1:], len(terms))
         else:
             self.pred = pred
             # TODO assert self.pred.prearity == (prearity or len(terms)), "Error: Incorrect mix of predicates and functions : %s" % str(self)
-        self.pred.prearity = prearity or len(terms)
     
     def _renamed(self, new_name):
         _id = '%s/%i' % (new_name, len(self.terms))
