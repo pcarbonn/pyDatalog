@@ -11,6 +11,7 @@ Below is a solution based on pyDatalog
 @author: pcarbonn
 '''
 from pyDatalog import pyDatalog, pyEngine
+import time
 
 pyDatalog.create_atoms('star, move,solution,X,Y,N,N1,N2')
 pyDatalog.create_atoms('X1,X2,X3,X4,X5,X6,X7,X8,X9')
@@ -47,8 +48,11 @@ Z19 = (Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8,Z9)
 (solution[X,Y]==N) <= move(X, N, Y)
 (solution[X,Y]==N) <= (solution[X,Z19]==N1) & move(Z19,N2,Y) & (N==N1+N2)
 
+start_time = time.time()
+
 print((solution[list('HAAHS*T*G'), list('HASHTAG**')]==N) >= N)
 # prints 5-6,2-5,2-3,3-6,5-6,7-8,5-8,8-9,7-8,
+print("Computed in %f seconds" % (time.time() - start_time))
 
 # For better performance, X19 would be a string, and 'move' would be implemented
 # with a Python Resolver
