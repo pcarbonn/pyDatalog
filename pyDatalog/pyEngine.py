@@ -658,6 +658,7 @@ def complete(thunk, post_thunk):
         return post_thunk() # don't bother with thunks if Fast
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
+    if Debug: print('push')
     Stack[-1][1].appendleft(Thunk(post_thunk)) 
     
 
@@ -691,7 +692,10 @@ class Add_clause(object):
 ################## add derived facts and use rules ##############
 
 def fact(subgoal, literal):
-    """ Store a derived fact, and inform all waiters of the fact too. """
+    """ 
+    Store a derived fact, and inform all waiters of the fact too. 
+    SLG_ANSWER in the reference article
+    """
     if not is_member(literal, subgoal.facts):
         if Trace: print("New fact : %s" % str(literal))
         adjoin(literal, subgoal.facts)
@@ -707,7 +711,14 @@ class Waiter(object):
         self.clause = clause
         
 def rule(subgoal, clause, selected):
-    """ Use a newly derived rule. """
+    """ 
+    Use a newly derived rule. 
+    SLG_POSITIVE in the reference article
+    """
+    if len(subgoal.facts)==1 \
+    and all(subgoal.literal.terms[i].is_constant 
+            for i in range(subgoal.literal.pred.prearity)):
+        return # no need to keep looking if THE answer is found already
     sg = find(selected)
     if sg != None:
         sg.waiters.append(Waiter(subgoal, clause))
@@ -725,6 +736,7 @@ def rule(subgoal, clause, selected):
         return schedule(Search(sg))
     
 def add_clause(subgoal, clause):
+    """ SLG_NEWCLAUSE in the reference article """
     if len(clause.body) == 0:
         return fact(subgoal, clause.head)
     else:
@@ -753,14 +765,17 @@ def _(self):
 Pred.parent_classes = _
 
 def search(subgoal):
-    """ Search for derivations of the literal associated with this subgoal """
+    """ 
+    Search for derivations of the literal associated with this subgoal 
+    aka SLG_SUBGOAL in the reference article
+    """
     literal0 = subgoal.literal
     class0 = literal0.pred._class()
     terms = literal0.terms
     
     if class0 and terms[0].is_constant and terms[0].id is None: return
     if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
-        if Debug : print("pyDatalog will search negation of %s" % literal0)
+        if Debug: print("pyDatalog will search negation of %s" % literal0)
         base_literal = Literal(literal0.pred.base_pred, terms)
         """ the rest of the processing essentially performs the following, 
         but in its own environment, and with precautions to avoid stack overflow :
