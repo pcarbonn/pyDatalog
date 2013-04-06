@@ -123,8 +123,6 @@ class Fresh_var(object):
         env[self] = tuple
         return env
     
-    def is_safe(self, clause):
-        return any(is_in_literal(self, bodi) for bodi in clause.body)
     def __str__(self): 
         return "variable_%s" % self.id
     def equals_primitive(self, term, subgoal):
@@ -146,13 +144,6 @@ class Var(Fresh_var, Interned):
         return o
     def __init__(self, name):
         pass
-    def is_in(self, other):
-        if isinstance(other, Var):
-            return self==other
-        if isinstance(other, VarTuple):
-            return any(self.is_in(element) for element in other._id)
-        if isinstance(other, Operation):
-            return self.is_in(other.lhs) or self.is_in(other.rhs)
     def __str__(self): 
         return self.id 
 
@@ -189,9 +180,6 @@ class Const(Interned):
         return var.unify_const(self, env)
     def unify_tuple(self, tuple, env): #unify
         return None
-    
-    def is_safe(self, clause): 
-        return True
     
     def __str__(self): 
         return "'%s'" % self.id
@@ -249,9 +237,6 @@ class VarTuple(Interned):
                 env = e1.unify(e2, env)
                 if env == None: return env
         return env
-
-    def is_safe(self, clause): 
-        return all(element.is_safe(clause) for element in self._id)
 
     def __str__(self): 
         return "'%s'" % str([str(e) for e in self.id])
@@ -453,10 +438,6 @@ def unify(literal, other): #unify
     return env
 
 
-def is_in_literal(term, literal):
-    """ true if term is in literal """
-    return any(term.is_in(term2) for term2 in literal.terms)
-
 # These methods are used to handle a set of facts.
 def is_member(literal, tbl):
     return tbl.get(get_key(literal))
@@ -501,10 +482,6 @@ def rename_clause(clause):
         shuffle(bodi, env)
     return subst_in_clause(clause, env)
 
-def is_safe(clause):
-    """ A clause is safe if every variable in its head is in its body. """
-    return all(term.is_safe(clause) for term in clause.head.terms)
-
 # DATABASE  #####################################################
 
 # The database stores predicates that contain clauses.  Predicates
@@ -524,7 +501,6 @@ def remove(pred):
 
 def assert_(clause):
     """ Add a safe clause to the database """
-    if not is_safe(clause): return None  # An unsafe clause was detected.
     pred = clause.head.pred
     if not pred.prim:                   # Ignore assertions for primitives.
         if pred.aggregate and get_clause_id(clause) in pred.db:
@@ -695,7 +671,15 @@ def fact(subgoal, literal):
     Store a derived fact, and inform all waiters of the fact too. 
     SLG_ANSWER in the reference article
     """
-    if not is_member(literal, subgoal.facts):
+    if isinstance(literal, Literal) and not all(t.is_constant for t in literal.terms):
+        literal = True
+    if literal is True:
+        if Trace: print("New fact : %s is True" % str(subgoal.literal))
+        subgoal.facts = True
+        for waiter in reversed(subgoal.waiters):
+            resolvent = Clause(waiter.clause.head, [bodi for bodi in waiter.clause.body[1:] ])
+            schedule(Add_clause(waiter.subgoal, resolvent))
+    elif subgoal.facts is not True and not is_member(literal, subgoal.facts):
         if Trace: print("New fact : %s" % str(literal))
         adjoin(literal, subgoal.facts)
         for waiter in reversed(subgoal.waiters):
@@ -743,6 +727,8 @@ def add_clause(subgoal, clause):
     
 def fact_candidate(subgoal, class0, result):
     """ add result as a candidate fact of class0 for subgoal"""
+    if result is True:
+        return fact(subgoal, True)
     result = [Interned.of(r) for r in result]
     if class0 and result[0].id and not isinstance(result[0].id, class0): 
         return
@@ -791,8 +777,7 @@ def search(subgoal):
 
             complete(lambda base_subgoal=base_subgoal: merge(base_subgoal) or search(base_subgoal),
                      lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
-                        # TODO deal with variable terms in result 
-                        fact(subgoal, literal) if not base_subgoal.facts else None)
+                        fact(subgoal, True) if not base_subgoal.facts else None)
                 
         schedule(Thunk(lambda base_literal=base_literal, subgoal=subgoal, literal=literal0: 
                        _search(base_literal, subgoal, literal)))
@@ -910,6 +895,8 @@ def _(literal, fast):
     merge(subgoal)
     invoke(lambda subgoal=subgoal: search(subgoal))
     subgoals = None
+    if subgoal.facts is True:
+        return True
     return [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]    
 Literal.ask = _
 
@@ -984,7 +971,9 @@ Fresh_var.match = _
 def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
     def prim(literal, subgoal, pred=pred, iter=iter): # TODO consider merging with fact_candidate
         for terms in iter(literal):
-            if len(terms) == len(literal.terms):
+            if terms is True:
+                fact(subgoal, True)
+            elif len(terms) == len(literal.terms):
                 new = Literal(pred, [Interned.of(term) for term in terms])
                 if match(literal, new) != None:
                     fact(subgoal, new)
@@ -1002,7 +991,7 @@ def compare_primitive(literal):
             assert False, "Error: left hand side of comparison must be bound: %s" % literal.pred.id
     elif y.is_constant:
         if compare(x.id, literal.pred.name, y.id):
-            yield [x, y]
+            yield True
     else:
         assert False, "Error: right hand side of comparison must be bound: %s" % literal.pred.id
 
