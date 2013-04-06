@@ -49,9 +49,7 @@ classes for Python Mixin:
 """
 from collections import defaultdict
 import inspect
-import six
 import string
-import sys
 import weakref
 
 try:
