@@ -428,17 +428,18 @@ def get_tag(literal): #id
      
 
 def subst(literal, env): #unify
-    if len(env) == 0: return literal
+    if not env: return literal
     return Literal(literal.pred, [term.subst(env) for term in literal.terms])
 
 
 def shuffle(literal, env): #shuffle
     for term in literal.terms:
         term.shuffle(env)
-    return env
 
 def rename(literal): #shuffle
-    return subst(literal, shuffle(literal, {}))
+    env={}
+    shuffle(literal, env)
+    return subst(literal, env)
 
 def unify(literal, other): #unify
     if literal.pred != other.pred: return None
@@ -488,18 +489,16 @@ def get_clause_id(clause): #id
     
 def subst_in_clause(clause, env, parent_class=None):
     """ apply the env mapping and rebase to parent_class, if any """
-    if len(env) == 0 and not parent_class: return clause
+    if not env and not parent_class: return clause
     return Clause(subst(clause.head, env).rebased(parent_class),
                        [subst(bodi, env).rebased(parent_class) for bodi in clause.body])
     
 def rename_clause(clause):
     """ returns the clause with fresh variables """
     env = {}
-    # Every variable in the head is in the body, 
-    # so the head can be ignored
+    shuffle(clause.head, env)
     for bodi in clause.body:
-        env = shuffle(bodi, env)
-    if len(env) == 0: return clause
+        shuffle(bodi, env)
     return subst_in_clause(clause, env)
 
 def is_safe(clause):
@@ -532,7 +531,7 @@ def assert_(clause):
             raise util.DatalogError("Error: Duplicate definition of aggregate function.", None, None)
         retract(clause) # to ensure unicity of functions
         pred.db[get_clause_id(clause)] = clause
-        if len(clause.body) == 0: # if it is a fact, update indexes
+        if not clause.body: # if it is a fact, update indexes
             for i, term in enumerate(clause.head.terms):
                 clauses = pred.index[i].setdefault(term, set([])) # create a set if needed
                 clauses.add(clause)
@@ -547,7 +546,7 @@ def retract(clause):
     id_ = get_clause_id(clause)
     
     if id_ in pred.db: 
-        if len(clause.body) == 0: # if it is a fact, update indexes
+        if not clause.body: # if it is a fact, update indexes
             clause = pred.db[id_] # make sure it is identical to the one in the index
             for i, term in enumerate(clause.head.terms):
                 pred.index[i][term].remove(clause)
@@ -737,7 +736,7 @@ def rule(subgoal, clause, selected):
     
 def add_clause(subgoal, clause):
     """ SLG_NEWCLAUSE in the reference article """
-    if len(clause.body) == 0:
+    if not clause.body:
         return fact(subgoal, clause.head)
     else:
         return rule(subgoal, clause, clause.body[0])
@@ -793,7 +792,7 @@ def search(subgoal):
             complete(lambda base_subgoal=base_subgoal: merge(base_subgoal) or search(base_subgoal),
                      lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
                         # TODO deal with variable terms in result 
-                        fact(subgoal, literal) if 0 == len(list(base_subgoal.facts.values())) else None)
+                        fact(subgoal, literal) if not base_subgoal.facts else None)
                 
         schedule(Thunk(lambda base_literal=base_literal, subgoal=subgoal, literal=literal0: 
                        _search(base_literal, subgoal, literal)))
