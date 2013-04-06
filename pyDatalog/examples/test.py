@@ -215,6 +215,20 @@ def test():
         assert abs(-3)==3
         assert math.sin(3)==math.sin(3)
         
+        # unsafe literals
+        lower(N,F) <= (N<F)
+        assert ask(lower(2,3)) == set([()])
+        assert ask(lower(3,3)) == None     
+        
+        unsafe(X, Y) <= lower(2,3) & (Y==1)
+        assert ask(unsafe(3, 1)) == set([()]) #this query is safe
+        assert ask(unsafe(3, Y)) == set([(1,)]) #this query is safe
+        assert ask(unsafe(X, 1)) == True # X is undefined
+        
+        unsafe2(X) <= lower(3,2)
+        assert ask(unsafe2(3)) == None
+        assert ask(unsafe2(X)) == None
+        
     
     """ in                                                         """
     
@@ -751,7 +765,6 @@ def test():
     assert_error("+ manager[Mary]==John", "Did you mean to assert or retract a fact \? Please add parenthesis.")
     assert_error('ask(- manager[X]==1)', "Did you mean to assert or retract a fact \? Please add parenthesis.")
     assert_error("manager[X]==Y <= (X==Y)", "Syntax error: please verify parenthesis around \(in\)equalities")
-    assert_error("p(X) <= (Y==2)", "Can't create clause")
     assert_error("p(X) <= X==1 & X==2", "Syntax error: please verify parenthesis around \(in\)equalities")
     assert_error("p(X) <= (manager[X]== min(X))", "Error: argument missing in aggregate")
     assert_error("p(X) <= (manager[X]== max(X, order_by=X))", "Aggregation cannot appear in the body of a clause")
@@ -949,6 +962,29 @@ if __name__ == "__main__":
     +tuple12( (1,(2,(3,))))
     +tuple12( (1,(2,(4,))))
     assert tuple12((1,(2,(X,)))) == set([(3,), (4,)])
+
+    # unsafe literals
+    pyDatalog.create_atoms('lower, unsafe, unsafe2, unsafe3')
+    lower(X,Y) <= (X<Y)
+    assert lower(2,3) == [()]
+    assert lower(3,3) == []     
+
+    unsafe(X, Y) <= lower(2,3) & (Y==1)
+    assert unsafe(3, 1) == [()] #this query is safe
+    assert unsafe(3, Y) == [(1,)] #this query is safe
+    assert unsafe(X, 1) == True # X is undefined
+    assert (unsafe(X,1) >= X) == True
+    assert (unsafe(2,Y) >= Y) == 1
+    assert (unsafe(X,Y) >= Y) == True
+    
+    unsafe2(X) <= lower(3,2)
+    assert unsafe2(3) == []
+    assert unsafe2(X) == []
+    
+    unsafe3(X) <= ~(X==1)
+    assert unsafe3(1) == []
+    assert unsafe3(2) == [()]
+    assert unsafe3(X) == []
 
     print("Test completed successfully.")
 

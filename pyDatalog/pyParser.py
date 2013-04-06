@@ -229,7 +229,9 @@ class Answer(object):
 
     @classmethod
     def make(cls, answers):
-        if answers:
+        if answers is True:
+            answer = Answer('_pyD_query', 0, True)
+        elif answers:
             answer = Answer('_pyD_query', len(answers), answers)
         else:
             answer = None
@@ -238,9 +240,13 @@ class Answer(object):
         return answer        
 
     def __eq__ (self, other):
-        return set(self.answers) == other if self.answers else other is None
+        return other == True if self.answers is True \
+            else other == set(self.answers) if self.answers \
+            else other is None
     def __str__(self):
-        return str(set(self.answers))
+        return 'True' if self.answers is True \
+            else str(set(self.answers)) if self.answers is not True \
+            else 'True'
 
 
 """                             Parser classes                                                   """
@@ -264,17 +270,20 @@ class LazyList(UserList.UserList):
     
     def v(self):
         """ returns the first value in the list, or None """
-        return self._data[0] if self.data else None
+        return True if self.data is True else self._data[0] if self.data else None
 
 class LazyListOfList(LazyList):
     """ represents the result of an inline query (a Literal or Body)"""
     def __eq__(self, other):
         """ uses set comparison"""
-        return set(self.data) == set(other)
+        return other is True if self.data is True \
+            else set(self.data) == set(other)
     
     def __ge__(self, variable):
         """ returns the first value of the variable in the result of a query, or None """
-        if self.data:
+        if self.data is True: 
+            return True
+        elif self.data:
             assert isinstance(variable, Variable)
             for t in self.literal().terms:
                 if id(t) == id(variable):
@@ -768,6 +777,8 @@ class Body(LazyListOfList):
         self._data = literal.lua.ask(False)
         literal.todo, self.todo = None, None
         if not ProgramMode and self._data: 
+            if self._data is True:
+                return True
             transposed = list(zip(*(self._data))) # transpose result
             result = []
             for i, arg in enumerate(literal.terms):

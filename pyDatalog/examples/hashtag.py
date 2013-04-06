@@ -18,8 +18,8 @@ pyDatalog.create_atoms('X1,X2,X3,X4,X5,X6,X7,X8,X9')
 pyDatalog.create_atoms('Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8,Z9')
 
 # X has a star in position N1 or N2
-star(X,N1,N2) <= (X[N1]=='*') & (N2 != -1)
-star(X,N1,N2) <= (X[N2]=='*') & (N1 != -1)
+star(X,N1,N2) <= (X[N1]=='*')
+star(X,N1,N2) <= (X[N2]=='*')
 
 # valid moves are exchange of 1<->2, 1<->4, ... 
 X19 = (X1,X2,X3,X4,X5,X6,X7,X8,X9) # short hand
