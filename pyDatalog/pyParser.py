@@ -68,15 +68,13 @@ Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRn
 """
 
 import ast
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 import inspect
-import os
 import re
 import string
 import six
 from six.moves import builtins, xrange
 import sys
-import weakref
 
 PY3 = sys.version_info[0] == 3
 func_code = '__code__' if PY3 else 'func_code'

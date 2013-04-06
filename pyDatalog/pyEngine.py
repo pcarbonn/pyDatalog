@@ -36,10 +36,10 @@ Some notable differences between python and lua:
 * variable bindings in a closure.  See http://tiny.cc/7837cw, http://tiny.cc/rq47cw
 """
 from collections import deque
-import copy
 from decimal import Decimal
 import gc
 from itertools import groupby
+import logging
 import re
 import six
 from six.moves import xrange
@@ -50,10 +50,7 @@ try:
 except ValueError:
     import util
 
-pyDatalog = None #circ: later set by pyDatalog to avoid circular import
-
-Trace = False # True --> show new facts when they are established
-Debug = False # for deeper traces
+Logging = False # True --> logging is activated.  Kept for performance reason
 Auto_print = False # True => automatically prints the result of a query
 
 Python_resolvers = {} # dictionary  of python functions that can resolve a predicate
@@ -633,7 +630,7 @@ def complete(thunk, post_thunk):
         return post_thunk() # don't bother with thunks if Fast
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
-    if Debug: print('push')
+    if Logging: logging.debug('push')
     Stack[-1][1].appendleft(Thunk(post_thunk)) 
     
 
@@ -647,7 +644,7 @@ def invoke(thunk):
             tasks.popleft().do() # get the thunk and execute it
         if Stack: 
             subgoals, tasks = Stack.pop()
-            if Debug: print('pop')
+            if Logging: logging.debug('pop')
     tasks = None
 
 # dedicated objects give better performance than thunks 
@@ -674,13 +671,13 @@ def fact(subgoal, literal):
     if isinstance(literal, Literal) and not all(t.is_constant for t in literal.terms):
         literal = True
     if literal is True:
-        if Trace: print("New fact : %s is True" % str(subgoal.literal))
+        if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
         subgoal.facts = True
         for waiter in reversed(subgoal.waiters):
             resolvent = Clause(waiter.clause.head, [bodi for bodi in waiter.clause.body[1:] ])
             schedule(Add_clause(waiter.subgoal, resolvent))
     elif subgoal.facts is not True and not is_member(literal, subgoal.facts):
-        if Trace: print("New fact : %s" % str(literal))
+        if Logging: logging.info("New fact : %s" % str(literal))
         adjoin(literal, subgoal.facts)
         for waiter in reversed(subgoal.waiters):
             resolvent = resolve(waiter.clause, literal)
@@ -760,7 +757,7 @@ def search(subgoal):
     
     if class0 and terms[0].is_constant and terms[0].id is None: return
     if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
-        if Debug: print("pyDatalog will search negation of %s" % literal0)
+        if Logging: logging.debug("pyDatalog will search negation of %s" % literal0)
         base_literal = Literal(literal0.pred.base_pred, terms)
         """ the rest of the processing essentially performs the following, 
         but in its own environment, and with precautions to avoid stack overflow :
@@ -792,14 +789,14 @@ def search(subgoal):
             resolver = literal.pred.id if literal.pred.id in Python_resolvers \
                     else literal.pred.id.replace(r'/', str(literal.pred.arity)+r"/")
             if resolver in Python_resolvers:
-                if Debug : print("pyDatalog uses python resolvers for %s" % literal)
+                if Logging : logging.debug("pyDatalog uses python resolvers for %s" % literal)
                 for result in Python_resolvers[resolver](*terms):
                     fact_candidate(subgoal, class0, result)
                 return
         if _class: 
             method_name = '_pyD_%s%i'% (literal.pred.suffix, int(literal.pred.arity)) # TODO special method for comparison
             if literal.pred.suffix and method_name in _class.__dict__:
-                if Debug : print("pyDatalog uses class resolvers for %s" % literal)
+                if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
                 for result in getattr(_class, method_name)(*terms):
                     fact_candidate(subgoal, class0, result)
                 return        
@@ -808,15 +805,15 @@ def search(subgoal):
                 if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
                 for result in resolver(literal.pred.name, terms):
                     fact_candidate(subgoal, class0, result)
-                if Debug : print("pyDatalog has used _pyD_query resolvers for %s" % literal)
+                if Logging : logging.debug("pyDatalog has used _pyD_query resolvers for %s" % literal)
                 return
             except:
                 pass
         if literal.pred.prim: # X==Y, X < Y+Z
-            if Debug : print("pyDatalog uses comparison primitive for %s" % literal)
+            if Logging : logging.debug("pyDatalog uses comparison primitive for %s" % literal)
             return literal.pred.prim(literal, subgoal)
         elif literal.pred.aggregate:
-            if Debug : print("pyDatalog uses aggregate primitive for %s" % literal)
+            if Logging : logging.debug("pyDatalog uses aggregate primitive for %s" % literal)
             aggregate = literal.pred.aggregate
             base_terms = list(terms)
             del base_terms[-1]
@@ -851,7 +848,7 @@ def search(subgoal):
                 env = unify(literal, renamed.head)
                 if env != None:
                     clause = subst_in_clause(renamed, env, class0)
-                    if Debug : print("pyDatalog will use clause : %s" % clause)
+                    if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
                     schedule(Add_clause(subgoal, clause))
             return
         elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
@@ -865,7 +862,7 @@ def search(subgoal):
                 env = unify(literal, renamed.head)
                 if env != None:
                     renamed = subst_in_clause(renamed, env, class0)
-                    if Debug : print("pyDatalog will use clause for comparison: %s" % renamed)
+                    if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
                     schedule(Add_clause(subgoal, renamed))
                 return
             
@@ -873,7 +870,7 @@ def search(subgoal):
         try: 
             resolver = class0.pyDatalog_search
             if not class0.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
-            if Debug : print("pyDatalog uses pyDatalog_search for %s" % literal)
+            if Logging : logging.debug("pyDatalog uses pyDatalog_search for %s" % literal)
             for result in resolver(literal):
                 fact_candidate(subgoal, class0, result)
             return
