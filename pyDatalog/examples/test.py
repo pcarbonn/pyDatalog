@@ -247,6 +247,7 @@ def test():
 
         assert ask((Y==(1,2)) & (X==1) & (X in Y)) == set([((1, 2), 1)])
         assert ask((Y==(1,2)) & (X==1) & (X in Y+(3,))) == set([((1, 2), 1)])
+        assert ask(X == range_(2)) == set([((0,1),)])
                 
     """ recursion                                                         """
     
@@ -462,6 +463,11 @@ def test():
         + q(a, b, 2)
         + q(b, b, 4)
 
+    @pyDatalog.program()
+    def tuple_():
+        (a_tuple[X] == tuple_(Y, order_by=Y)) <= (Y in range_(X))
+        assert ask((a_tuple[2]== Y)) == set([((0,1),)])
+    
     @pyDatalog.program()
     def concat(): 
         (a_concat[X] == concat(Y, key=Z, sep='+')) <= q(X, Y, Z)
@@ -985,7 +991,16 @@ if __name__ == "__main__":
     assert unsafe3(1) == []
     assert unsafe3(2) == [()]
     assert unsafe3(X) == []
-
+    
+    already = object()
+    _error = False
+    try:
+        pyDatalog.create_atoms('already')
+    except Exception as e:
+        if e.value != "Name conflict.  Can't redefine already as atom":
+            print(e.value) 
+        _error = True
+    assert _error
     print("Test completed successfully.")
 
     

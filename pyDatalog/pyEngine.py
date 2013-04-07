@@ -265,6 +265,8 @@ class Operation(object):
             if isinstance(rhs, VarTuple):
                 return Interned.of(lhs._id.__getitem__(slice(*rhs.id)))
             return Interned.of(lhs._id.__getitem__(rhs.id))
+        if self.operator == '.' and rhs.is_constant:
+            return Interned.of(range(rhs.id))
         if lhs.is_constant and rhs.is_constant:
             # calculate expression of constants
             if self.operator == '+':
