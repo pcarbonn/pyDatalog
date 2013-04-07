@@ -377,12 +377,6 @@ class VarSymbol(Expression):
             self._pyD_name = str([element._pyD_name for element in self._pyD_value])
             self._pyD_type = 'tuple'
             self._pyD_lua = pyEngine.Interned.of([e._pyD_lua for e in self._pyD_value])
-        elif isinstance(name, slice):
-            start, stop, step = map(Expression._for, (name.start, name.stop, name.step))
-            self._pyD_value = (start, stop, step)
-            self._pyD_name = '[%s:%s:%s]' % (start._pyD_name, stop._pyD_name, step._pyD_name)
-            self._pyD_type = 'slice'
-            self._pyD_lua = pyEngine.Interned.of([start._pyD_lua, stop._pyD_lua, step._pyD_lua])
         elif forced_type=="constant" or isinstance(name, (int, float)) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_value = name
             self._pyD_name = str(name)
@@ -411,12 +405,6 @@ class VarSymbol(Expression):
             variables = OrderedDict()
             for element in self._pyD_value:
                 variables.update(element._variables())
-            return variables
-        elif self._pyD_type == 'slice':
-            variables = OrderedDict()
-            variables.update(self._pyD_value[0]._variables())
-            variables.update(self._pyD_value[1]._variables())
-            variables.update(self._pyD_value[2]._variables())
             return variables
         else:
             return OrderedDict()
@@ -534,7 +522,7 @@ class Function(Expression):
         self._pyD_lua = self.symbol._pyD_lua
     
     @property
-    def _pyD_name(self):
+    def _pyD_name(self): # not used
         return str(self)
     
     def __eq__(self, other):
@@ -616,8 +604,6 @@ class Literal(object):
     @classmethod
     def make_for_comparison(cls, self, operator, other):
         """ factory of Literal for a comparison """
-        if operator != "==" and isinstance(other, Aggregate):
-            raise util.DatalogError("Aggregate operators can only be used with ==", None, None)
         other = Expression._for(other)
         if isinstance(self, Function):
             if isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
@@ -703,7 +689,7 @@ class Query(Literal, LazyListOfList):
     def __neg__(self):
         " unary - means retract fact from database "
         if self._variables():
-            raise util.DatalogError("Cannot assert a fact containing Variables", None, None)
+            raise util.DatalogError("Cannot retract a fact containing Variables", None, None)
         clause = pyEngine.Clause(self.lua, [])
         pyEngine.retract(clause)
         

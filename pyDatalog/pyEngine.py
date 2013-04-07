@@ -595,8 +595,6 @@ def resolve(clause, literal):
     one less literal.
     """
     env = unify(clause.body[0], rename(literal))
-    if env == None: 
-        return None # dead code ?
     return Clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
  
 ################# Task management ###############################
