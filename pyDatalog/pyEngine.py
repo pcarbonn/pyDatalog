@@ -596,6 +596,8 @@ def resolve(clause, literal):
     two literals unify, a new clause is generated that has a body with
     one less literal.
     """
+    if literal is True:
+        return Clause(clause.head, [bodi for bodi in clause.body[1:] ])
     env = unify(clause.body[0], rename(literal))
     return Clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
  
@@ -675,16 +677,13 @@ def fact(subgoal, literal):
     if literal is True:
         if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
         subgoal.facts = True
-        for waiter in reversed(subgoal.waiters):
-            resolvent = Clause(waiter.clause.head, [bodi for bodi in waiter.clause.body[1:] ])
-            schedule(Add_clause(waiter.subgoal, resolvent))
     elif subgoal.facts is not True and not is_member(literal, subgoal.facts):
         if Logging: logging.info("New fact : %s" % str(literal))
         adjoin(literal, subgoal.facts)
-        for waiter in reversed(subgoal.waiters):
-            resolvent = resolve(waiter.clause, literal)
-            if resolvent != None:
-                schedule(Add_clause(waiter.subgoal, resolvent))
+    for waiter in reversed(subgoal.waiters):
+        resolvent = resolve(waiter.clause, literal)
+        if resolvent != None:
+            schedule(Add_clause(waiter.subgoal, resolvent))
 
 
 class Waiter(object):
@@ -705,10 +704,13 @@ def rule(subgoal, clause, selected):
     if sg != None:
         sg.waiters.append(Waiter(subgoal, clause))
         todo = []
-        for fact in list(sg.facts.values()):
-            resolvent = resolve(clause, fact)
-            if resolvent != None: 
-                todo.append(resolvent)
+        if sg.facts is True:
+            todo.append(resolve(clause, True))
+        else:
+            for fact in list(sg.facts.values()):
+                resolvent = resolve(clause, fact)
+                if resolvent != None: 
+                    todo.append(resolvent)
         for t in todo:
             schedule(Add_clause(subgoal, t))
     else:
