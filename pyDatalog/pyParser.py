@@ -879,10 +879,14 @@ class Sum_aggregate(Aggregate):
     def add(self, row):
         self._value += row[-self.arity].id
         
-class Len_aggregate(Aggregate):
-    """ represents len_(X)"""
+class Len_aggregate(Aggregate, Operation):
+    """ represents len_(X) : a simple or aggregate operation"""
     required_kw = ('Y')
 
+    def __init__(self, Y):
+        Aggregate.__init__(self, Y)
+        Operation.__init__(self, None, '#', Y)
+        
     def add(self, row):
         self._value += 1
 
