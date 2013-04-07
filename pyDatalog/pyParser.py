@@ -70,6 +70,7 @@ Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRn
 import ast
 from collections import OrderedDict
 import inspect
+import itertools
 import re
 import string
 import six
@@ -260,7 +261,9 @@ class LazyList(UserList.UserList):
     @property
     def data(self):
         """ returns the list, after recalculation if needed """
-        if self.todo is not None: self.todo.ask()
+        if self.todo is not None:
+            self.variables = tuple(self.todo._variables().keys()) 
+            self.todo.ask()
         return self._data
 
     def _value(self): # for backward compatibility ?
@@ -288,6 +291,18 @@ class LazyListOfList(LazyList):
                 if id(t) == id(variable):
                     return t.data[0]
     
+    def __str__(self):
+        """ pretty print the result """
+        if self.data in (True, None): return str(self._data)
+        # get the widths of each column
+        widths = [max(len(str(x)) for x in line) for line in zip(*(self._data))]
+        # get the formating string
+        fofo = ' | '.join('%%-%ss' % widths[i] for i in xrange(len(widths)))
+        return '\n'.join((fofo % self.variables, 
+                            '-|-'.join( widths[i]*'-' for i in xrange(len(widths))),
+                            '\n'.join(fofo % s for s in self._data)))
+
+
 class Expression(object):
     """ base class for objects that can be part of an inequality, operation or slice """
     @classmethod
