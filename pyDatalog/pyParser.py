@@ -295,7 +295,7 @@ class LazyListOfList(LazyList):
         """ pretty print the result """
         if self.data in (True, None): return str(self._data)
         # get the widths of each column
-        widths = [max(len(str(x)) for x in line) for line in zip(*(self._data))]
+        widths = [max(len(str(x)) for x in column) for column in zip(*(self._data))]
         # get the formating string
         fofo = ' | '.join('%%-%ss' % widths[i] for i in xrange(len(widths)))
         return '\n'.join((fofo % self.variables, 
