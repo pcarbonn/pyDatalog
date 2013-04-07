@@ -484,11 +484,15 @@ class Symbol(VarSymbol):
             return Rank_aggregate(None, for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
         elif self._pyD_name in ('running_sum', 'running_sum_'):
             return Running_sum(args[0], for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
+        elif self._pyD_name == 'tuple_':
+            return Tuple(args[0], order_by=kwargs.get('order_by', []))
         elif self._pyD_name in ('_len', 'len_'):
             if isinstance(args[0], VarSymbol):
                 return Len_aggregate(args[0])
             else: 
                 return len(args[0]) 
+        elif self._pyD_name == 'range_':
+            return Operation(None, '.', args[0])
         else: # create a literal
             new_args, pre_calc = pre_calculations(args)
             literal = Literal.make(self._pyD_name, tuple(new_args))
@@ -883,22 +887,22 @@ class Aggregate(object):
         return key + [pyEngine.Const(self.value)]
        
 class Sum_aggregate(Aggregate):
-    """ represents sum(Y, for_each=(Z,T))"""
+    """ represents sum_(Y, for_each=(Z,T))"""
     required_kw = ('Y', 'for_each')
 
     def add(self, row):
         self._value += row[-self.arity].id
         
 class Len_aggregate(Aggregate):
-    """ represents len(X)"""
+    """ represents len_(X)"""
     required_kw = ('Y')
 
     def add(self, row):
         self._value += 1
 
-class Concat_aggregate(Aggregate):
-    """ represents concat(Y, order_by=(Z1,Z2), sep=sep)"""
-    required_kw = ('Y', 'order_by', 'sep')
+class Tuple(Aggregate):
+    """ represents tuple_(X, order_by=(Y,)"""
+    required_kw = ('Y', 'order_by')
         
     def reset(self):
         self._value = []
@@ -908,10 +912,18 @@ class Concat_aggregate(Aggregate):
         
     @property
     def value(self):
+        return tuple(self._value)
+    
+class Concat_aggregate(Tuple):
+    """ represents concat_(Y, order_by=(Z1,Z2), sep=sep)"""
+    required_kw = ('Y', 'order_by', 'sep')
+
+    @property
+    def value(self):
         return self.sep.join(self._value)
 
 class Min_aggregate(Aggregate):
-    """ represents min(Y, order_by=(Z,T))"""
+    """ represents min_(Y, order_by=(Z,T))"""
     required_kw = ('Y', 'order_by')
 
     def reset(self):
@@ -921,14 +933,14 @@ class Min_aggregate(Aggregate):
         self._value = row[-self.arity].id if self._value is None else self._value
 
 class Max_aggregate(Min_aggregate):
-    """ represents max(Y, order_by=(Z,T))"""
+    """ represents max_(Y, order_by=(Z,T))"""
     def __init__(self, *args, **kwargs):
         Min_aggregate.__init__(self, *args, **kwargs)
         for a in self.order_by:
             a._pyD_negated = not(a._pyD_negated)
 
 class Rank_aggregate(Aggregate):
-    """ represents rank(for_each=(Z), order_by(T))"""
+    """ represents rank_(for_each=Z, order_by=T)"""
     required_kw = ('for_each', 'order_by')
     
     def reset(self):
@@ -946,7 +958,7 @@ class Rank_aggregate(Aggregate):
         return self._value
 
 class Running_sum(Rank_aggregate):
-    """ represents running_sum(Y, for_each=(Z), order_by(T)"""
+    """ represents running_sum(Y, for_each=Z, order_by=T"""
     required_kw = ('Y', 'for_each', 'order_by')
     
     def add(self,row):
@@ -954,3 +966,4 @@ class Running_sum(Rank_aggregate):
         if row[:self.to_add] == row[self.slice_for_each]:
             self._value = list(row[:self.to_add]) + [pyEngine.Const(self.count),]
             return self._value
+        
