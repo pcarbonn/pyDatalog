@@ -443,7 +443,7 @@ def test():
         assert ask(a_sum3[a]==X) == set([(2,)])
 
     @pyDatalog.program()
-    def len(): 
+    def len_(): 
         assert(len((1,2))) == 2
         (a_len[X] == len(Z)) <= p(X, Z, Y)
         assert ask(a_len[X]==Y) == set([('a', 2), ('b', 1)])
@@ -458,10 +458,12 @@ def test():
         (a_len2[X,Y] == len(Z)) <= p(X, Y, Z)
         assert ask(a_len2[a,b]==X) == set([(1,)])
         assert ask(a_len2[a,X]==Y) == set([('b', 1), ('c', 1)])
-
-        + q(a, c, 1)
-        + q(a, b, 2)
-        + q(b, b, 4)
+        
+        (a_len3[X] == Y) <= (Y==1+len_(X))
+        assert ask((X==(1,2)) & (a_len3[X]==3)) == set([((1,2),)])
+        assert ask((X==(1,2)) & (a_len3[X]==Y)) == set([((1,2),3)])
+        assert ask(a_len3[((1,2),)]==3) == set([()])
+        assert (ask(a_len3[X]==Y)) == None
 
     @pyDatalog.program()
     def tuple_():
@@ -470,6 +472,10 @@ def test():
     
     @pyDatalog.program()
     def concat(): 
+        + q(a, c, 1)
+        + q(a, b, 2)
+        + q(b, b, 4)
+
         (a_concat[X] == concat(Y, key=Z, sep='+')) <= q(X, Y, Z)
         assert ask(a_concat[X]==Y) == set([('b', 'b'), ('a', 'c+b')])
         assert ask(a_concat[a]=='c+b') == set([()])
