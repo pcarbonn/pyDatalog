@@ -780,8 +780,9 @@ def search(subgoal):
                        _search(base_literal, subgoal, literal)))
         return
 
-    assert not class0 or not terms[0].is_constant or isinstance(terms[0].id, class0), \
-        "TypeError: First argument of %s must be a %s, not a %s " % (str(literal0), class0.__name__, type(terms[0].id).__name__)
+    if class0 and terms[0].is_constant and not isinstance(terms[0].id, class0):
+        raise util.DatalogError("TypeError: First argument of %s must be a %s, not a %s " 
+                    % (str(literal0), class0.__name__, type(terms[0].id).__name__), None, None)
     for _class in literal0.pred.parent_classes():
         literal = literal0.rebased(_class)
         
@@ -981,16 +982,19 @@ def compare_primitive(literal):
     y = literal.terms[1]
     if not x.is_constant:
         if literal.pred.name == '_pyD_in':
-            assert y.is_const, "Error: right hand side must be bound: %s" % literal
+            if not y.is_const:
+                raise util.DatalogError("Error: right hand side must be bound: %s" % literal, None, None)
             for v in y.id:
                 yield [v, y]
         else:
-            assert False, "Error: left hand side of comparison must be bound: %s" % literal.pred.id
+            raise util.DatalogError("Error: left hand side of comparison must be bound: %s" 
+                                    % literal.pred.id, None, None)
     elif y.is_constant:
         if compare(x.id, literal.pred.name, y.id):
             yield True
     else:
-        assert False, "Error: right hand side of comparison must be bound: %s" % literal.pred.id
+        raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
+                                % literal.pred.id, None, None)
 
 # generic comparison function
 def compare(l,op,r):

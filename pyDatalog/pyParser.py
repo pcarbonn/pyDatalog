@@ -282,7 +282,8 @@ class LazyListOfList(LazyList):
         if self.data is True: 
             return True
         elif self.data:
-            assert isinstance(variable, Variable)
+            if not isinstance(variable, Variable):
+                raise util.DatalogError("Syntax error: Variable expected after >=", None, None)
             for t in self.literal().terms:
                 if id(t) == id(variable):
                     return t.data[0]
@@ -305,7 +306,7 @@ class Expression(object):
     # handlers of inequality and operations
     def __eq__(self, other):
         if isinstance(self, Operation) and self.operator in '+-' and self.lhs._pyD_value == 0:
-            assert False, "Did you mean to assert or retract a fact ? Please add parenthesis."
+            raise util.DatalogError("Did you mean to assert or retract a fact ? Please add parenthesis.", None, None)
         return Literal.make_for_comparison(self, "==", other)
     def __ne__(self, other):
         return Literal.make_for_comparison(self, '!=', other)
@@ -611,7 +612,8 @@ class Literal(object):
     @classmethod
     def make_for_comparison(cls, self, operator, other):
         """ factory of Literal for a comparison """
-        assert operator=="==" or not isinstance(other, Aggregate), "Aggregate operators can only be used with =="
+        if operator != "==" and isinstance(other, Aggregate):
+            raise util.DatalogError("Aggregate operators can only be used with ==", None, None)
         other = Expression._for(other)
         if isinstance(self, Function):
             if isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
@@ -689,13 +691,15 @@ class Query(Literal, LazyListOfList):
 
     def __pos__(self):
         " unary + means insert into database as fact "
-        assert not self._variables(), "Cannot assert a fact containing Variables"
+        if self._variables():
+            raise util.DatalogError("Cannot assert a fact containing Variables", None, None)
         clause = pyEngine.Clause(self.lua, [])
         pyEngine.assert_(clause)
 
     def __neg__(self):
         " unary - means retract fact from database "
-        assert not self._variables(), "Cannot retract a fact containing Variables"
+        if self._variables():
+            raise util.DatalogError("Cannot assert a fact containing Variables", None, None)
         clause = pyEngine.Clause(self.lua, [])
         pyEngine.retract(clause)
         
@@ -818,8 +822,10 @@ class Aggregate(object):
         self.for_each = tuple([e.__dict__.get('variable', e) for e in self.for_each]) 
         self.order_by = tuple([e.__dict__.get('variable', e) for e in self.order_by])
         
-        assert all([isinstance(e, VarSymbol) for e in self.for_each]), "for_each argument of aggregate must be variable(s), not expression(s)."
-        assert all([isinstance(e, VarSymbol) for e in self.order_by]), "order_by argument of aggregate must be variable(s), not expression(s)."
+        if not all([isinstance(e, VarSymbol) for e in self.for_each]):
+            raise util.DatalogError("for_each argument of aggregate must be variable(s).", None, None)
+        if not all([isinstance(e, VarSymbol) for e in self.order_by]):
+            raise util.DatalogError("order_by argument of aggregate must be variable(s).", None, None)
         
         if sep and not isinstance(sep, six.string_types):
             raise util.DatalogError("Separator in aggregation must be a string", None, None)
