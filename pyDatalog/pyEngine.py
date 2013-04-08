@@ -623,11 +623,12 @@ def schedule(task):
     if Fast: return task.do()
     return tasks.append(task)
 
-def complete(thunk, post_thunk):
+def complete(subgoal, post_thunk):
     """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
     global Fast, subgoals, tasks, Stack
     Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
     subgoals, tasks = {}, deque()
+    thunk = lambda subgoal=subgoal: merge(subgoal) or search(subgoal)
     schedule(Thunk(thunk))
     if Fast: 
         Stack.pop() # to recover memory space
@@ -750,6 +751,21 @@ def _(self):
         yield None
 Pred.parent_classes = _
 
+def _aggregate(base_subgoal, subgoal, literal):
+    #TODO avoid intermediate result
+    result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
+    if result:
+        class0 = subgoal.literal.pred._class()
+        aggregate = literal.pred.aggregate
+        aggregate.sort_result(result)
+        for k, v in groupby(result, aggregate.key):
+            aggregate.reset()
+            for r in v:
+                if aggregate.add(r):
+                    break
+            k = aggregate.fact(k)
+            fact_candidate(subgoal, class0, k)
+
 def search(subgoal):
     """ 
     Search for derivations of the literal associated with this subgoal 
@@ -769,21 +785,13 @@ def search(subgoal):
             if result is None or 0 == len(result.answers):
                 return fact(subgoal, literal)
         """
-        def _search(base_literal, subgoal, literal): # first-level thunk for ask(base_literal)
-            
-            #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
-            # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-            
-            base_subgoal = Subgoal(base_literal)
-
-            complete(lambda base_subgoal=base_subgoal: merge(base_subgoal) or search(base_subgoal),
-                     lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
-                        fact(subgoal, True) if not base_subgoal.facts else None)
-                
-        schedule(Thunk(lambda base_literal=base_literal, subgoal=subgoal, literal=literal0: 
-                       _search(base_literal, subgoal, literal)))
+        #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
+        # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
+        base_subgoal = Subgoal(base_literal)
+        complete(base_subgoal,
+                lambda base_subgoal=base_subgoal, subgoal=subgoal:
+                    fact(subgoal, True) if not base_subgoal.facts else None)
         return
-
     if class0 and terms[0].is_constant and not isinstance(terms[0].id, class0):
         raise util.DatalogError("TypeError: First argument of %s must be a %s, not a %s " 
                     % (str(literal0), class0.__name__, type(terms[0].id).__name__), None, None)
@@ -825,27 +833,10 @@ def search(subgoal):
             base_terms.extend([ Var('V%i' % i) for i in range(aggregate.arity)])
             base_literal = Literal(literal.pred.name + '!', base_terms) #pred
     
-            #TODO thunking to avoid possible stack overflow
-            global Fast, subgoals, tasks, Stack
-            Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop() when tasks is empty
-            subgoals, tasks = {}, deque()
-            #result = ask(base_literal)
             base_subgoal = Subgoal(base_literal)
-            merge(base_subgoal)
-            Fast = True # TODO why is it needed ??  Side effects !
-            search(base_subgoal)
-            Fast = False # TODO
-            result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
-            
-            if result:
-                aggregate.sort_result(result)
-                for k, v in groupby(result, aggregate.key):
-                    aggregate.reset()
-                    for r in v:
-                        if aggregate.add(r):
-                            break
-                    k = aggregate.fact(k)
-                    fact_candidate(subgoal, class0, k)
+            complete(base_subgoal,
+                    lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
+                        _aggregate(base_subgoal, subgoal, literal))
             return
         elif literal.pred.id in db: # has a datalog definition, e.g. p(X), p[X]==Y
             for clause in relevant_clauses(literal):
