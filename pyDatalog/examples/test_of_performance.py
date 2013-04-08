@@ -41,14 +41,14 @@ def test1():
         
     @pyDatalog.program()
     def _(): # the function name is ignored
-        assert ask(successor(1801,1800)) == set([(1801, 1800)])
+        assert ask(successor(1801,1800)) == set([()])
 
         + even(0)
         even(N) <= (N > 0) & successor(N,N1) & odd(N1)
         odd(N) <= (N > 0) & successor(N,N2) & even(N2)
         
-        assert ask(odd(299)) == set([(299,)]) 
-        assert ask(odd(9999)) == set([(9999,)])
+        assert ask(odd(299)) == set([()]) 
+        assert ask(odd(9999)) == set([()])
         
         # TODO why is this much much slower ??
         # odd(N) <= even(N1) & successor(N, N1)
@@ -61,10 +61,10 @@ def test2():
 
         + even(0)
         even(N) <= (N > 0) & odd(N-1)
-        assert ask(even(0)) == set([(0,)])
+        assert ask(even(0)) == set([()])
         odd(N) <= (N > 0) & even(N-1)
 
-        assert ask(odd(9999)) == set([(9999,)])
+        assert ask(odd(9999)) == set([()])
 
 if __name__ == "__main__":
     start_time = time.time()

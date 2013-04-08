@@ -905,7 +905,7 @@ if __name__ == "__main__":
     p(Y)
     assert (Y._value() == ['a',])
     p(Decimal(2.0))
-    assert p(Y) > Y == Decimal(2.0)
+    assert p(Y) >= Y == Decimal(2.0)
     
     X = pyDatalog.Variable()
     pyDatalog.create_atoms('X')
