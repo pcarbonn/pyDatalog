@@ -80,7 +80,6 @@ pyDatalog.create_atoms('X, Y, N, lowest')
 print(John.salary_class) # prints 6
 
 # who has a salary of 6300 ?
-X = pyDatalog.Variable()
 Employee.salary[X] == 6300 # notice the similarity to a pyDatalog query
 print(X) # prints [Employee: Mary]
 print(X.v()) # prints Employee:Mary
