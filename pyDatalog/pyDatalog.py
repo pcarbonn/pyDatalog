@@ -106,9 +106,9 @@ def load(code):
     """loads the clauses contained in the code string """
     return pyParser.load(code)
 
-def ask(code, _fast=None):
+def ask(code):
     """returns the result of the query contained in the code string"""
-    return pyParser.ask(code, _fast)
+    return pyParser.ask(code)
 
 def clear():
     """ resets the default datalog database """
@@ -166,7 +166,7 @@ class metaMixin(type):
             if not attribute == '__iter__' and not attribute.startswith('_sa_'):
                 predicate_name = "%s.%s[1]==" % (self.__class__.__name__, attribute)
                 literal = pyParser.Literal.make(predicate_name, (self, pyParser.Symbol("X")))
-                result = literal.lua.ask(False)
+                result = literal.lua.ask()
                 return result[0][-1] if result else None                    
             raise AttributeError
         cls.__getattr__ = _getattr   

@@ -58,7 +58,7 @@ def test():
         assert ask(~p(X)) == None
         
         + p(b)
-        assert ask(p(X), _fast=True) == set([('a',), ('b',)])
+        assert ask(p(X)) == set([('a',), ('b',)])
         
         + p(b) # facts are unique
         assert ask(p(X)) == set([('a',), ('b',)])
@@ -333,13 +333,13 @@ def test():
         even(N) <= (N > 0) & (N1==N-1) & odd(N1)
         odd(N) <= (N2==N+2) & ~ even(N) & (N2>0)
     """)
-    assert pyDatalog.ask('~ odd(7)', _fast=True) == None
-    assert pyDatalog.ask('~ odd(2)', _fast=True) == set([()])
-    assert pyDatalog.ask('odd(3)', _fast=True) == set([()])
+    assert pyDatalog.ask('~ odd(7)') == None
+    assert pyDatalog.ask('~ odd(2)') == set([()])
+    assert pyDatalog.ask('odd(3)') == set([()])
     assert pyDatalog.ask('odd(3)'             ) == set([()])
-    assert pyDatalog.ask('odd(5)', _fast=True) == set([()])
+    assert pyDatalog.ask('odd(5)') == set([()])
     assert pyDatalog.ask('odd(5)'            ) == set([()])
-    assert pyDatalog.ask('even(5)', _fast=True) == None
+    assert pyDatalog.ask('even(5)') == None
     assert pyDatalog.ask('even(5)'            ) == None
     
     """ functions                                                         """

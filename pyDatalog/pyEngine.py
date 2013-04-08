@@ -606,7 +606,6 @@ def resolve(clause, literal):
 # A stack of thunks is used to avoid the stack overflow problem
 # by delaying the evaluation of some functions
 
-Fast = None
 tasks = None
 Stack = []       
 
@@ -620,19 +619,15 @@ class Thunk(object):
         
 def schedule(task):
     global tasks
-    if Fast: return task.do()
     return tasks.append(task)
 
 def complete(subgoal, post_thunk):
     """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
-    global Fast, subgoals, tasks, Stack
+    global subgoals, tasks, Stack
     Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
     subgoals, tasks = {}, deque()
     thunk = lambda subgoal=subgoal: merge(subgoal) or search(subgoal)
     schedule(Thunk(thunk))
-    if Fast: 
-        Stack.pop() # to recover memory space
-        return post_thunk() # don't bother with thunks if Fast
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
     if Logging: logging.debug('push')
@@ -642,7 +637,6 @@ def complete(subgoal, post_thunk):
 def invoke(thunk):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
     global tasks, subgoals
-    if Fast: return thunk()
     tasks = deque([Thunk(thunk),])
     while tasks or Stack:
         while tasks:
@@ -752,6 +746,7 @@ def _(self):
 Pred.parent_classes = _
 
 def _aggregate(base_subgoal, subgoal, literal):
+    """ calculate the aggregate after base facts have been found """
     #TODO avoid intermediate result
     result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
     if result:
@@ -879,10 +874,8 @@ def search(subgoal):
 # the predicate, the predicate's arity, and an array of constant
 # terms for each answer.  If there are no answers, nil is returned.
 
-def _(literal, fast):
-    global Fast, subgoals, tasks, Stack
-    Fast = fast
-    
+def _(literal):
+    global subgoals, tasks, Stack
     subgoals = {}
     subgoal = Subgoal(literal)
     merge(subgoal)
