@@ -48,7 +48,7 @@ Sam = Employee('Sam', Mary, 5900)
 print(John.salary_class) # prints 6
 
 # who has a salary of 6300 ?
-X = pyDatalog.Variable()
+pyDatalog.create_atoms('X')
 Employee.salary[X] == 6300 # notice the similarity to a pyDatalog query
 print(X) # prints [Mary]
 print(X.v()) # prints Mary
