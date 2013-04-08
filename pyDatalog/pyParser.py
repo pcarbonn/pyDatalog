@@ -208,7 +208,7 @@ def add_program(func):
     load(source_code, newglobals, defined, function=func_name)
     return _NoCallFunction()
 
-def ask(code, _fast=None):
+def ask(code):
     """ runs the query in the code string """
     with ProgramContext():
         tree = ast.parse(code, 'ask', 'eval')
@@ -463,7 +463,6 @@ class Symbol(VarSymbol):
         if self._pyD_name == 'ask': # call ask() and return an answer
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
-            fast = kwargs['_fast'] if '_fast' in list(kwargs.keys()) else False
             return Answer.make(args[0].ask())
         
         # manage the aggregate functions
@@ -782,7 +781,7 @@ class Body(LazyListOfList):
     def ask(self):
         """ resolve the query and determine the values of its variables"""
         literal = self.literal()
-        self._data = literal.lua.ask(False)
+        self._data = literal.lua.ask()
         literal.todo, self.todo = None, None
         if not ProgramMode and self._data: 
             if self._data is True:
