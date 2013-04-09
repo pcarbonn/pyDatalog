@@ -710,7 +710,6 @@ class Query(Literal, LazyListOfList):
         
     def __invert__(self):
         """unary ~ means negation """
-        # TODO test with python queries
         return Literal.make('~' + self.predicate_name, self.terms) #pred
 
     def __and__(self, other):
@@ -842,7 +841,7 @@ class Aggregate(object):
             if arg is None or (isinstance(arg, tuple) and arg == tuple()):
                 raise util.DatalogError("Error: argument missing in aggregate", None, None)
         
-        # used to create literal. TODO : filter on symbols
+        # used to create literal.
         self.args = ((Y,) if Y is not None else tuple()) + self.for_each + self.order_by + ((sep,) if sep is not None else tuple())
         self.Y_arity = 1 if Y is not None else 0
         self.sep_arity = 1 if sep is not None else 0
