@@ -766,10 +766,18 @@ class Body(LazyListOfList):
     def literal(self, permanent=False):
         """ return a literal that can be queried to resolve the body """
         if permanent:
-            literal = Literal.make('_pyD_query' + str(Body.counter.next()), list(self._variables().values()))
+            literal = Literal.make('_pyD_query' + str(Body.counter.next()), 
+                                   list(self._variables().values()))
         else:
             literal = Literal.make('_pyD_query', list(self._variables().values()))
             literal.lua.pred.reset_clauses()
+        if len(self.literals)==1: # determine the literal prearity
+            base_literal = self.literals[0]
+            if not base_literal.predicate_name.startswith('~'):
+                variables = OrderedDict()
+                for i in range(base_literal.lua.pred.prearity):
+                    variables.update(base_literal.terms[i]._variables())
+                literal.lua.pred.prearity = len(variables)
         literal <= self
         return literal
         
