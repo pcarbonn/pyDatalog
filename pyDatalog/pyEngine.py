@@ -600,7 +600,8 @@ def resolve(clause, literal):
 # by delaying the evaluation of some functions
 
 tasks = None
-Stack = []       
+Stack = []
+Goal = None       
 
 # Schedule a task for later invocation
 
@@ -616,9 +617,9 @@ def schedule(task):
 
 def complete(subgoal, post_thunk):
     """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
-    global subgoals, tasks, Stack
-    Stack.append((subgoals, tasks)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
-    subgoals, tasks = {}, deque()
+    global subgoals, tasks, Stack, Goal
+    Stack.append((subgoals, tasks, Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
+    subgoals, tasks, Goal = {}, deque(), subgoal
     thunk = lambda subgoal=subgoal: merge(subgoal) or search(subgoal)
     schedule(Thunk(thunk))
     # prepend post_thunk at one level lower in the Stack, 
@@ -629,16 +630,16 @@ def complete(subgoal, post_thunk):
 
 def invoke(subgoal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
-    global tasks, subgoals
+    global tasks, subgoals, Goal
     thunk = lambda subgoal=subgoal: search(subgoal)
-    tasks = deque([Thunk(thunk),])
-    while tasks or Stack:
-        while tasks:
+    tasks, subgoals, Goal = deque([Thunk(thunk),]), {}, subgoal
+    while (tasks or Stack) and not Goal.is_done:
+        while tasks and not Goal.is_done:
             tasks.popleft().do() # get the thunk and execute it
         if Stack: 
-            subgoals, tasks = Stack.pop()
+            subgoals, tasks, Goal = Stack.pop()
             if Logging: logging.debug('pop')
-    tasks = None
+    tasks, subgoals, Goal = None, {}, None
 
 # dedicated objects give better performance than thunks 
 class Search(object):
@@ -692,14 +693,13 @@ def rule(subgoal, clause, selected):
     Use a newly derived rule. 
     SLG_POSITIVE in the reference article
     """
-    if subgoal.is_done:
-        return # no need to keep looking if THE answer is found already
     sg = find(selected)
     if sg != None:
         sg.waiters.append(Waiter(subgoal, clause))
         todo = []
         if sg.facts is True:
-            todo.append(resolve(clause, True))
+            resolvent = Clause(clause.head, [bodi for bodi in clause.body[1:] ])
+            todo.append(resolvent)
         else:
             for fact in list(sg.facts.values()):
                 resolvent = resolve(clause, fact)
@@ -715,6 +715,9 @@ def rule(subgoal, clause, selected):
     
 def add_clause(subgoal, clause):
     """ SLG_NEWCLAUSE in the reference article """
+    global Goal
+    if subgoal.is_done or Goal.is_done:
+        return # no need to keep looking if THE answer is found already
     if not clause.body:
         return fact(subgoal, clause.head)
     else:
@@ -874,12 +877,9 @@ def search(subgoal):
 # terms for each answer.  If there are no answers, nil is returned.
 
 def _(literal):
-    global subgoals, tasks, Stack
-    subgoals = {}
     subgoal = Subgoal(literal)
     merge(subgoal)
     invoke(subgoal)
-    subgoals = None
     if subgoal.facts is True:
         return True
     return [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]    
