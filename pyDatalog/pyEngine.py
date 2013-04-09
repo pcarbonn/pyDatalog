@@ -439,14 +439,6 @@ def unify(literal, other): #unify
     return env
 
 
-# These methods are used to handle a set of facts.
-def is_member(literal, tbl):
-    return tbl.get(get_key(literal))
-
-def adjoin(literal, tbl):
-    tbl[get_key(literal)] = literal
-    
-
 class Clause(object):
     """ A clause asserts that its head is true if every literal in its body is
         true.  If there are no literals in the body, the clause is a fact
@@ -587,6 +579,9 @@ class Subgoal(object):
         self.literal = literal
         self.facts = {}
         self.waiters = []
+        # subgoal is done when a partial literal is true 
+        # or when one fact is found for a function of constants
+        self.is_done = False
     
 
 def resolve(clause, literal):
@@ -596,8 +591,6 @@ def resolve(clause, literal):
     two literals unify, a new clause is generated that has a body with
     one less literal.
     """
-    if literal is True:
-        return Clause(clause.head, [bodi for bodi in clause.body[1:] ])
     env = unify(clause.body[0], rename(literal))
     return Clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
  
@@ -669,17 +662,24 @@ def fact(subgoal, literal):
     SLG_ANSWER in the reference article
     """
     if isinstance(literal, Literal) and not all(t.is_constant for t in literal.terms):
-        literal = True
+        literal = True # a partial fact is True
     if literal is True:
         if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
-        subgoal.facts = True
-    elif subgoal.facts is not True and not is_member(literal, subgoal.facts):
-        if Logging: logging.info("New fact : %s" % str(literal))
-        adjoin(literal, subgoal.facts)
-    for waiter in reversed(subgoal.waiters):
-        resolvent = resolve(waiter.clause, literal)
-        if resolvent != None:
+        subgoal.facts, subgoal.is_done = True, True
+        for waiter in reversed(subgoal.waiters):
+            resolvent = Clause(waiter.clause.head, [bodi for bodi in waiter.clause.body[1:] ])
             schedule(Add_clause(waiter.subgoal, resolvent))
+    elif subgoal.facts is not True and not subgoal.facts.get(get_key(literal)):
+        if Logging: logging.info("New fact : %s" % str(literal))
+        subgoal.facts[get_key(literal)] = literal
+        for waiter in reversed(subgoal.waiters):
+            resolvent = resolve(waiter.clause, literal)
+            if resolvent != None:
+                schedule(Add_clause(waiter.subgoal, resolvent))
+        if len(subgoal.facts)==1 \
+        and all(subgoal.literal.terms[i].is_constant 
+                for i in range(subgoal.literal.pred.prearity)):
+            subgoal.is_done = True # one fact for a function of constant
 
 
 class Waiter(object):
@@ -692,9 +692,7 @@ def rule(subgoal, clause, selected):
     Use a newly derived rule. 
     SLG_POSITIVE in the reference article
     """
-    if len(subgoal.facts)==1 \
-    and all(subgoal.literal.terms[i].is_constant 
-            for i in range(subgoal.literal.pred.prearity)):
+    if subgoal.is_done:
         return # no need to keep looking if THE answer is found already
     sg = find(selected)
     if sg != None:
