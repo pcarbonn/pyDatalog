@@ -634,9 +634,10 @@ def complete(subgoal, post_thunk):
     Stack[-1][1].appendleft(Thunk(post_thunk)) 
     
 
-def invoke(thunk):
+def invoke(subgoal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
     global tasks, subgoals
+    thunk = lambda subgoal=subgoal: search(subgoal)
     tasks = deque([Thunk(thunk),])
     while tasks or Stack:
         while tasks:
@@ -879,7 +880,7 @@ def _(literal):
     subgoals = {}
     subgoal = Subgoal(literal)
     merge(subgoal)
-    invoke(lambda subgoal=subgoal: search(subgoal))
+    invoke(subgoal)
     subgoals = None
     if subgoal.facts is True:
         return True
