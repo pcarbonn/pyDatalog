@@ -286,13 +286,9 @@ def pre_calculations(args):
     # logic shared by Symbol and Function 
     new_args, pre_calculations = [], Body()
     for arg in args:
-        if isinstance(arg, Operation):
+        if isinstance(arg, (Operation, Function)):
             pre_calculations = pre_calculations & arg._precalculation()
             new_args.append(arg)
-        elif isinstance(arg, (Operation, Function)):
-            Y = Function.newSymbol()
-            new_args.append(Y)
-            pre_calculations = pre_calculations & (Y == arg)
         else:
             new_args.append(arg)
     return new_args, pre_calculations
@@ -487,7 +483,9 @@ class Literal(object):
                 elif isinstance(other, (Operation, Function)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
                     Y2 = Function.newSymbol()
                     return (Y2 == other) & Literal.make(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
-            return Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
+            literal = Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
+            literal.pre_calculations = self.pre_calculations & other._precalculation() #TODO write more tests
+            return literal
         else:
             if not isinstance(other, Expression):
                 raise util.DatalogError("Syntax error: Symbol or Expression expected", None, None)
