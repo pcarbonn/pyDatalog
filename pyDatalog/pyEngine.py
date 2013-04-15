@@ -332,6 +332,7 @@ class Pred(Interned):
             o.expression = None
             o.aggregate = aggregate
             cls.registry[_id] = o
+        if aggregate: o.aggregate = aggregate
         return o
     
     def _class(self):

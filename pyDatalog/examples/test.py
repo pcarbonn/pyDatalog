@@ -387,6 +387,12 @@ def test():
         assert (ask(h(X,'c'))) == set([('a',)])
         assert (ask(h(X,Y))) == set([('a', 'c')])
         
+        (plus[X,Y]==Z) <= (Z==X+Y)
+        assert (ask(plus[1,2]==X)) == set([(3,)])
+        assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] == plus[4, plus[2,5]])) == set([()])
+        assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] <  plus[5, plus[2,5]])) == set([()])
+        assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] <  plus[1, plus[2,5]])) == None
+        
     @pyDatalog.program()
     def function_comparison(): 
         assert ask(f[X]==Y) == set([('a', 'c')])
