@@ -137,7 +137,7 @@ class LazyListOfList(LazyList):
     
     def __str__(self):
         """ pretty print the result """
-        if self.data in (True, []): return str(self._data)
+        if self.data in (True, [], [()]): return str(self._data)
         # get the widths of each column
         widths = [max(len(str(x)) for x in column) for column in zip(*(self._data))]
         widths = [max(widths[i], len(str(self.variables[i]))) for i in xrange(len(widths))]
@@ -158,10 +158,6 @@ class Expression(object):
         if isinstance(operand, type(lambda: None)):
             return Operation(None, operand, [Symbol(var) for var in getattr(operand,func_code).co_varnames])
         return Symbol(operand, forced_type="constant")
-    
-    def _precalculation(self):
-        """ by default, there is no precalculation needed to evaluate an expression """
-        return Body()
     
     # handlers of inequality and operations
     def __eq__(self, other):
@@ -232,11 +228,13 @@ class VarSymbol(Expression):
     """ represents the symbol of a variable, both inline and in pyDatalog program """
     def __init__ (self, name, forced_type=None):
         self._pyD_negated = False # for aggregate with sort in descending order
+        self._pyD_precalculations = Body() # no precalculations
         if isinstance(name, (list, tuple, xrange)):
             self._pyD_value = list(map(Expression._for, name))
             self._pyD_name = str([element._pyD_name for element in self._pyD_value])
             self._pyD_type = 'tuple'
             self._pyD_lua = pyEngine.Interned.of([e._pyD_lua for e in self._pyD_value])
+            self._pyD_precalculations = pre_calculations(self._pyD_value)
         elif forced_type=="constant" or isinstance(name, (int, float)) or not name or name[0] not in string.ascii_uppercase + '_':
             self._pyD_value = name
             self._pyD_name = str(name)
@@ -268,6 +266,9 @@ class VarSymbol(Expression):
             return variables
         else:
             return OrderedDict()
+    
+    def __str__(self):
+        return self._pyD_name
 
 class Variable(VarSymbol, LazyList):
     def __init__(self, name=None):
@@ -282,16 +283,12 @@ class Variable(VarSymbol, LazyList):
 
 
 def pre_calculations(args):
-    """ returns a new list of args, and pre_calculations"""
-    # logic shared by Symbol and Function 
-    new_args, pre_calculations = [], Body()
+    """ collects the pre_calculations of all args"""
+    pre_calculations = Body()
     for arg in args:
-        if isinstance(arg, (Operation, Function)):
-            pre_calculations = pre_calculations & arg._precalculation()
-            new_args.append(arg)
-        else:
-            new_args.append(arg)
-    return new_args, pre_calculations
+        if isinstance(arg, Expression):
+            pre_calculations = pre_calculations & arg._pyD_precalculations
+    return pre_calculations
         
 class Symbol(VarSymbol):
     """
@@ -337,9 +334,7 @@ class Symbol(VarSymbol):
         elif self._pyD_name == 'range_':
             return Operation(None, '.', args[0])
         else: # create a literal
-            new_args, pre_calc = pre_calculations(args)
-            literal = Literal.make(self._pyD_name, tuple(new_args))
-            literal.pre_calculations = pre_calc
+            literal = Literal.make(self._pyD_name, tuple(args))
             return literal
 
     def __getattr__(self, name):
@@ -368,13 +363,13 @@ class Function(Expression):
         return Symbol('_pyD_X%i' % Function.counter.next())
         
     def __init__(self, name, keys):
-        if not isinstance(keys, tuple):
-            keys = (keys,)
-        self.name = "%s[%i]" % (name, len(keys))
-        self.keys, self.pre_calculations = pre_calculations(keys)
+        self.keys = keys if isinstance(keys, tuple) else (keys,)
+        self.name = "%s[%i]" % (name, len(self.keys))
+        self._argument_precalculations = pre_calculations(self.keys)
                 
         self.symbol = Function.newSymbol()
         self._pyD_lua = self.symbol._pyD_lua
+        self._pyD_precalculations = self._argument_precalculations & (self == self.symbol)
     
     @property
     def _pyD_name(self): # not used
@@ -386,11 +381,10 @@ class Function(Expression):
     # following methods are used when the function is used in an expression
     def _variables(self):
         """ returns an ordered dictionary of the variables in the keys of the function"""
-        return self.pre_calculations._variables()
+        return self._argument_precalculations._variables()
 
-    def _precalculation(self):
-        """ returns the literal(s) that must be pre-calculated before the Literal that uses this function""" 
-        return self.pre_calculations & (self == self.symbol)
+    def __str__(self):
+        return "%s[%s]" % (self.name.split('[')[0], ','.join(str(key) for key in self.keys))
     
 class Operation(Expression):
     """created when evaluating an operation (+, -, *, /, //) """
@@ -399,6 +393,7 @@ class Operation(Expression):
         self.lhs = Expression._for(lhs) # left  hand side
         self.rhs = Expression._for(rhs)
         self._pyD_lua = pyEngine.Operation(self.lhs._pyD_lua, self.operator, self.rhs._pyD_lua)
+        self._pyD_precalculations = pre_calculations((lhs, rhs)) #TODO test for slice, len
         
     @property
     def _pyD_name(self):
@@ -409,10 +404,6 @@ class Operation(Expression):
         temp = self.lhs._variables()
         temp.update(self.rhs._variables())
         return temp
-    
-    def _precalculation(self):
-        """ returns the literal(s) that must be pre-calculated before the Literal that uses this Operation""" 
-        return self.lhs._precalculation() & self.rhs._precalculation()
     
     def __str__(self):
         return '(' + str(self.lhs._pyD_name) + self.operator + str(self.rhs._pyD_name) + ')'
@@ -451,14 +442,15 @@ class Literal(object):
     @classmethod
     def make(cls, predicate_name, terms, prearity=None, aggregate=None):
         """ factory class that creates a Query or HeadLiteral """
+        precalculations = pre_calculations(terms)
         if predicate_name[-1]=='!': #pred e.g. aggregation literal
-            return HeadLiteral(predicate_name, terms, prearity, aggregate)
+            return precalculations & HeadLiteral(predicate_name, terms, prearity, aggregate)
         else:
-            return Query(predicate_name, terms, prearity, aggregate)
+            return precalculations & Query(predicate_name, terms, prearity, aggregate)
     
     @classmethod
     def make_for_comparison(cls, self, operator, other):
-        """ factory of Literal for a comparison """
+        """ factory of Literal (or Body) for a comparison. """
         other = Expression._for(other)
         if isinstance(self, Function):
             if isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
@@ -476,22 +468,13 @@ class Literal(object):
                 terms.extend(other.args)
                 prearity = len(terms) # (X,Y,Z)
                 return Literal.make(name + '!', terms, prearity=prearity) #pred
-            elif operator != '==' or isinstance(other, (Operation, Function)):
-                if '.' not in self.name: # p[X]<Y+Z transformed into (p[X]=Y1) & (Y1<Y+Z)
-                    literal = Literal.make(self.name+'==', list(self.keys)+[self.symbol], prearity=len(self.keys))
-                    return literal & pyEngine.compare2(self.symbol, operator, other)
-                elif isinstance(other, (Operation, Function)): # a.p[X]<Y+Z transformed into (Y2==Y+Z) & (a.p[X]<Y2)
-                    Y2 = Function.newSymbol()
-                    return (Y2 == other) & Literal.make(self.name + operator, list(self.keys) + [Y2], prearity=len(self.keys))
-            literal = Literal.make(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
-            literal.pre_calculations = self.pre_calculations & other._precalculation() #TODO write more tests
-            return literal
+            literal = Query(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
+            return self._argument_precalculations & other._pyD_precalculations & literal
         else:
             if not isinstance(other, Expression):
                 raise util.DatalogError("Syntax error: Symbol or Expression expected", None, None)
-            literal = Literal.make(operator, [self] + [other])
-            literal.pre_calculations = self._precalculation() & other._precalculation()
-            return literal
+            literal = Query(operator, [self] + [other])
+            return self._pyD_precalculations & other._pyD_precalculations & literal
 
     @property
     def literals(self):
@@ -514,7 +497,7 @@ class Literal(object):
         for literal in body.literals:
             if isinstance(literal, HeadLiteral):
                 raise util.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
-            newBody = newBody & literal.pre_calculations & literal
+            newBody = newBody & literal
         return add_clause(self, newBody)
 
 class HeadLiteral(Literal):
@@ -598,10 +581,11 @@ class Body(LazyListOfList):
 
     def __and__(self, body2):
         """ operator '&' means 'and', and returns a Body """
-        return Body(self, body2)
+        b = Body(self, body2)
+        return b if len(b.literals) != 1 else b.literals[0]
     
     def __str__(self):
-        if self._variables().values(): # an in-line query --> evaluate it
+        if True: # use False for debugging of parser
             return LazyListOfList.__str__(self)
         return ' & '.join(list(map (str, self.literals)))
 
@@ -976,5 +960,3 @@ class Answer(object):
         return 'True' if self.answers is True \
             else str(set(self.answers)) if self.answers is not True \
             else 'True'
-
-
