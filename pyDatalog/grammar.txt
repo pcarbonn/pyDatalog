@@ -16,39 +16,37 @@ function ::= predicate '[' expression (',' expression)*   ']'
 expression ::= (constant 
   | variable 
   | function
-  | '(' expression ')'  
+  | [+-] expression
+  | '(' expression (',' expression)* ')'
+  | expression '[' expression (':' expression (':' expression)?)? ']'  
   | '(' lambda-expression ')' 
   | expression ([+*/-] | '//') expression
   )
 
-body ::= ( '~' '(' body ')' | 
-           | literal 
-           | '(' (variable | function) ( ('<' | '<=' | '==' | '~=' | '>='  | '>' ) expression 
-                                       | ('._in' | '._not_in') '(' expression ')'
-                                       ) ')'
+body ::= ( literal  
+           |  '~' body
+           |  '(' body ')'
+           | '(' expression  ('<' | '<=' | '==' | '!=' | '>='  | '>' ) expression  ')'
+           | expression ('._in' | '._not_in') '(' expression ')'
            ) 
-         ( '&' ( '~' '(' body ')' |
-           | literal 
-           | '(' (variable | function) ( ('<' | '<=' | '==' | '~=' | '>='  | '>' ) expression
-                                       | ('._in' | '._not_in') '(' expression ')'
-                                       ) ')'
+     ( '&' 
+         ( literal  
+           |  '~' body
+           |  '(' body ')'
+           | '(' expression  ('<' | '<=' | '==' | '!=' | '>='  | '>' ) expression  ')'
+           | expression ('._in' | '._not_in') '(' expression ')'
            )  
-         )*
+     )*
 
 head_function ::= predicate '[' (constant|variable)(',' (constant|variable))*   ']'
 
 head ::= literal 
       | '(' head_function  '==' (variable | constant) ')'
-      | '(' head_function '==' ('_len' | '_sum' | '_min' | '_max' | 'concat' | 'rank' | 'running_sum' ) '(' arguments ')' ')'
+      | '(' head_function '==' ('len_' | 'sum_' | 'min_' | 'max_' | 'tuple_' | 'concat_' | 'rank_' | 'running_sum_' ) '(' arguments ')' ')'
 
 fact ::= ( predicate '(' (  constant (',' constant)*  )? ')' | predicate '[' constant (',' constant )*   ']' '==' constant )
 
 datalog_statement ::= ('+' | '-') fact
-  | head '<=' body
+  | '-'? head '<=' body
   | '-' '(' head '<=' body ')'
   | head_function '=' expression
-
-
-      
-
-  
