@@ -267,9 +267,6 @@ class VarSymbol(Expression):
         else:
             return OrderedDict()
     
-    def __str__(self):
-        return self._pyD_name
-
 class Variable(VarSymbol, LazyList):
     def __init__(self, name=None):
         name = 'X%i' % id(self) if name is None else name
