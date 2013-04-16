@@ -24,7 +24,7 @@ from decimal import Decimal
 import math
 import re
 import six
-import time
+import datetime
 
 from pyDatalog import pyDatalog
 def test():
@@ -71,7 +71,7 @@ def test():
         assert ask(~p(X)) == set([()])
         + p(a)
         
-        # strings and integers
+        # strings, integer, float, datetime
         + p('c')
         assert ask(p(c)) == set([()])
         
@@ -80,7 +80,10 @@ def test():
         + p(2.0)
         assert ask(p(2.0)) == set([()])
         - p(2.0)
-        
+        + p(datetime.date.today())
+        assert (ask(p(datetime.date.today()))) == set([()])
+        -p(datetime.date.today())
+                
         + n(None)
         assert ask(n(X)) == set([(None,)])
         assert ask(n(None)) == set([()])
@@ -183,6 +186,10 @@ def test():
         assert ask(s(a, b)) == None
         assert ask(s(X,a)) == set([('a',)])
         assert ask(s(X, Y)) == set([('a', 'a'),('c', 'c'),(1, 1)])
+        
+        past(D) <= (D < datetime.date.today())
+        assert ask(past(datetime.date.today())) == None
+        assert ask(past(datetime.date.today()-datetime.timedelta(1))) == set([()])
 
     assert pyDatalog.ask('p(a)') == set([()])
 
