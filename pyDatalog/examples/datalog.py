@@ -36,30 +36,30 @@ indirect_manager(X,Y) <= (manager[X] == Z) & indirect_manager(Z,Y) & (Y != None)
 """ 3. Query the datalog engine """
 
 # what is the salary class of John ?
-print(salary_class['John'] == Y) # prints [6]
+print(salary_class['John'] == Y) # Y is 6
 
 # who has a salary of 6300 ?
-print(salary[X] == 6300) # prints Mary
+print(salary[X] == 6300) # X is Mary
 
 # who are the indirect managers of Mary ?
-print(indirect_manager('Mary', X)) # prints [('John',)]
+print(indirect_manager('Mary', X)) # X is John
 
 # Who are the employees of John with a salary below 6000 ?
-print((salary[X] < 6000) & indirect_manager(X, 'John')) # prints [('Sam',)]
+print((salary[X] < 6000) & indirect_manager(X, 'John')) # X is Sam
 
 # who is his own indirect manager ?
 print(indirect_manager('X', X)) # prints []
 
 # who has 2 reports ?
-print(report_count[X] == 2) # prints [('John',)]
+print(report_count[X] == 2) # X is John
 
 # what is the total salary of the employees of John ? 
 (budget[X] == sum_(N, for_each=Y)) <= (indirect_manager(Y, X)) & (salary[Y]==N)
-print(budget['John']==N) # prints [(12200,)]
+print(budget['John']==N) # N is 12200
 
 # who has the lowest salary ?
 (lowest[1] == min_(X, order_by=N)) <= (salary[X]==N)
-print(lowest[1]==N) # prints [('Sam',)]
+print(lowest[1]==X) # X is Sam
 
 # start the datalog console, for interactive querying 
 from pyDatalog.examples import console
