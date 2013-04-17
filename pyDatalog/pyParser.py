@@ -330,6 +330,8 @@ class Symbol(VarSymbol):
                 return len(args[0]) 
         elif self._pyD_name == 'range_':
             return Operation(None, '.', args[0])
+        elif self._pyD_name == 'format_':
+            return Operation(args[0], '%', args[1:])
         else: # create a literal
             literal = Literal.make(self._pyD_name, tuple(args))
             return literal
