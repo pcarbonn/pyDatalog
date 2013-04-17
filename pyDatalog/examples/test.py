@@ -142,6 +142,9 @@ def test():
         assert ask((X==2) & (Y==2/X)) == set([(2,1)])
         assert ask((X==2) & (Y==2//X)) == set([(2,1)])
         
+        assert ask((Y==5) & (X==format_('5 is {}', Y))) == set([(5, '5 is 5')])
+        assert ask(X==format_('5 is {} {}', 5, 'test'))  == set([('5 is 5 test',)])
+        
     """ Conjunctive queries                                             """
 
     @pyDatalog.program()
@@ -399,7 +402,7 @@ def test():
         assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] == plus[4, plus[2,5]])) == set([()])
         assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] <  plus[5, plus[2,5]])) == set([()])
         assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] <  plus[1, plus[2,5]])) == None
-        
+                
     @pyDatalog.program()
     def function_comparison(): 
         assert ask(f[X]==Y) == set([('a', 'c')])

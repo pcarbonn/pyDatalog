@@ -281,6 +281,8 @@ class Operation(object):
                 return Interned.of(lhs.id / rhs.id)
             elif self.operator == '//':
                 return Interned.of(lhs.id // rhs.id)
+            elif self.operator == '%':
+                return Interned.of(lhs.id.format(*(rhs.id)))
             elif isinstance(self.operator, type(lambda: None)):
                 return Interned.of(self.operator(*(rhs.id)))
             assert False # dead code
