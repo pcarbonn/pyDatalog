@@ -59,7 +59,7 @@ print(X) # prints [John]
 
 # Who are the employees of John with a salary below 6000 ?
 result = (Employee.salary[X] < 6000) & Employee.indirect_manager(X, John)
-print(result) # prints [(Sam,)]
+print(result) # Sam is in the result
 print(X) # prints [Sam]
 print((Employee.salary_class[X] == 5) & Employee.indirect_manager(X, John) >= X) # Sam
 
