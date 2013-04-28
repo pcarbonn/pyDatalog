@@ -123,7 +123,7 @@ def create_atoms(*args):
         args = [arg.strip() for argl in args for arg in argl]
         for arg in set(args + ['_sum','sum_','_min','min_','_max','max_',
         '_len','len_','concat','concat_','rank','rank_','running_sum','running_sum_',
-        'range_','tuple_']):
+        'range_','tuple_', 'format_']):
             if arg in locals_: 
                 if not isinstance(locals_[arg], (pyParser.Symbol, pyParser.Variable)):
                     raise util.DatalogError("Name conflict.  Can't redefine %s as atom" % arg, None, None)

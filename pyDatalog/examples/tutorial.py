@@ -4,7 +4,7 @@ https://sites.google.com/site/pydatalog/Online-datalog-tutorial
 """
 
 from pyDatalog import pyDatalog
-pyDatalog.create_atoms('parent,bill,ancestor,descendents,manager, X,Y,Z,N,N1,F,  factorial,odd,even, _split')
+pyDatalog.create_atoms('parent,bill,ancestor,descendents,manager, X,Y,Z,N,N1,F,  factorial, first_remainder, odd,even, _split')
 
 + parent(bill,'John Adams')
 
@@ -27,6 +27,12 @@ print(manager[bill]==X) # prints [('John Adams',)]
 (factorial[N] == F) <= (N > 1) & (F == N*factorial[N-1])
 
 print(factorial[3]==F) # prints [(6,)]
+
+# (nested) list
+first_remainder(X, Y, Z) <= (Y==X[0]) & (Z==X[1:])
+print(first_remainder((1,2), Y, Z)) # Y is 1, Z is (2,)
+
+print((Y==5) & (X==format_('Y is {}', Y))) # X is 'Y is 5'
 
 # aggregate function
 # calculate the list of descendents, sorted by their name, and separated by ','
