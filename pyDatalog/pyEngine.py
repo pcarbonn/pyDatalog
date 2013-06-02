@@ -327,7 +327,7 @@ class Pred(Interned):
             o.comparison = words[1] if 1 < len(words) else '' # for f[X]<Y
 
             o.db = {}
-            o.clauses = set([])
+            o.clauses = util.OrderedSet([]) #TODO just use a list. (retract clause is rare)
             # one index per term. An index is a dictionary of sets
             o.index = [{} for i in range(int(o.arity))]
             o.prim = None
