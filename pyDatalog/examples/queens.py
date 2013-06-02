@@ -27,15 +27,16 @@ start_time = time.time()
 print(queens7(X0,X1,X2,X3,X4,X5,X6,X7))
 print("First datalog run in %f seconds" % (time.time() - start_time))
 
-for i in range(20):  
+start = time.time()
+for i in range(100):  
     # there is a warm-up period for the JIT --> let's compute it again
     start_time = time.time()
     datalog_count = len(queens7(X0,X1,X2,X3,X4,X5,X6,X7))
     datalog_time = (time.time() - start_time)
     print(datalog_time)
+print("Average : %s" % ((time.time() - start)/100))
 
 # pure python solution found on http://rosettacode.org/wiki/N-Queens#Python, for comparison purposes
-
 from itertools import permutations
 
 n = 8
