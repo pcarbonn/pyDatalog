@@ -402,6 +402,10 @@ def test():
         assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] == plus[4, plus[2,5]])) == set([()])
         assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] <  plus[5, plus[2,5]])) == set([()])
         assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] <  plus[1, plus[2,5]])) == None
+
+        (discount[Total] == 100) <= (1000 < Total)
+        (discount[Total] == 10) <= (100 < Total)
+        assert (ask(discount[2000]==Y) == set([(100,)])) 
                 
     @pyDatalog.program()
     def function_comparison(): 
