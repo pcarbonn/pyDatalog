@@ -6,8 +6,6 @@ source :
     OrderedSet: http://code.activestate.com/recipes/576694/
 '''
 
-import collections
-
 class DatalogError(Exception):
     def __init__(self, value, lineno, function):
         self.value = value
