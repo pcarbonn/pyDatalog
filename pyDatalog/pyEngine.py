@@ -35,7 +35,7 @@ Some notable differences between python and lua:
 * lua variables are global by default, python ones are local by default
 * variable bindings in a closure.  See http://tiny.cc/7837cw, http://tiny.cc/rq47cw
 """
-from collections import deque
+from collections import deque, OrderedDict
 from decimal import Decimal
 import gc
 from itertools import groupby
@@ -327,7 +327,7 @@ class Pred(Interned):
             o.comparison = words[1] if 1 < len(words) else '' # for f[X]<Y
 
             o.db = {}
-            o.clauses = util.OrderedSet([]) #TODO just use a list. (retract clause is rare)
+            o.clauses = OrderedDict()
             # one index per term. An index is a dictionary of sets
             o.index = [{} for i in range(int(o.arity))]
             o.prim = None
@@ -346,7 +346,7 @@ class Pred(Interned):
     
     def reset_clauses(self):
         """ clears the database of clauses for the predicate """
-        for clause in list(self.clauses):
+        for clause in self.clauses.values():
             retract(clause)
     
     def __str__(self): 
@@ -498,17 +498,19 @@ def remove(pred):
 def assert_(clause):
     """ Add a safe clause to the database """
     pred = clause.head.pred
+    id_ = get_clause_id(clause)
+
     if not pred.prim:                   # Ignore assertions for primitives.
-        if pred.aggregate and get_clause_id(clause) in pred.db:
+        if pred.aggregate and id_ in pred.db:
             raise util.DatalogError("Error: Duplicate definition of aggregate function.", None, None)
         retract(clause) # to ensure unicity of functions
-        pred.db[get_clause_id(clause)] = clause
+        pred.db[id_] = clause
         if not clause.body: # if it is a fact, update indexes
             for i, term in enumerate(clause.head.terms):
                 clauses = pred.index[i].setdefault(term, set([])) # create a set if needed
                 clauses.add(clause)
         else:
-            pred.clauses.add(clause)
+            pred.clauses[id_] = clause
         insert(pred)
     return clause
 
@@ -524,7 +526,7 @@ def retract(clause):
                 pred.index[i][term].remove(clause)
                 # TODO del pred.index[i][term] if the set is empty
         else:
-            pred.clauses.remove(pred.db[id_])
+            del pred.clauses[id_]
         del pred.db[id_]  # remove clause from pred.db
     """ TODO retract last fact removes pred ??  problem with assert function
     if len(pred.db) == 0 and pred.prim == None: # if no definition left
@@ -543,7 +545,7 @@ def relevant_clauses(literal):
         return list(literal.pred.db.values())
     else:
         #result= [ literal.pred.db[id_] for id_ in result ] + [ literal.pred.db[id_] for id_ in literal.pred.clauses]
-        return list(result) + list(literal.pred.clauses)
+        return list(result) + list(literal.pred.clauses.values())
     
 """
 The remaining functions in this file implement the tabled logic

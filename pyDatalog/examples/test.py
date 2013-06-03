@@ -210,6 +210,7 @@ def test():
         assert ask(r(a, c)) == set([()])
         r(X, b) <= p(X)
         assert ask(r(a, b)) == set([()])
+        #TODO r(Y, b) <= p(Y)
         
         - (r(X, b) <= p(X))
         assert ask(r(a, b)) == None
@@ -404,8 +405,10 @@ def test():
         assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] <  plus[1, plus[2,5]])) == None
 
         (discount[Total] == 100) <= (1000 < Total)
-        (discount[Total] == 10) <= (100 < Total)
+        (discount[Total] == 10)  <= (100  < Total)
+        (discount[Total] == 1)  <=  (10   < Total)
         assert (ask(discount[2000]==Y) == set([(100,)])) 
+        assert (ask(discount[200]==Y) == set([(10,)])) 
                 
     @pyDatalog.program()
     def function_comparison(): 
