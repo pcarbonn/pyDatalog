@@ -43,6 +43,7 @@ import logging
 import re
 import six
 from six.moves import xrange
+import threading
 import weakref
 
 try:
@@ -54,6 +55,8 @@ Logging = False # True --> logging is activated.  Kept for performance reason
 Auto_print = False # True => automatically prints the result of a query
 
 Python_resolvers = {} # dictionary  of python functions that can resolve a predicate
+
+Thread_storage = threading.local()
 
 #       DATA TYPES          #####################################
 
@@ -129,15 +132,17 @@ class Fresh_var(object):
 
 class Var(Fresh_var, Interned):
     """ A variable in a clause or query """
+    lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
     def __new__(cls,  _id):
-        o = cls.registry.get(_id, Interned.notFound)
-        if o is Interned.notFound:
-            o = object.__new__(cls) # o is the ref that keeps it alive
-            o.id = _id #id
-            o.key = 'v' + str(Var.counter.next()) #id
-            cls.registry[_id] = o
+        with Var.lock:
+            o = cls.registry.get(_id, Interned.notFound)
+            if o is Interned.notFound:
+                o = object.__new__(cls) # o is the ref that keeps it alive
+                o.id = _id #id
+                o.key = 'v' + str(Var.counter.next()) #id
+                cls.registry[_id] = o
         return o
     def __init__(self, name):
         pass
@@ -147,16 +152,18 @@ class Var(Fresh_var, Interned):
 
 class Const(Interned):
     """ a constant """
+    lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
     def __new__(cls,  _id):
         r = repr(_id) if isinstance(_id, (six.string_types, float, Decimal)) else _id
-        o = cls.registry.get(r, Interned.notFound)
-        if o is Interned.notFound: 
-            o = object.__new__(cls) # o is the ref that keeps it alive
-            o.id = _id #id
-            o.key = 'c' + str(Const.counter.next())
-            cls.registry[r] = o
+        with Const.lock:
+            o = cls.registry.get(r, Interned.notFound)
+            if o is Interned.notFound: 
+                o = object.__new__(cls) # o is the ref that keeps it alive
+                o.id = _id #id
+                o.key = 'c' + str(Const.counter.next())
+                cls.registry[r] = o
         return o
     is_constant = True
     def get_tag(self, env): #id
@@ -187,16 +194,18 @@ class Const(Interned):
 
 class VarTuple(Interned):
     """ a tuple / list of variables, constants or tuples """
+    lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
-        o = cls.registry.get(_id, Interned.notFound)
-        if o is Interned.notFound: 
-            o = object.__new__(cls) # o is the ref that keeps it alive
-            o._id = _id #id
-            o.key = '('+ ''.join([e.key for e in _id]) + ')' #id
-            o.id = tuple([element.id for element in _id])
-            o.is_constant = all(element.is_constant for element in _id)
-            cls.registry[_id] = o
+        with VarTuple.lock:
+            o = cls.registry.get(_id, Interned.notFound)
+            if o is Interned.notFound: 
+                o = object.__new__(cls) # o is the ref that keeps it alive
+                o._id = _id #id
+                o.key = '('+ ''.join([e.key for e in _id]) + ')' #id
+                o.id = tuple([element.id for element in _id])
+                o.is_constant = all(element.is_constant for element in _id)
+                cls.registry[_id] = o
         return o
     
     def __len__(self):
@@ -306,34 +315,34 @@ class Operation(object):
     def __str__(self): 
         return "(%s%s%s)" % (str(self.lhs), str(self.operator), str(self.rhs))
 
-
 class Pred(Interned):
     """ A predicate symbol has a name, an arity, and a database table.  
         It can also have a function used to implement a primitive."""
-    registry = weakref.WeakValueDictionary()
+    lock = threading.RLock()
     def __new__(cls, pred_name, arity, aggregate=None):
         assert isinstance(pred_name, six.string_types)
         _id = '%s/%i' % (pred_name, arity)
-        o = cls.registry.get(_id, Interned.notFound)
-        if o is Interned.notFound: 
-            o = object.__new__(cls) # o is the ref that keeps it alive
-            o.id = _id
-            o.name = pred_name
-            o.arity = arity
-            o.prearity = None
-            words = o.name.split('.')
-            o.prefix, o.suffix = (words[0], words[1].split('[')[0]) if 1 < len(words) else ('','')
-            words = pred_name.split(']')
-            o.comparison = words[1] if 1 < len(words) else '' # for f[X]<Y
-
-            o.db = {}
-            o.clauses = OrderedDict()
-            # one index per term. An index is a dictionary of sets
-            o.index = [{} for i in range(int(o.arity))]
-            o.prim = None
-            o.expression = None
-            o.aggregate = aggregate
-            cls.registry[_id] = o
+        with Pred.lock:
+            o = Thread_storage.Pred_registry.get(_id, Interned.notFound)
+            if o is Interned.notFound: 
+                o = object.__new__(cls) # o is the ref that keeps it alive
+                o.id = _id
+                o.name = pred_name
+                o.arity = arity
+                o.prearity = None
+                words = o.name.split('.')
+                o.prefix, o.suffix = (words[0], words[1].split('[')[0]) if 1 < len(words) else ('','')
+                words = pred_name.split(']')
+                o.comparison = words[1] if 1 < len(words) else '' # for f[X]<Y
+    
+                o.db = {}
+                o.clauses = OrderedDict()
+                # one index per term. An index is a dictionary of sets
+                o.index = [{} for i in range(int(o.arity))]
+                o.prim = None
+                o.expression = None
+                o.aggregate = aggregate
+                Thread_storage.Pred_registry[_id] = o
         if aggregate: o.aggregate = aggregate
         return o
     
@@ -370,7 +379,7 @@ class Literal(object):
     
     def _renamed(self, new_name):
         _id = '%s/%i' % (new_name, len(self.terms))
-        pred= Pred.registry.get(_id, new_name)
+        pred= Thread_storage.Pred_registry.get(_id, new_name)
         return Literal(pred, list(self.terms), prearity=self.pred.prearity)
         
     def rebased(self, parent_class): 
@@ -483,15 +492,12 @@ def rename_clause(clause):
 # The database stores predicates that contain clauses.  Predicates
 # not in the database are subject to garbage collection.
 
-db = {}
 def insert(pred):
-    global db
-    db[pred.id] = pred
+    Thread_storage.Db[pred.id] = pred
     return pred
 
 def remove(pred):
-    global db
-    if pred.id in db : del db[pred.id]
+    if pred.id in Thread_storage.Db : del Thread_storage.Db[pred.id]
     return pred
     
 
@@ -564,15 +570,12 @@ supported.
 # The subgoal table is a map from the tag of a subgoal's
 # literal to a subgoal.
 
-subgoals = {}
-
 def find(literal):
     tag = get_tag(literal)
-    return subgoals.get(tag)
+    return Thread_storage.Subgoals.get(tag)
 
 def merge(subgoal):
-    global subgoals
-    subgoals[get_tag(subgoal.literal)] = subgoal
+    Thread_storage.Subgoals[get_tag(subgoal.literal)] = subgoal
 
 
 class Subgoal(object):
@@ -604,10 +607,6 @@ def resolve(clause, literal):
 # A stack of thunks is used to avoid the stack overflow problem
 # by delaying the evaluation of some functions
 
-tasks = None
-Stack = []
-Goal = None       
-
 # Schedule a task for later invocation
 
 class Thunk(object):
@@ -617,34 +616,33 @@ class Thunk(object):
         self.thunk()
         
 def schedule(task):
-    global tasks
-    return tasks.append(task)
+    return Thread_storage.Tasks.append(task)
 
 def complete(subgoal, post_thunk):
     """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
-    global subgoals, tasks, Stack, Goal
-    Stack.append((subgoals, tasks, Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
-    subgoals, tasks, Goal = {}, deque(), subgoal
+    Ts = Thread_storage
+    Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
+    Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
     thunk = lambda subgoal=subgoal: merge(subgoal) or search(subgoal)
     schedule(Thunk(thunk))
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
     if Logging: logging.debug('push')
-    Stack[-1][1].appendleft(Thunk(post_thunk)) 
+    Ts.Stack[-1][1].appendleft(Thunk(post_thunk)) 
     
 
 def invoke(subgoal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
-    global tasks, subgoals, Goal
+    Ts = Thread_storage
     thunk = lambda subgoal=subgoal: search(subgoal)
-    tasks, subgoals, Goal = deque([Thunk(thunk),]), {}, subgoal
-    while (tasks or Stack) and not Goal.is_done:
-        while tasks and not Goal.is_done:
-            tasks.popleft().do() # get the thunk and execute it
-        if Stack: 
-            subgoals, tasks, Goal = Stack.pop()
+    Ts.Tasks, Ts.Subgoals, Ts.Goal = deque([Thunk(thunk),]), {}, subgoal
+    while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
+        while Ts.Tasks and not Ts.Goal.is_done:
+            Ts.Tasks.popleft().do() # get the thunk and execute it
+        if Ts.Stack: 
+            Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
             if Logging: logging.debug('pop')
-    tasks, subgoals, Goal = None, {}, None
+    Ts.Tasks, Ts.Subgoals, Ts.Goal = None, {}, None
 
 # dedicated objects give better performance than thunks 
 class Search(object):
@@ -720,8 +718,7 @@ def rule(subgoal, clause, selected):
     
 def add_clause(subgoal, clause):
     """ SLG_NEWCLAUSE in the reference article """
-    global Goal
-    if subgoal.is_done or Goal.is_done:
+    if subgoal.is_done or Thread_storage.Goal.is_done:
         return # no need to keep looking if THE answer is found already
     if not clause.body:
         return fact(subgoal, clause.head)
@@ -840,7 +837,7 @@ def search(subgoal):
                     lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
                         _aggregate(base_subgoal, subgoal, literal))
             return
-        elif literal.pred.id in db: # has a datalog definition, e.g. p(X), p[X]==Y
+        elif literal.pred.id in Thread_storage.Db: # has a datalog definition, e.g. p(X), p[X]==Y
             for clause in relevant_clauses(literal):
                 renamed = rename_clause(clause)
                 env = unify(literal, renamed.head)
@@ -996,9 +993,12 @@ def compare2(l,op,r):
     return l._in(r) if op=='_pyD_in' else l._not_in(r) if op=='_pyD_not_in' else compare(l,op,r)
 
 def clear():
-    global db
-    db = {}
-    Pred.registry = weakref.WeakValueDictionary()
+    Thread_storage.Db = {}
+    Thread_storage.Pred_registry = weakref.WeakValueDictionary()
+    Thread_storage.Subgoals = {}
+    Thread_storage.Tasks = None
+    Thread_storage.Stack = []
+    Thread_storage.Goal = None       
 
     insert(Pred("==", 2)).prim = equals_primitive
     add_iter_prim_to_predicate(insert(Pred("<" , 2)), compare_primitive)

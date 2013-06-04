@@ -6,6 +6,7 @@ Created on 3 juin 2013
 
 from pyDatalog import pyDatalog
 import random
+import threading
 
 @pyDatalog.predicate()
 def ok3(X1, N, X2):
@@ -27,8 +28,11 @@ def queen(thread_name):
     """ % n)
     queens = pyDatalog.ask("queens%s(%s)" % (n-1, ",".join("X%s" % i for i in range(n))))
     answers = queens.answers if queens else [] 
-    result = "OK" if len(answers) == [1,0,0,2,10,4,40,92][n-1] else "* not OK !*"
-    print("%s : %s %s" % (thread_name, n, result))
+    result = "OK" if len(answers) == [1,0,0,2,10,4,40,92][n-1] else "* not OK ! *"
+    print("%s : n = %d %s " % (thread_name, n, result))
     
-for i in range(10):
-    queen("test %s" % i)
+for i in range(20):
+    # queen("test %s" % i)
+    t = threading.Thread(target=queen,args=("thread %02d" % i,))
+    t.start()
+
