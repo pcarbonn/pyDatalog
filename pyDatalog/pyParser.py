@@ -76,6 +76,7 @@ import string
 import six
 from six.moves import builtins, xrange
 import sys
+import threading
 
 PY3 = sys.version_info[0] == 3
 func_code = '__code__' if PY3 else 'func_code'
@@ -90,7 +91,8 @@ except ValueError:
     import UserList
 
 # global variable to differentiate between in-line queries and pyDatalog program / ask
-ProgramMode = False
+Thread_storage = threading.local()
+Thread_storage.ProgramMode = False
 
 """                             Parser classes                                                   """
 
@@ -541,14 +543,14 @@ class Query(Literal, LazyListOfList):
         return Body(self, other)
 
     def __str__(self):
-        if ProgramMode:
+        if Thread_storage.ProgramMode:
             terms = list(map (str, self.terms))
             return str(self.predicate_name) + "(" + ','.join(terms) + ")"
         else:
             return LazyListOfList.__str__(self)
     
     def __eq__(self, other):
-        if ProgramMode:
+        if Thread_storage.ProgramMode:
             raise util.DatalogError("Syntax error near equality: consider using brackets. %s" % str(self), None, None)
         else:
             return super(Literal, self).__eq__(other)
@@ -615,7 +617,7 @@ class Body(LazyListOfList):
         literal = self.literal()
         self._data = literal.lua.ask()
         literal.todo, self.todo = None, None
-        if not ProgramMode and self._data: 
+        if not Thread_storage.ProgramMode and self._data: 
             if self._data is True:
                 return True
             transposed = list(zip(*(self._data))) # transpose result
@@ -810,11 +812,9 @@ class Running_sum(Rank_aggregate):
 class ProgramContext(object):
     """class to safely use ProgramMode within the "with" statement"""
     def __enter__(self):
-        global ProgramMode
-        ProgramMode = True
+        Thread_storage.ProgramMode = True
     def __exit__(self, exc_type, exc_value, traceback):
-        global ProgramMode
-        ProgramMode = False
+        Thread_storage.ProgramMode = False
  
 def add_symbols(names, variables):
     """ add the names to the variables dictionary"""

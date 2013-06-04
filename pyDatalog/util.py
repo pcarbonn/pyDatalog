@@ -5,6 +5,7 @@ source :
     http://anandology.com/blog/using-iterators-and-generators/
     OrderedSet: http://code.activestate.com/recipes/576694/
 '''
+import threading
 
 class DatalogError(Exception):
     def __init__(self, value, lineno, function):
@@ -16,6 +17,7 @@ class DatalogError(Exception):
 
 
 class Counter:
+    lock = threading.RLock()
     def __init__(self):
         self.i = 0
 
@@ -23,6 +25,7 @@ class Counter:
         return self
 
     def next(self):
-        self.i += 1
-        return self.i
+        with Counter.lock:
+            self.i += 1
+            return self.i
 
