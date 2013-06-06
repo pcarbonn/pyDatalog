@@ -476,8 +476,11 @@ def get_clause_id(clause): #id
 def subst_in_clause(clause, env, parent_class=None):
     """ apply the env mapping and rebase to parent_class, if any """
     if not env and not parent_class: return clause
+    if not parent_class:
+        return Clause(subst(clause.head, env),
+                       [subst(bodi, env) for bodi in clause.body])
     return Clause(subst(clause.head, env).rebased(parent_class),
-                       [subst(bodi, env).rebased(parent_class) for bodi in clause.body])
+                    [subst(bodi, env).rebased(parent_class) for bodi in clause.body])
     
 def rename_clause(clause):
     """ returns the clause with fresh variables """
@@ -489,8 +492,7 @@ def rename_clause(clause):
 
 # DATABASE  #####################################################
 
-# The database stores predicates that contain clauses.  Predicates
-# not in the database are subject to garbage collection.
+# The database stores predicates that contain clauses.  
 
 def insert(pred):
     Thread_storage.Db[pred.id] = pred
