@@ -112,6 +112,7 @@ def ask(code):
 
 def clear():
     """ resets the default datalog database """
+    pyParser.clear()
     pyEngine.clear()
 
 def create_atoms(*args):
