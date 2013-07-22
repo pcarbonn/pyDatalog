@@ -94,6 +94,9 @@ except ValueError:
 Thread_storage = threading.local()
 Thread_storage.ProgramMode = False
 
+def clear():
+    Thread_storage.ProgramMode = False
+
 """                             Parser classes                                                   """
 
 class LazyList(UserList.UserList):
@@ -269,7 +272,7 @@ class VarSymbol(Expression):
         else:
             return OrderedDict()
     
-class Variable(VarSymbol, LazyList):
+class Variable(threading.local, VarSymbol, LazyList):
     def __init__(self, name=None):
         name = 'X%i' % id(self) if name is None else name
         LazyList.__init__(self)
