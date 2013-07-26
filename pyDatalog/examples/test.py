@@ -338,6 +338,10 @@ def test():
         +p(a, b)
         assert ask(~p(X, b)) == None
         assert ask(~p(X, c)) == set([()])
+        assert(ask(~(p(X,c) & p(X,a)))) == set([()])
+        assert(ask(p(X,b) & ~(p(X,c) & p(X,a)))) == set([('a',)])
+        assert(ask(~(p(X,c) & p(X,a)) & p(X,b))) == set([('a',)])
+        assert(ask(~(p(X,b) & p(X,a) & p(X,b)))) == set([()])
 
     pyDatalog.load("""
         + even(0)
