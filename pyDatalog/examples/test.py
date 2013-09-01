@@ -626,6 +626,7 @@ def test():
     assert a.c == 'a'
     X, Y = pyDatalog.variables(2)
     assert (A.c[X]=='a') == [(a,)]
+    assert (pyDatalog.ask("A.c[X]=='a'")) == {(a,)}
     assert (A.c[X]=='a')[0] == (a,)
     assert list(X.data) == [a]
     assert X.v() == a
