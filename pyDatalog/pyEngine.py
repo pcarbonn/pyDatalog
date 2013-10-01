@@ -55,8 +55,7 @@ Logging = False # True --> logging is activated.  Kept for performance reason
 Auto_print = False # True => automatically prints the result of a query
 
 Python_resolvers = {} # dictionary  of python functions that can resolve a predicate
-
-Thread_storage = threading.local()
+Logic = None # place holder for Logic class from Logic module
 
 #       DATA TYPES          #####################################
 
@@ -323,7 +322,7 @@ class Pred(Interned):
         assert isinstance(pred_name, six.string_types)
         _id = '%s/%i' % (pred_name, arity)
         with Pred.lock:
-            o = Thread_storage.Pred_registry.get(_id, Interned.notFound)
+            o = Logic.tl.logic.Pred_registry.get(_id, Interned.notFound)
             if o is Interned.notFound: 
                 o = object.__new__(cls) # o is the ref that keeps it alive
                 o.id = _id
@@ -342,7 +341,7 @@ class Pred(Interned):
                 o.prim = None
                 o.expression = None
                 o.aggregate = aggregate
-                Thread_storage.Pred_registry[_id] = o
+                Logic.tl.logic.Pred_registry[_id] = o
         if aggregate: o.aggregate = aggregate
         return o
     
@@ -379,7 +378,7 @@ class Literal(object):
     
     def _renamed(self, new_name):
         _id = '%s/%i' % (new_name, len(self.terms))
-        pred= Thread_storage.Pred_registry.get(_id, new_name)
+        pred= Logic.tl.logic.Pred_registry.get(_id, new_name)
         return Literal(pred, list(self.terms), prearity=self.pred.prearity)
         
     def rebased(self, parent_class): 
@@ -495,11 +494,11 @@ def rename_clause(clause):
 # The database stores predicates that contain clauses.  
 
 def insert(pred):
-    Thread_storage.Db[pred.id] = pred
+    Logic.tl.logic.Db[pred.id] = pred
     return pred
 
 def remove(pred):
-    if pred.id in Thread_storage.Db : del Thread_storage.Db[pred.id]
+    if pred.id in Logic.tl.logic.Db : del Logic.tl.logic.Db[pred.id]
     return pred
     
 
@@ -574,10 +573,10 @@ supported.
 
 def find(literal):
     tag = get_tag(literal)
-    return Thread_storage.Subgoals.get(tag)
+    return Logic.tl.logic.Subgoals.get(tag)
 
 def merge(subgoal):
-    Thread_storage.Subgoals[get_tag(subgoal.literal)] = subgoal
+    Logic.tl.logic.Subgoals[get_tag(subgoal.literal)] = subgoal
 
 
 class Subgoal(object):
@@ -618,11 +617,11 @@ class Thunk(object):
         self.thunk()
         
 def schedule(task):
-    return Thread_storage.Tasks.append(task)
+    return Logic.tl.logic.Tasks.append(task)
 
 def complete(subgoal, post_thunk):
     """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
-    Ts = Thread_storage
+    Ts = Logic.tl.logic
     Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
     Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
     thunk = lambda subgoal=subgoal: merge(subgoal) or search(subgoal)
@@ -635,7 +634,7 @@ def complete(subgoal, post_thunk):
 
 def invoke(subgoal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
-    Ts = Thread_storage
+    Ts = Logic.tl.logic
     thunk = lambda subgoal=subgoal: search(subgoal)
     Ts.Tasks, Ts.Subgoals, Ts.Goal = deque([Thunk(thunk),]), {}, subgoal
     while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
@@ -720,7 +719,7 @@ def rule(subgoal, clause, selected):
     
 def add_clause(subgoal, clause):
     """ SLG_NEWCLAUSE in the reference article """
-    if subgoal.is_done or Thread_storage.Goal.is_done:
+    if subgoal.is_done or Logic.tl.logic.Goal.is_done:
         return # no need to keep looking if THE answer is found already
     if not clause.body:
         return fact(subgoal, clause.head)
@@ -839,7 +838,7 @@ def search(subgoal):
                     lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
                         _aggregate(base_subgoal, subgoal, literal))
             return
-        elif literal.pred.id in Thread_storage.Db: # has a datalog definition, e.g. p(X), p[X]==Y
+        elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
             for clause in relevant_clauses(literal):
                 renamed = rename_clause(clause)
                 env = unify(literal, renamed.head)
@@ -995,12 +994,13 @@ def compare2(l,op,r):
     return l._in(r) if op=='_pyD_in' else l._not_in(r) if op=='_pyD_not_in' else compare(l,op,r)
 
 def clear():
-    Thread_storage.Db = {}
-    Thread_storage.Pred_registry = weakref.WeakValueDictionary()
-    Thread_storage.Subgoals = {}
-    Thread_storage.Tasks = None
-    Thread_storage.Stack = []
-    Thread_storage.Goal = None       
+    """ clears the logic """
+    Logic.tl.logic.Db = {}
+    Logic.tl.logic.Pred_registry = weakref.WeakValueDictionary()
+    Logic.tl.logic.Subgoals = {}
+    Logic.tl.logic.Tasks = None
+    Logic.tl.logic.Stack = []
+    Logic.tl.logic.Goal = None       
 
     insert(Pred("==", 2)).prim = equals_primitive
     add_iter_prim_to_predicate(insert(Pred("<" , 2)), compare_primitive)
@@ -1010,5 +1010,3 @@ def clear():
     add_iter_prim_to_predicate(insert(Pred(">" , 2)), compare_primitive)
     add_iter_prim_to_predicate(insert(Pred("_pyD_in", 2)), compare_primitive)
     add_iter_prim_to_predicate(insert(Pred("_pyD_not_in", 2)), compare_primitive)
-
-clear()
