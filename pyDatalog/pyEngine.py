@@ -196,6 +196,7 @@ class Const(Interned):
 
 class VarTuple(Interned):
     """ a tuple / list of variables, constants or tuples """
+    __slots__ = ['id', 'key', 'is_constant', '_remove']
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
