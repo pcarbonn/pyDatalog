@@ -92,6 +92,7 @@ class Interned(object):
 
 class Fresh_var(object): 
     """ a variable created by the search algorithm """
+    __slots__ = ['id', 'key']
     counter = util.Counter()  
     def __init__(self):
         self.id = 'f' + str(Fresh_var.counter.next()) #id
@@ -131,6 +132,7 @@ class Fresh_var(object):
 
 class Var(Fresh_var, Interned):
     """ A variable in a clause or query """
+    __slots__ = ['id', 'key', '_remove']
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
@@ -151,6 +153,7 @@ class Var(Fresh_var, Interned):
 
 class Const(Interned):
     """ a constant """
+    __slots__ = ['id', 'key', '_remove']
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
@@ -365,6 +368,7 @@ class Literal(object):
     """ A literal is a predicate and a sequence of terms, 
         the number of which must match the predicate's arity.
     """
+    __slots__ = ['terms', 'pred', 'id', 'key', 'tag']
     def __init__(self, pred, terms, prearity=None, aggregate=None):
         self.terms = terms
         if isinstance(pred, six.string_types):
