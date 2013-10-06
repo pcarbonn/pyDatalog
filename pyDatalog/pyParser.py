@@ -70,11 +70,8 @@ Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRn
 import ast
 from collections import OrderedDict
 import inspect
-import itertools
 import re
 import string
-import six
-from six.moves import builtins, xrange
 import sys
 import threading
 
@@ -145,11 +142,11 @@ class LazyListOfList(LazyList):
         if self.data in (True, [], [()]): return str(self._data)
         # get the widths of each column
         widths = [max(len(str(x)) for x in column) for column in zip(*(self._data))]
-        widths = [max(widths[i], len(str(self.variables[i]))) for i in xrange(len(widths))]
+        widths = [max(widths[i], len(str(self.variables[i]))) for i in util.xrange(len(widths))]
         # get the formating string
-        fofo = ' | '.join('%%-%ss' % widths[i] for i in xrange(len(widths)))
+        fofo = ' | '.join('%%-%ss' % widths[i] for i in util.xrange(len(widths)))
         return '\n'.join((fofo % self.variables, 
-                            '-|-'.join( widths[i]*'-' for i in xrange(len(widths))),
+                            '-|-'.join( widths[i]*'-' for i in util.xrange(len(widths))),
                             '\n'.join(fofo % s for s in self._data)))
 
 
@@ -234,7 +231,7 @@ class VarSymbol(Expression):
     def __init__ (self, name, forced_type=None):
         self._pyD_negated = False # for aggregate with sort in descending order
         self._pyD_precalculations = Body() # no precalculations
-        if isinstance(name, (list, tuple, xrange)):
+        if isinstance(name, (list, tuple, util.xrange)):
             self._pyD_value = list(map(Expression._for, name))
             self._pyD_name = str([element._pyD_name for element in self._pyD_value])
             self._pyD_type = 'tuple'
@@ -669,7 +666,7 @@ class Aggregate(object):
         if not all([isinstance(e, VarSymbol) for e in self.order_by]):
             raise util.DatalogError("order_by argument of aggregate must be variable(s).", None, None)
         
-        if sep and not isinstance(sep, six.string_types):
+        if sep and not isinstance(sep, util.string_types):
             raise util.DatalogError("Separator in aggregation must be a string", None, None)
         self.sep = sep
         
@@ -860,7 +857,7 @@ def load(code, newglobals=None, defined=None, function='load'):
     """
     newglobals, defined = newglobals or {}, defined or set([])
     # remove indentation based on first non-blank line
-    lines = code.splitlines() if isinstance(code, six.string_types) else code
+    lines = code.splitlines() if isinstance(code, util.string_types) else code
     r = re.compile('^\s*')
     for line in lines:
         spaces = r.match(line).group()
@@ -875,16 +872,16 @@ def load(code, newglobals=None, defined=None, function='load'):
         e.function = function
         e.message = e.value
         e.value = "%s\n%s" % (e.value, lines[e.lineno-1])
-        six.reraise(*sys.exc_info())
+        util.reraise(*sys.exc_info())
     code = compile(tree, function, 'exec')
 
-    defined = defined.union(dir(builtins))
+    defined = defined.union(dir(util.builtins))
     defined.add('None')
     for name in set(code.co_names).difference(defined): # for names that are not defined
         add_symbols((name,), newglobals)
     try:
         with ProgramContext():
-            six.exec_(code, newglobals)
+            util.exec_(code, newglobals)
     except util.DatalogError as e:
         e.function = function
         traceback = sys.exc_info()[2]
@@ -897,7 +894,7 @@ def load(code, newglobals=None, defined=None, function='load'):
                 traceback = traceback.tb_next 
         e.message = e.value
         e.value = "%s\n%s" % (e.value, lines[e.lineno-1])
-        six.reraise(*sys.exc_info())
+        util.reraise(*sys.exc_info())
         
 class _NoCallFunction(object):
     """ This class prevents a call to a datalog program created using the 'program' decorator """
