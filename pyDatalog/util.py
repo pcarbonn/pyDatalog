@@ -5,6 +5,7 @@ source :
     http://anandology.com/blog/using-iterators-and-generators/
     OrderedSet: http://code.activestate.com/recipes/576694/
 '''
+import sys
 import threading
 
 class DatalogError(Exception):
@@ -29,3 +30,43 @@ class Counter:
             self.i += 1
             return self.i
 
+###################### support for Python 2 and 3 ####################################
+# inspired by the six library
+
+PY2 = sys.version_info[0] == 2
+
+if PY2:
+    string_types = basestring,
+    
+    import __builtin__ as builtins
+    xrange = builtins.xrange
+else:
+    string_types = str,
+    xrange = range
+
+if PY2:
+    def exec_(_code_, _globs_=None, _locs_=None):
+        """Execute code in a namespace."""
+        if _globs_ is None:
+            frame = sys._getframe(1)
+            _globs_ = frame.f_globals
+            if _locs_ is None:
+                _locs_ = frame.f_locals
+            del frame
+        elif _locs_ is None:
+            _locs_ = _globs_
+        exec("""exec _code_ in _globs_, _locs_""")
+
+
+    exec_("""def reraise(tp, value, tb=None):
+    raise tp, value, tb
+    """)
+
+else:
+    import builtins
+    exec_ = getattr(builtins, "exec")
+
+    def reraise(tp, value, tb=None):
+        if value.__traceback__ is not tb:
+            raise value.with_traceback(tb)
+        raise value

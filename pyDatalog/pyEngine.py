@@ -41,8 +41,6 @@ import gc
 from itertools import groupby
 import logging
 import re
-import six
-from six.moves import xrange
 import threading
 import weakref
 
@@ -75,7 +73,7 @@ class Interned(object):
         """ factory function for interned objects """
         if isinstance(atom, (Interned, Fresh_var, Operation)):
             return atom
-        elif isinstance(atom, (list, tuple, xrange)):
+        elif isinstance(atom, (list, tuple, util.xrange)):
             return VarTuple(tuple([Interned.of(element) for element in atom]))
         else:
             return Const(atom)
@@ -158,7 +156,7 @@ class Const(Interned):
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
     def __new__(cls,  _id):
-        r = repr(_id) if isinstance(_id, (six.string_types, float, Decimal)) else _id
+        r = repr(_id) if isinstance(_id, (util.string_types, float, Decimal)) else _id
         with Const.lock:
             o = cls.registry.get(r, Interned.notFound)
             if o is Interned.notFound: 
@@ -323,7 +321,7 @@ class Pred(Interned):
         It can also have a function used to implement a primitive."""
     lock = threading.RLock()
     def __new__(cls, pred_name, arity, aggregate=None):
-        assert isinstance(pred_name, six.string_types)
+        assert isinstance(pred_name, util.string_types)
         _id = '%s/%i' % (pred_name, arity)
         with Pred.lock:
             o = Logic.tl.logic.Pred_registry.get(_id, Interned.notFound)
@@ -372,7 +370,7 @@ class Literal(object):
     __slots__ = ['terms', 'pred', 'id', 'key', 'tag']
     def __init__(self, pred, terms, prearity=None, aggregate=None):
         self.terms = terms
-        if isinstance(pred, six.string_types):
+        if isinstance(pred, util.string_types):
             self.pred = Pred(pred, len(terms), aggregate)
             self.pred.prearity = prearity or len(terms)
             if pred[:1] == '~': #pred

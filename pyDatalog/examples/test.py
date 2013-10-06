@@ -23,7 +23,6 @@ import cProfile
 from decimal import Decimal
 import math
 import re
-import six
 import datetime
 
 from pyDatalog import pyDatalog
