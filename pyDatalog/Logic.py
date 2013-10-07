@@ -32,10 +32,11 @@ except ValueError:
 class Logic(object):
     """ 
     per-thread singleton class containing the pyEngine Logic in the current thread.
-    Logic() returns the pyEngine logic in the current thread, so that it can be passed to another thread.
+    Logic() resets the logic in the current thread and returns it
+    Logic(True) returns the pyEngine logic in the current thread, so that it can be passed to another thread.
     Logic(logic) initializes the logic in the current thread with logic, and returns it.
     """
-    tl = threading.local() # contains the Logic in the current thread
+    tl = threading.local()  # contains the Logic in the current thread
     def __new__(cls, logic=None):
         if isinstance(logic, cls):
             Logic.tl.logic = copy.copy(logic) 
@@ -44,12 +45,12 @@ class Logic(object):
         return Logic.tl.logic
     
     def __init__(self, logic=None):
-        if not (logic) and not (hasattr(self, 'Db')):
-            pyEngine.clear() # make sure the singleton has what's needed
+        if not (logic) or not (hasattr(self, 'Db')):
+            pyEngine.clear()  # make sure the singleton has what's needed
             
     def clear(self):
         """ move the logic to the current thread and clears it """
-        Logic(self) # just to be sure
+        Logic(self)  # just to be sure
         pyEngine.clear()
                 
-pyEngine.Logic = Logic # share Logic with pyEngine
+pyEngine.Logic = Logic  # share Logic with pyEngine

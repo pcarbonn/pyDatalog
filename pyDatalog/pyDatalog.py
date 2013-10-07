@@ -54,11 +54,13 @@ import weakref
 
 try:
     from . import version
+    from . import Logic
     from . import pyEngine
     from . import pyParser
     from . import util
 except ValueError:
     import version
+    import Logic
     import pyEngine
     import pyParser
     import util
@@ -113,7 +115,7 @@ def ask(code):
 def clear():
     """ resets the default datalog database """
     pyParser.clear()
-    pyEngine.clear()
+    Logic()
 
 def create_atoms(*args):
     """ create atoms for in-line queries """
