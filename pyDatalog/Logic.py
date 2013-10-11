@@ -40,7 +40,11 @@ class Logic(object):
     def __new__(cls, logic=None):
         if isinstance(logic, cls):
             Logic.tl.logic = copy.copy(logic) 
-        elif not hasattr(Logic.tl, 'logic'):
+            Logic.tl.logic.Subgoals = {}
+            Logic.tl.logic.Tasks = None
+            Logic.tl.logic.Stack = []
+            Logic.tl.logic.Goal = None       
+        elif not (logic) or not hasattr(Logic.tl, 'logic'):
             Logic.tl.logic = object.__new__(cls)
         return Logic.tl.logic
     

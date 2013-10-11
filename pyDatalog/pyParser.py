@@ -590,14 +590,9 @@ class Body(LazyListOfList):
             return LazyListOfList.__str__(self)
         return ' & '.join(list(map (str, self.literals)))
 
-    def literal(self, permanent=False):
+    def literal(self):
         """ return a literal that can be queried to resolve the body """
-        if permanent:
-            literal = Literal.make('_pyD_query' + str(Body.counter.next()), 
-                                   list(self._variables().values()))
-        else:
-            literal = Literal.make('_pyD_query', list(self._variables().values()))
-            literal.lua.pred.reset_clauses()
+        literal = Literal.make('_pyD_query' + str(Body.counter.next()), list(self._variables().values()))
         if len(self.literals)==1: # determine the literal prearity
             base_literal = self.literals[0]
             if not base_literal.predicate_name.startswith('~'):
@@ -610,7 +605,7 @@ class Body(LazyListOfList):
         
     def __invert__(self):
         """unary ~ means negation """
-        return ~(self.literal(permanent=True))
+        return ~(self.literal())
 
     def ask(self):
         """ resolve the query and determine the values of its variables"""
@@ -628,6 +623,7 @@ class Body(LazyListOfList):
                     arg.todo = None
                     result.append(transposed[i])
             self._data = list(zip(*result)) if result else [()]
+        - (literal <= self) # delete the temporary clause
         return self._data
 
 def add_clause(head,body):
