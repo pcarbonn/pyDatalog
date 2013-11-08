@@ -128,11 +128,12 @@ class LazyListOfList(LazyList):
     
     def __ge__(self, variable):
         """ returns the first value of the variable in the result of a query, or None """
+        if not isinstance(variable, Variable):
+            return variable.__le__(self)
+        
         if self.data is True: 
             return True
         elif self.data:
-            if not isinstance(variable, Variable):
-                raise util.DatalogError("Syntax error: Variable expected after >=", None, None)
             for t in self.literal().terms:
                 if id(t) == id(variable):
                     return t.data[0]
@@ -592,14 +593,16 @@ class Body(LazyListOfList):
 
     def literal(self):
         """ return a literal that can be queried to resolve the body """
-        literal = Literal.make('_pyD_query' + str(Body.counter.next()), list(self._variables().values()))
-        if len(self.literals)==1: # determine the literal prearity
+        prearity = None
+        if len(self.literals)==1: # determine the literal prearity in case of a single literal
+            # it could be less than the literal prearity in case of repetition of a variable
             base_literal = self.literals[0]
             if not base_literal.predicate_name.startswith('~'):
                 variables = OrderedDict()
-                for i in range(base_literal.lua.pred.prearity):
+                for i in range(base_literal.prearity):
                     variables.update(base_literal.terms[i]._variables())
-                literal.lua.pred.prearity = len(variables)
+                prearity = len(variables)
+        literal = Literal.make('_pyD_query' + str(Body.counter.next()), list(self._variables().values()), prearity=prearity)
         literal <= self
         return literal
         
