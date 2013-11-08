@@ -375,6 +375,7 @@ class Literal(object):
             self.pred.prearity = prearity or len(terms)
             if pred[:1] == '~': #pred
                 self.pred.base_pred = Pred(pred[1:], len(terms))
+                self.pred.base_pred.prearity = self.pred.prearity
         else:
             self.pred = pred
             # TODO assert self.pred.prearity == (prearity or len(terms)), "Error: Incorrect mix of predicates and functions : %s" % str(self)
