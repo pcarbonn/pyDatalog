@@ -148,11 +148,6 @@ Answer = pyParser.Answer
 
 """ ****************** python Mixin ***************** """
 
-#Keep a dictionary of classes with datalog capabilities.  
-#This list is used by pyEngine to resolve prefixed literals.
-Class_dict = {}
-pyEngine.Class_dict = Class_dict # TODO better way to share it with pyEngine.py ?
-
 class metaMixin(type):
     """Metaclass used to define the behavior of a subclass of Mixin"""
     __refs__ = defaultdict(weakref.WeakSet)
@@ -160,7 +155,7 @@ class metaMixin(type):
     def __init__(cls, name, bases, dct):
         """when creating a subclass of Mixin, save the subclass in Class_dict. """
         super(metaMixin, cls).__init__(name, bases, dct)
-        Class_dict[name]=cls
+        pyEngine.add_class(cls, name)
         cls.has_SQLAlchemy = any(base.__module__ in ('sqlalchemy.ext.declarative', 
                             'sqlalchemy.ext.declarative.api') for base in bases)
         
@@ -168,7 +163,8 @@ class metaMixin(type):
             """ responds to instance.method by asking datalog engine """
             if not attribute == '__iter__' and not attribute.startswith('_sa_'):
                 predicate_name = "%s.%s[1]==" % (self.__class__.__name__, attribute)
-                literal = pyParser.Literal.make(predicate_name, (self, pyParser.Symbol("X")))
+                terms = (pyParser.VarSymbol('_pyD_class', forced_type='constant'), self, pyParser.Symbol("X")) #prefixed
+                literal = pyParser.Literal.make(predicate_name, terms) #TODO predicate_name[:-2]
                 result = literal.lua.ask()
                 return result[0][-1] if result else None                    
             raise AttributeError
@@ -188,21 +184,21 @@ class metaMixin(type):
         """Called by pyEngine to resolve a prefixed literal for a subclass of Mixin."""
         terms = literal.terms
         attr_name = literal.pred.suffix
-        operator = (literal.pred.name.split(']')[1:2]+[None])[0] # what's after ']' or None
+        operator = literal.pred.name.split(']')[1] # what's after ']' or None
         
         # TODO check prearity
         def check_attribute(X):
             if attr_name not in X.__dict__ and attr_name not in cls.__dict__:
                 raise AttributeError("%s does not have %s attribute" % (cls.__name__, attr_name))
 
-        if len(terms)==2:
-            X, Y = terms[0], terms[1]
+        if len(terms)==3: #prefixed
+            X, Y = terms[1], terms[2]
             if X.is_constant:
                 # try accessing the attribute of the first term in literal
                 check_attribute(X.id)
                 Y1 = getattr(X.id, attr_name)
                 if not Y.is_constant or not operator or pyEngine.compare(Y1,operator,Y.id):
-                    yield (X.id, Y.id if Y.is_constant else Y1 if operator=='==' else None)
+                    yield (terms[0], X.id, Y.id if Y.is_constant else Y1 if operator=='==' else None)
             elif cls.has_SQLAlchemy:
                 if cls.session:
                     q = cls.session.query(cls)
@@ -212,14 +208,14 @@ class metaMixin(type):
                     for r in q:
                         Y1 = getattr(r, attr_name)
                         if not Y.is_constant or not operator or pyEngine.compare(Y1,operator,Y.id):
-                                yield (r, Y.id if Y.is_constant else Y1 if operator=='==' else None)
+                                yield (terms[0], r, Y.id if Y.is_constant else Y1 if operator=='==' else None)
             else:
                 # python object with Mixin
                 for X in metaMixin.__refs__[cls]:
                     check_attribute(X)
                     Y1 = getattr(X, attr_name)
                     if not Y.is_constant or not operator or pyEngine.compare(Y1,operator,Y.id):
-                        yield (X, Y.id if Y.is_constant else Y1 if operator=='==' else None)
+                        yield (terms[0], X, Y.id if Y.is_constant else Y1 if operator=='==' else None)
             return
         else:
             raise AttributeError ("%s could not be resolved" % literal.pred.name)
@@ -233,7 +229,7 @@ Mixin = metaMixin('Mixin', (object,), {})
 def __init__(self):
     if not self.__class__.has_SQLAlchemy:
         for cls in self.__class__.__mro__:
-            if cls.__name__ in Class_dict and cls not in (Mixin, object):
+            if cls.__name__ in pyEngine.Class_dict and cls not in (Mixin, object):
                 metaMixin.__refs__[cls].add(self)
 Mixin.__init__ = __init__
 

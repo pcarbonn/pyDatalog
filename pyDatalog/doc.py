@@ -58,8 +58,27 @@ range_(N)      (c1.v2)       (c1.v2)        (c1.v1)
 len_(X)        (c1#v2)       (c1#v2)        (c1#v1)
 p              p/2
 p(X,1)         p/2v2c3       p/2v2c3        p/2v1c3
-p[X]==1        p/2v2c3       p/2v2c3        p/2v1
+p[X]==1        p/2v2c3       p/2v2c3        p/2v1 
+A.p[X]==1     see #comparison
 
+
+
+#comparison prefixed literal #######################
+
+A term is pre-appended to expression of the form P[X]==Y, P.s[X]==Y, and P.s(X).
+
+The added term represents P.  
+When P is a class, the extra term is a constant string '_pyD_class'
+When P is a variable, the extra term is subject to substitution 
+in the search algorithm, so that its bound value can be used 
+to evaluate the expression.
+
+When calling python resolvers, this term is removed, 
+and added back to the result received.
+
+In aggregate predicate, this term also needs special care.
+
+TODO : do no add this term for P[X]==Y (beware of aggregates, though)
 
 
 #unify unify and substitution ###################################
