@@ -55,6 +55,10 @@ Auto_print = False # True => automatically prints the result of a query
 Python_resolvers = {} # dictionary  of python functions that can resolve a predicate
 Logic = None # place holder for Logic class from Logic module
 
+# Keep a dictionary of classes with datalog capabilities.  
+Class_dict = {}
+
+
 #       DATA TYPES          #####################################
 
 # Internalize objects based on an identifier.
@@ -396,6 +400,11 @@ class Literal(object):
         """ returns a new literal with '==' instead of comparison """
         return self._renamed(self.pred.name.replace(self.pred.comparison, '=='))
     
+    def subst_first(self, env): #prefixed
+        """ substitute the first term of prefixed literal, using env """
+        if self.pred.prefix:
+            self.terms[0] = self.terms[0].subst(env)
+                
     def __str__(self): 
         return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
 
@@ -735,7 +744,7 @@ def fact_candidate(subgoal, class0, result):
     if result is True:
         return fact(subgoal, True)
     result = [Interned.of(r) for r in result]
-    if class0 and result[0].id and not isinstance(result[0].id, class0): 
+    if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
         return
     result = Literal(subgoal.literal.pred.name, result)
     env = unify(subgoal.literal, result)
@@ -743,6 +752,17 @@ def fact_candidate(subgoal, class0, result):
         fact(subgoal, result)
 
 ###############     SEARCH     ##################################
+
+def add_class(cls, name):
+    """ Update the list of pyDatalog-capable classes"""
+    Class_dict[name] = cls
+    #prefixed replace the first term of each functional comparison literal for that class..
+    env = {Var(name): Const('_pyD_class')}
+    for pred in Logic.tl.logic.Db.values():
+        for clause in pred.db.values():
+            clause.head.subst_first(env)
+            for literal in clause.body:
+                literal.subst_first(env)
 
 def _(self):
     " iterator of the parent classes that have pyDatalog capabilities"
@@ -796,9 +816,7 @@ def search(subgoal):
                 lambda base_subgoal=base_subgoal, subgoal=subgoal:
                     fact(subgoal, True) if not base_subgoal.facts else None)
         return
-    if class0 and terms[0].is_constant and not isinstance(terms[0].id, class0):
-        raise util.DatalogError("TypeError: First argument of %s must be a %s, not a %s " 
-                    % (str(literal0), class0.__name__, type(terms[0].id).__name__), None, None)
+    
     for _class in literal0.pred.parent_classes():
         literal = literal0.rebased(_class)
         
@@ -811,17 +829,18 @@ def search(subgoal):
                     fact_candidate(subgoal, class0, result)
                 return
         if _class: 
-            method_name = '_pyD_%s%i'% (literal.pred.suffix, int(literal.pred.arity)) # TODO special method for comparison
+             # TODO add special method for custom comparison
+            method_name = '_pyD_%s%i' % (literal.pred.suffix, int(literal.pred.arity - 1)) #prefixed
             if literal.pred.suffix and method_name in _class.__dict__:
                 if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
-                for result in getattr(_class, method_name)(*terms):
-                    fact_candidate(subgoal, class0, result)
+                for result in getattr(_class, method_name)(*(terms[1:])): 
+                    fact_candidate(subgoal, class0, (terms[0],) + result)
                 return        
             try: # call class._pyD_query
                 resolver = _class._pyD_query
                 if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
-                for result in resolver(literal.pred.name, terms):
-                    fact_candidate(subgoal, class0, result)
+                for result in resolver(literal.pred.name, terms[1:]):
+                    fact_candidate(subgoal, class0, (terms[0],) + result)
                 if Logging : logging.debug("pyDatalog has used _pyD_query resolvers for %s" % literal)
                 return
             except:

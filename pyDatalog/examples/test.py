@@ -684,6 +684,8 @@ def test():
     assert (A.len[X]==Y) == [(b, 1), (a, 1)]
     assert (A.len[a]==Y) == [(1,)]
 
+    assert(A.x(X)) == []
+
     """ subclass                                              """
 
     class Z(A):
@@ -716,7 +718,7 @@ def test():
         a.z == 'z'
     except Exception as e:
         e_message = e.message if hasattr(e, 'message') else e.args[0]
-        if e_message != "Predicate without definition (or error in resolver): A.z[1]==/2":
+        if e_message != "Predicate without definition (or error in resolver): A.z[1]==/3":
             print(e_message)
     else:
         assert False
@@ -753,6 +755,7 @@ def test():
     assert (Z.len[X]==Y) == [(w, 1), (z, 1)]
     assert (Z.len[z]==Y) == [(1,)]
     
+    assert (A.c[X]==Y) & (Z.c[X]==Y) == [(w, 'wa'), (z, 'za')]
     # TODO print (A.b[w]==Y)
             
     """ python resolvers                                              """
@@ -814,9 +817,8 @@ def test():
     assert_error("ask(X<1)", 'Error: left hand side of comparison must be bound: ')
     assert_error("ask(X<Y)", 'Error: left hand side of comparison must be bound: ')
     assert_error("ask(1<Y)", 'Error: left hand side of comparison must be bound: ')
-    assert_error("ask( (A.c[X]==Y) & (Z.c[X]==Y))", "TypeError: First argument of Z.c\[1\]==\('.','.'\) must be a Z, not a A ")
-    assert_ask("A.u[X]==Y", "Predicate without definition \(or error in resolver\): A.u\[1\]==/2")
-    assert_ask("A.u[X,Y]==Z", "Predicate without definition \(or error in resolver\): A.u\[2\]==/3")
+    assert_ask("A.u[X]==Y", "Predicate without definition \(or error in resolver\): A.u\[1\]==/3")
+    assert_ask("A.u[X,Y]==Z", "Predicate without definition \(or error in resolver\): A.u\[2\]==/4")
     assert_error('(a_sum[X] == sum(Y, key=Y)) <= p(X, Z, Y)', "Error: Duplicate definition of aggregate function.")
     assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
     assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')

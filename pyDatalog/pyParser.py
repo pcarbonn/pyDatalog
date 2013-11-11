@@ -249,6 +249,11 @@ class VarSymbol(Expression):
             self._pyD_type = 'variable'
             self._pyD_lua = pyEngine.Var(name)
 
+    @classmethod
+    def make_for_prefix(cls, name): #prefixed
+        prefix = name.split('.')[0]
+        return VarSymbol('_pyD_class', forced_type='constant') if prefix in pyEngine.Class_dict else VarSymbol(prefix)
+
     def __neg__(self):
         """ called when evaluating -X. Used in aggregate arguments """
         neg = Symbol(self._pyD_value)
@@ -336,7 +341,8 @@ class Symbol(VarSymbol):
         elif self._pyD_name == 'format_':
             return Operation(args[0], '%', args[1:])
         else: # create a literal
-            literal = Literal.make(self._pyD_name, tuple(args))
+            pre_term = (VarSymbol.make_for_prefix(self._pyD_name),) if '.' in self._pyD_name else ()
+            literal = Literal.make(self._pyD_name, pre_term + tuple(args)) #prefixed
             return literal
 
     def __getattr__(self, name):
@@ -423,12 +429,13 @@ class Literal(object):
         self.args = args
         self.todo = self
         cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
+        if cls_name and 2<=len(args) and not isinstance(args[1], VarSymbol) and cls_name not in [c.__name__ for c in args[1].__class__.__mro__]:
+            raise TypeError("Object is incompatible with the class that is queried.") #prefixed
+
         self.terms = [] # the list of args converted to Expression
         for i, arg in enumerate(args):
             if isinstance(arg, Literal):
                 raise util.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, self.terms), None, None)
-            elif not isinstance(arg, VarSymbol) and i==0 and cls_name and cls_name not in [c.__name__ for c in arg.__class__.__mro__]:
-                raise TypeError("Object is incompatible with the class that is queried.")
             elif isinstance(arg, Aggregate):
                 raise util.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
             if isinstance(arg, Variable):
@@ -455,10 +462,12 @@ class Literal(object):
         """ factory of Literal (or Body) for a comparison. """
         other = Expression._for(other)
         if isinstance(self, Function):
+            #TODO perf : do not add pre-term for non prefixed #prefixed
+            name, prearity = self.name + operator, 1+len(self.keys)
+            terms = [VarSymbol.make_for_prefix(self.name)] + list(self.keys) + [other]  #prefixed
             if isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
                 if operator != '==':
                     raise util.DatalogError("Aggregate operator can only be used with equality.", None, None)
-                name, terms, prearity = (self.name + '==', list(self.keys) + [other], len(self.keys))
                 
                 # 1 create literal for queries
                 terms[-1] = (Symbol('X')) # (X, X)
@@ -466,11 +475,12 @@ class Literal(object):
                 add_clause(l, l) # body will be ignored, but is needed to make the clause safe
 
                 # 2 prepare literal for the calculation. It can be used in the head only
+                #TODO for speed use terms[1:], prearity-1
                 del terms[-1] # --> (X,)
                 terms.extend(other.args)
                 prearity = len(terms) # (X,Y,Z)
                 return Literal.make(name + '!', terms, prearity=prearity) #pred
-            literal = Query(self.name + operator, list(self.keys) + [other], prearity=len(self.keys))
+            literal = Query(name, terms, prearity)
             return self._argument_precalculations & other._pyD_precalculations & literal
         else:
             if not isinstance(other, Expression):
@@ -694,7 +704,7 @@ class Aggregate(object):
         
         self.slice_for_each = slice(for_each_start, order_by_start)
         self.reversed_order_by = range(len(result[0])-1-self.sep_arity, order_by_start-1,  -1)
-        self.slice_group_by = slice(0, for_each_start-self.Y_arity)
+        self.slice_group_by = slice(1, for_each_start-self.Y_arity)  #prefixed
         # first sort per order_by, allowing for _pyD_negated
         for i in self.reversed_order_by:
             result.sort(key=lambda literal, i=i: literal[i].id,
@@ -788,7 +798,7 @@ class Rank_aggregate(Aggregate):
     def add(self, row):
         # retain the value if (X,) == (Z,)
         if row[self.slice_group_by] == row[self.slice_for_each]:
-            self._value = list(row[self.slice_group_by]) + [pyEngine.Const(self.count),]
+            self._value = [row[0],] + list(row[self.slice_group_by]) + [pyEngine.Const(self.count),] #prefixed
             return self._value
         self.count += 1
         
@@ -801,7 +811,7 @@ class Running_sum(Rank_aggregate):
     
     def add(self,row):
         self.count += row[self.to_add].id # TODO
-        if row[:self.to_add] == row[self.slice_for_each]:
+        if row[1:self.to_add] == row[self.slice_for_each]: #prefixed
             self._value = list(row[:self.to_add]) + [pyEngine.Const(self.count),]
             return self._value
 
