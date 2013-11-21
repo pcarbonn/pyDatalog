@@ -756,8 +756,24 @@ def test():
     assert (Z.len[z]==Y) == [(1,)]
     
     assert (A.c[X]==Y) & (Z.c[X]==Y) == [(w, 'wa'), (z, 'za')]
-    # TODO print (A.b[w]==Y)
+    assert (A.b[w]==Y) == [('wa',)]
             
+    # direct attribute access X.b[1]==Y
+    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.b[1]=='a')") == set([(w,)])   
+    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.b[1]==Y)") == set([(w, 'a')])
+    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.b[1]<'b')") == set([(w,)])   
+    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.b[1:2]=='a')") == set([(w,)])   
+    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.b[1:2]==Y)") == set([(w, 'a')])
+    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.b[1:2]<'b')") == set([(w,)])   
+
+    assert ((X==w) & (X.b[1]=='a'))  == [(w,)]  
+    assert ((X==w) & (X.b[1]==Y)) == [(w, 'a')] 
+    assert ((X==w) & (X.b[1]<'b')) == [(w,)]   
+    assert ((X==w) & (X.b[1:2]=='a'))  == [(w,)]  
+    assert ((X==w) & (X.b[1:2]==Y)) == [(w, 'a')] 
+    assert ((X==w) & (X.b[1:2]<'b')) == [(w,)]   
+    assert ((X==w) & (Y==X.b)) == [(w, 'wa')]   
+
     """ python resolvers                                              """
     
     @pyDatalog.predicate()
@@ -817,6 +833,7 @@ def test():
     assert_error("ask(X<1)", 'Error: left hand side of comparison must be bound: ')
     assert_error("ask(X<Y)", 'Error: left hand side of comparison must be bound: ')
     assert_error("ask(1<Y)", 'Error: left hand side of comparison must be bound: ')
+    assert_error("ask((Z.b[X]=='wa') & (X.b[1]<Y))", 'Error: right hand side of comparison must be bound: ') 
     assert_ask("A.u[X]==Y", "Predicate without definition \(or error in resolver\): A.u\[1\]==/3")
     assert_ask("A.u[X,Y]==Z", "Predicate without definition \(or error in resolver\): A.u\[2\]==/4")
     assert_error('(a_sum[X] == sum(Y, key=Y)) <= p(X, Z, Y)', "Error: Duplicate definition of aggregate function.")
