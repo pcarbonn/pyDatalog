@@ -275,13 +275,14 @@ class Operation(object):
     def subst(self, env): #unify
         lhs = self.lhs.subst(env)
         rhs = self.rhs.subst(env)
-        if self.operator == '[' and isinstance(lhs, VarTuple) and rhs.is_constant:
-            if isinstance(rhs, VarTuple):
-                return Interned.of(lhs._id.__getitem__(slice(*rhs.id)))
-            return Interned.of(lhs._id.__getitem__(rhs.id))
+        if self.operator == '[' and isinstance(lhs, (VarTuple, Const)) and rhs.is_constant:
+            v = lhs._id if isinstance(lhs, VarTuple) else lhs.id
+            if isinstance(rhs, VarTuple): # a slice
+                return Interned.of(v.__getitem__(slice(*rhs.id)))
+            return Interned.of(v.__getitem__(rhs.id))
         if self.operator == '#' and isinstance(rhs, VarTuple):
             return Interned.of(len(rhs))
-        if self.operator == '.' and rhs.is_constant:
+        if self.operator == '..' and rhs.is_constant:
             return Interned.of(range(rhs.id))
         if lhs.is_constant and rhs.is_constant:
             # calculate expression of constants
@@ -299,6 +300,11 @@ class Operation(object):
                 return Interned.of(lhs.id.format(*(rhs.id)))
             elif isinstance(self.operator, type(lambda: None)):
                 return Interned.of(self.operator(*(rhs.id)))
+            elif self.operator == '.':
+                v = lhs.id
+                for attribute in rhs.id.split(".") :
+                    v = getattr(v, attribute)
+                return Interned.of(v)
             assert False # dead code
         return Operation(lhs, self.operator, rhs)
             
@@ -872,7 +878,7 @@ def search(subgoal):
             return
         elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
             literal1 = literal.equalized()
-            if literal1.pred.db: # equality has a datalog definition
+            if literal1.pred.id in Logic.tl.logic.Db: # equality has a datalog definition
                 Y1 = Fresh_var()
                 literal1.terms[-1] = Y1
                 literal2 = Literal(literal.pred.comparison, (Y1, terms[-1]))
@@ -895,6 +901,23 @@ def search(subgoal):
             return
         except AttributeError:
             pass
+    elif literal.pred.comparison and len(terms)==3 and terms[0].is_const() \
+    and terms[0].id != '_pyD_class' and terms[1].is_const(): # X.a[1]==Y
+        # do not use pyDatalog_search as the variable may not be in a pyDatalog class
+        v = getattr(terms[0].id, literal.pred.suffix)
+        if isinstance(terms[1], VarTuple): # a slice
+            v = v.__getitem__(slice(*terms[1].id))
+        else:
+            v = v.__getitem__(terms[1].id)
+        if terms[2].is_const() and compare(v, literal.pred.comparison, terms[2].id):
+            fact_candidate(subgoal, class0, (terms[0], terms[1], terms[2]))
+        elif literal.pred.comparison == "==" and not terms[2].is_const():
+            fact_candidate(subgoal, class0, (terms[0], terms[1], v))
+        else:
+            raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
+                                % literal.pred.id, None, None)
+        return
+
     raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
             
 # Sets up and calls the subgoal search procedure, and then extracts

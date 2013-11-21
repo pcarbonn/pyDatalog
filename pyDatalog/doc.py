@@ -54,11 +54,12 @@ X              X             v2             v2
 X+1            (X+1)         (v2+c1)        (v2+c1)
 lambda X:..    (c1l1v2)      (c1l1v2)       (c1l1v2)
 X[0]           (X[0)         (v2[c2)        (v2[c2)
-range_(N)      (c1.v2)       (c1.v2)        (c1.v1)
+range_(N)      (c1..v2)      (c1..v2)       (c1..v1)
 len_(X)        (c1#v2)       (c1#v2)        (c1#v1)
 p              p/2
 p(X,1)         p/2v2c3       p/2v2c3        p/2v1c3
-p[X]==1        p/2v2c3       p/2v2c3        p/2v1 
+p[X]==1        p/2v2c3       p/2v2c3        p/2v1
+X.b            (X.c1)        (X.c1)         (X.c1)
 A.p[X]==1     see #comparison
 
 

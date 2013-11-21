@@ -160,6 +160,8 @@ class Expression(object):
             return operand
         if isinstance(operand, type(lambda: None)):
             return Operation(None, operand, [Symbol(var) for var in getattr(operand,func_code).co_varnames])
+        if isinstance(operand, slice):
+            return Symbol([operand.start, operand.stop, operand.step])
         return Symbol(operand, forced_type="constant")
     
     # handlers of inequality and operations
@@ -226,6 +228,10 @@ class Expression(object):
             return Operation(self, '[', [keys.start, keys.stop, keys.step])
         return Operation(self, '[', keys)
     
+    def __getattr__(self, name):
+        """ called when evaluating <expression>.attribute """
+        return Operation(self, '.',  VarSymbol(name, forced_type='constant'))
+
     
 class VarSymbol(Expression):
     """ represents the symbol of a variable, both inline and in pyDatalog program """
@@ -238,7 +244,8 @@ class VarSymbol(Expression):
             self._pyD_type = 'tuple'
             self._pyD_lua = pyEngine.Interned.of([e._pyD_lua for e in self._pyD_value])
             self._pyD_precalculations = pre_calculations(self._pyD_value)
-        elif forced_type=="constant" or isinstance(name, (int, float)) or not name or name[0] not in string.ascii_uppercase + '_':
+        elif forced_type=="constant" or isinstance(name, (int, float)) \
+        or not name or (name[0] not in string.ascii_uppercase + '_' and not '.' in name):
             self._pyD_value = name
             self._pyD_name = str(name)
             self._pyD_type = 'constant'
@@ -247,7 +254,11 @@ class VarSymbol(Expression):
             self._pyD_value = name
             self._pyD_name = name
             self._pyD_type = 'variable'
-            self._pyD_lua = pyEngine.Var(name)
+            index = name.find('.')
+            if 0 < index:
+                self._pyD_lua = pyEngine.Operation(pyEngine.Var(name[:index]), '.',  pyEngine.Const(name[index:]))
+            else:
+                self._pyD_lua = pyEngine.Var(name) 
 
     @classmethod
     def make_for_prefix(cls, name): #prefixed
@@ -337,7 +348,7 @@ class Symbol(VarSymbol):
             else: 
                 return len(args[0]) 
         elif self._pyD_name == 'range_':
-            return Operation(None, '.', args[0])
+            return Operation(None, '..', args[0])
         elif self._pyD_name == 'format_':
             return Operation(args[0], '%', args[1:])
         else: # create a literal
@@ -428,9 +439,11 @@ class Literal(object):
         
         self.args = args
         self.todo = self
+        
         cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
-        if cls_name and 2<=len(args) and not isinstance(args[1], VarSymbol) and cls_name not in [c.__name__ for c in args[1].__class__.__mro__]:
-            raise TypeError("Object is incompatible with the class that is queried.") #prefixed
+        if pyEngine.Class_dict.get(cls_name, None):
+            if 2<=len(args) and not isinstance(args[1], VarSymbol) and cls_name not in [c.__name__ for c in args[1].__class__.__mro__]:
+                raise TypeError("Object is incompatible with the class that is queried.") #prefixed
 
         self.terms = [] # the list of args converted to Expression
         for i, arg in enumerate(args):
