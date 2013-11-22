@@ -605,6 +605,8 @@ def test():
         def __init__(self, b):
             super(A, self).__init__()
             self.b = b
+        def ok(self, x):
+            return "ok"
         def __repr__(self):
             return self.b
         @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
@@ -685,6 +687,8 @@ def test():
     assert (A.len[a]==Y) == [(1,)]
 
     assert(A.x(X)) == []
+    assert ((X==a) & (X.ok(1)==Y)) == [(a, 'ok')]
+    assert ((X==a) & (X.ok(1)[1:2]==Y)) == [(a, 'k')]
 
     """ subclass                                              """
 

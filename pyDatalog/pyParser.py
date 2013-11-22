@@ -166,7 +166,7 @@ class Expression(object):
     
     # handlers of inequality and operations
     def __eq__(self, other):
-        if isinstance(self, Operation) and self.operator in '+-' and self.lhs._pyD_value == 0:
+        if isinstance(self, Operation) and self._pyD_operator in '+-' and self._pyD_lhs._pyD_value == 0:
             raise util.DatalogError("Did you mean to assert or retract a fact ? Please add parenthesis.", None, None)
         return Literal.make_for_comparison(self, "==", other)
     def __ne__(self, other):
@@ -231,6 +231,11 @@ class Expression(object):
     def __getattr__(self, name):
         """ called when evaluating <expression>.attribute """
         return Operation(self, '.',  VarSymbol(name, forced_type='constant'))
+
+    def __call__ (self, *args, **kwargs):
+        if kwargs:
+            raise "Sorry, key word arguments are not supported yet"
+        return Operation(self, '(', args)
 
     
 class VarSymbol(Expression):
@@ -371,7 +376,7 @@ class Symbol(VarSymbol):
         """  called when evaluating f[X] = expression """
         function = Function(self._pyD_name, keys)
         # following statement translates it into (f[X]==V) <= (V==expression)
-        (function == function.symbol) <= (function.symbol == value)
+        (function == function._pyD_symbol) <= (function._pyD_symbol == value)
         
 class Function(Expression):
     """ represents predicate[a, b]"""
@@ -382,17 +387,13 @@ class Function(Expression):
         return Symbol('_pyD_X%i' % Function.counter.next())
         
     def __init__(self, name, keys):
-        self.keys = keys if isinstance(keys, tuple) else (keys,)
-        self.name = "%s[%i]" % (name, len(self.keys))
-        self._argument_precalculations = pre_calculations(self.keys)
+        self._pyD_keys = keys if isinstance(keys, tuple) else (keys,)
+        self._pyD_name = "%s[%i]" % (name, len(self._pyD_keys))
+        self._argument_precalculations = pre_calculations(self._pyD_keys)
                 
-        self.symbol = Function.newSymbol()
-        self._pyD_lua = self.symbol._pyD_lua
-        self._pyD_precalculations = self._argument_precalculations & (self == self.symbol)
-    
-    @property
-    def _pyD_name(self): # not used
-        return str(self)
+        self._pyD_symbol = Function.newSymbol()
+        self._pyD_lua = self._pyD_symbol._pyD_lua
+        self._pyD_precalculations = self._argument_precalculations & (self == self._pyD_symbol)
     
     def __eq__(self, other):
         return Literal.make_for_comparison(self, '==', other)
@@ -403,15 +404,15 @@ class Function(Expression):
         return self._argument_precalculations._variables()
 
     def __str__(self):
-        return "%s[%s]" % (self.name.split('[')[0], ','.join(str(key) for key in self.keys))
+        return "%s[%s]" % (self._pyD_name.split('[')[0], ','.join(str(key) for key in self._pyD_keys))
     
 class Operation(Expression):
     """created when evaluating an operation (+, -, *, /, //) """
     def __init__(self, lhs, operator, rhs):
-        self.operator = operator
-        self.lhs = Expression._for(lhs) # left  hand side
-        self.rhs = Expression._for(rhs)
-        self._pyD_lua = pyEngine.Operation(self.lhs._pyD_lua, self.operator, self.rhs._pyD_lua)
+        self._pyD_operator = operator
+        self._pyD_lhs = Expression._for(lhs) # left  hand side
+        self._pyD_rhs = Expression._for(rhs)
+        self._pyD_lua = pyEngine.Operation(self._pyD_lhs._pyD_lua, self._pyD_operator, self._pyD_rhs._pyD_lua)
         self._pyD_precalculations = pre_calculations((lhs, rhs)) #TODO test for slice, len
         
     @property
@@ -420,12 +421,12 @@ class Operation(Expression):
     
     def _variables(self):
         """ returns an ordered dictionary of the variables in this Operation"""
-        temp = self.lhs._variables()
-        temp.update(self.rhs._variables())
+        temp = self._pyD_lhs._variables()
+        temp.update(self._pyD_rhs._variables())
         return temp
     
     def __str__(self):
-        return '(' + str(self.lhs._pyD_name) + self.operator + str(self.rhs._pyD_name) + ')'
+        return '(' + str(self._pyD_lhs._pyD_name) + self._pyD_operator + str(self._pyD_rhs._pyD_name) + ')'
 
 class Literal(object):
     """
@@ -476,8 +477,8 @@ class Literal(object):
         other = Expression._for(other)
         if isinstance(self, Function):
             #TODO perf : do not add pre-term for non prefixed #prefixed
-            name, prearity = self.name + operator, 1+len(self.keys)
-            terms = [VarSymbol.make_for_prefix(self.name)] + list(self.keys) + [other]  #prefixed
+            name, prearity = self._pyD_name + operator, 1+len(self._pyD_keys)
+            terms = [VarSymbol.make_for_prefix(self._pyD_name)] + list(self._pyD_keys) + [other]  #prefixed
             if isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
                 if operator != '==':
                     raise util.DatalogError("Aggregate operator can only be used with equality.", None, None)

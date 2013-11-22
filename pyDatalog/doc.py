@@ -60,6 +60,7 @@ p              p/2
 p(X,1)         p/2v2c3       p/2v2c3        p/2v1c3
 p[X]==1        p/2v2c3       p/2v2c3        p/2v1
 X.b            (X.c1)        (X.c1)         (X.c1)
+X.m(Y)         ((X.c1)(Y)    ((v1.c1)(v2)   ((v1.c1)(v2)
 A.p[X]==1     see #comparison
 
 
