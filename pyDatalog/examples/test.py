@@ -365,6 +365,10 @@ def test():
         assert ask(f[X]==b) == set([('a',)])
         assert ask(f[a]==X) == set([('b',)])
         assert ask(f[a]==b) == set([()])
+
+        assert ask(Y==f[X]) == set([('a', 'b')])
+        assert ask(b==f[X]) == set([('a',)])
+        assert ask(f[X]==f[X]) == set([('a',)])
     
         + (f[a]==c)
         assert ask(f[a]==X) == set([('c',)])

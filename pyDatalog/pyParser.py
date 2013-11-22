@@ -475,6 +475,8 @@ class Literal(object):
     def make_for_comparison(cls, self, operator, other):
         """ factory of Literal (or Body) for a comparison. """
         other = Expression._for(other)
+        if isinstance(other, Function) and operator == '==':
+            self, other = other, self
         if isinstance(self, Function):
             #TODO perf : do not add pre-term for non prefixed #prefixed
             name, prearity = self._pyD_name + operator, 1+len(self._pyD_keys)
