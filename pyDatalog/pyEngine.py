@@ -305,6 +305,8 @@ class Operation(object):
                 for attribute in rhs.id.split(".") :
                     v = getattr(v, attribute)
                 return Interned.of(v)
+            elif self.operator == '(':
+                return Interned.of(lhs.id.__call__(*rhs._id))
             assert False # dead code
         return Operation(lhs, self.operator, rhs)
             
