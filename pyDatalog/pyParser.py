@@ -90,6 +90,7 @@ except ValueError:
 # global variable to differentiate between in-line queries and pyDatalog program / ask
 Thread_storage = threading.local()
 Thread_storage.ProgramMode = False
+Thread_storage.variables = set([]) #call list of variables parsed since the last clause
 
 def clear():
     Thread_storage.ProgramMode = False
@@ -266,9 +267,12 @@ class VarSymbol(Expression):
                 self._pyD_lua = pyEngine.Var(name) 
 
     @classmethod
-    def make_for_prefix(cls, name): #prefixed
+    def make_for_prefix(cls, name): #prefixed #call
+        """ returns either '_pyD_class' or the prefix"""
         prefix = name.split('.')[0]
-        return VarSymbol('_pyD_class', forced_type='constant') if prefix in pyEngine.Class_dict else VarSymbol(prefix)
+        if prefix in pyEngine.Class_dict or prefix not in Thread_storage.variables:
+            return VarSymbol('_pyD_class', forced_type='constant')
+        return VarSymbol(prefix)
 
     def __neg__(self):
         """ called when evaluating -X. Used in aggregate arguments """
@@ -356,13 +360,19 @@ class Symbol(VarSymbol):
             return Operation(None, '..', args[0])
         elif self._pyD_name == 'format_':
             return Operation(args[0], '%', args[1:])
+        elif '.' in self._pyD_name: #call
+            pre_term = (VarSymbol.make_for_prefix(self._pyD_name), ) #prefixed
+            if pyEngine.Pred.is_known('%s/%i' % (self._pyD_name, len(args)+1)):
+                return Literal.make(self._pyD_name, pre_term + tuple(args))
+            return Call(self._pyD_name, pre_term + tuple(args))
         else: # create a literal
-            pre_term = (VarSymbol.make_for_prefix(self._pyD_name),) if '.' in self._pyD_name else ()
-            literal = Literal.make(self._pyD_name, pre_term + tuple(args)) #prefixed
+            literal = Literal.make(self._pyD_name, tuple(args))
             return literal
 
     def __getattr__(self, name):
         """ called when evaluating class.attribute """
+        if self._pyD_name in Thread_storage.variables: #prefixed
+            return Operation(self, '.', name)
         return Symbol(self._pyD_name + '.' + name)
     
     def __getitem__(self, keys):
@@ -447,7 +457,7 @@ class Literal(object):
                 raise TypeError("Object is incompatible with the class that is queried.") #prefixed
 
         self.terms = [] # the list of args converted to Expression
-        for i, arg in enumerate(args):
+        for arg in args:
             if isinstance(arg, Literal):
                 raise util.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, self.terms), None, None)
             elif isinstance(arg, Aggregate):
@@ -457,6 +467,10 @@ class Literal(object):
                 del arg._data[:] # reset the variable. For use in in-line queries
             self.terms.append(Expression._for(arg))
                             
+        for term in self.terms:
+            for var in term._variables().keys():
+                Thread_storage.variables.add(var) #call update the list of variables since the last clause
+            
         tbl = [a._pyD_lua for a in self.terms]
         # now create the literal for the head of a clause
         self.lua = pyEngine.Literal(predicate_name, tbl, prearity, aggregate)
@@ -519,6 +533,8 @@ class Literal(object):
     
     def __le__(self, body):
         " head <= body creates a clause"
+        Thread_storage.variables = set([]) #call reset the list of variables
+        body = body.as_literal if isinstance(body, Call) else body #call
         if not isinstance(body, (Literal, Body)):
             raise util.DatalogError("Invalid body for clause", None, None)
         newBody = Body()
@@ -585,6 +601,33 @@ class Query(Literal, LazyListOfList):
     def literal(self):
         return self
 
+class Call(Expression): #call
+    """ represents an ambiguous A.b(X) : usually an expression, but sometimes a literal"""
+    def __init__(self, name, args):
+        self._pyD_name, self._pyD_args = name, args
+        self.as_literal = Query(self._pyD_name, self._pyD_args)
+        for arg in self._pyD_args:
+            if isinstance(arg, Variable):
+                arg.todo = self.as_literal
+    
+    @property
+    def literals(self):
+        return [self.as_literal]
+    
+    def __and__(self, other):
+        " Call & literal"
+        return Body(self.as_literal, other)
+        
+    def __invert__(self):
+        """unary ~ means negation """
+        return ~ self.as_literal
+
+    def __le__(self, other):
+        " head <= other creates a clause or comparison"
+        if isinstance(other, (Literal, Body)):
+            return self.as_literal <= other
+        return other > self
+        
 class Body(LazyListOfList):
     """ created by p(a,b) & q(c,d)  """
     counter = util.Counter()
