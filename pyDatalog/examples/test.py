@@ -690,7 +690,9 @@ def test():
     assert (A.len[X]==Y) == [(b, 1), (a, 1)]
     assert (A.len[a]==Y) == [(1,)]
 
-    assert(A.x(X)) == []
+    assert(A.x(X).as_literal) == [] #TODO detect python resolver
+    assert pyDatalog.ask("(A.b[X]=='a') & (X.ok(1)==Y)") == set([(a, 'ok')])   
+    assert pyDatalog.ask("(A.b[X]=='a') & (X.ok(1)[1:2]==Y)") == set([(a, 'k')])   
     assert ((X==a) & (X.ok(1)==Y)) == [(a, 'ok')]
     assert ((X==a) & (X.ok(1)[1:2]==Y)) == [(a, 'k')]
 
@@ -752,11 +754,11 @@ def test():
     
     w = Z('w')
     w = Z('w') # duplicated to test __refs__[cls]
-    assert(Z.x(X)) == [(z,)]
+    assert Z.x(X).as_literal == [(z,)] #TODO detect python resolver
     assert not (~Z.x(z))
     assert ~Z.x(w)
     assert ~ (Z.z[w]=='z')
-    assert(Z.pred(X)) == [(w,)] # not duplicated !
+    assert Z.pred(X).as_literal  == [(w,)] # not duplicated !
     assert(Z.pred(X) & ~ (Z.z[X]>='z')) == [(w,)]
     assert(Z.x(X) & ~(Z.pred(X))) == [(z,)]
 
@@ -915,8 +917,8 @@ def test():
     assert (X.v() == Mary) # prints Employee:Mary
 
     result = (Employee.indirect_manager(Mary, X))
-    assert result == [(John,), ]
     assert (X.v() == John) # prints [Employee: John]
+    assert result == [(John,), ]
     
     Mary.salary_class = ((Employee.salary_class[Mary]==X) >= X)
     Mary.salary = 10000

@@ -359,6 +359,16 @@ class Pred(Interned):
         if aggregate: o.aggregate = aggregate
         return o
     
+    @classmethod
+    def is_known(cls, pred_id):
+        prefix = pred_id.split('.')[0] # we assumes it has a '.'
+        if prefix in Class_dict:
+            for cls in Class_dict[prefix].__mro__:
+                rebased = pred_id.replace(prefix, cls.__name__, 1) # only the first occurrence
+                if rebased in Logic.tl.logic.Db:
+                    return True
+        return False        
+    
     def _class(self):
         """determine the python class for a prefixed predicate (and caches it)"""
         # cannot be done at initialization, because the global Class_dict is not filled in yet
