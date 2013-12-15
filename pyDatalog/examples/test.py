@@ -616,6 +616,7 @@ def test():
         @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
         def _():
             (A.c[X]==N) <= (A.b[X]==N)
+            A.d(X, Y) <= (A.c[X]==Y)
             (A.len[X]==len(N)) <= (A.b[X]==N)
         @classmethod
         def _pyD_x1(cls, X):
@@ -680,6 +681,7 @@ def test():
     assert (A.c[X].in_(('a',))) == [(a,)]
     assert (A.c[X].in_(('a',)+('z',))) == [(a,)]
     assert ((Y==('a',)) & (A.c[X].in_(Y))) == [(('a',), a)] # TODO make ' in ' work
+    assert ((Y==('b',)) & (A.c[X].in_(Y))) == [(('b',), b)]
     
     assert ((Y==('a',)) & (A.c[X].in_(Y+('z',)))) == [(('a',), a)] # TODO make ' in ' work
     assert (A.c[X].in_(('z',))) == []
@@ -690,11 +692,23 @@ def test():
     assert (A.len[X]==Y) == [(b, 1), (a, 1)]
     assert (A.len[a]==Y) == [(1,)]
 
-    assert(A.x(X).as_literal) == [] #TODO detect python resolver
-    assert pyDatalog.ask("(A.b[X]=='a') & (X.ok(1)==Y)") == set([(a, 'ok')])   
-    assert pyDatalog.ask("(A.b[X]=='a') & (X.ok(1)[1:2]==Y)") == set([(a, 'k')])   
+    # A.ok is a regular class method
+    assert A.ok(a, 1) == 'ok'
     assert ((X==a) & (X.ok(1)==Y)) == [(a, 'ok')]
     assert ((X==a) & (X.ok(1)[1:2]==Y)) == [(a, 'k')]
+    assert pyDatalog.ask("(A.b[X]=='a') & (X.ok(1)==Y)") == set([(a, 'ok')])   
+    assert pyDatalog.ask("(A.b[X]=='a') & (X.ok(1)[1:2]==Y)") == set([(a, 'k')])   
+    
+    # A.d is a literal defined by a clause
+    assert A.d(a,'a') == [()]
+    assert A.d(X,'a') == [(a,)]
+    assert (A.d(X,'a') >= X) == a 
+    assert (A.d(X,'b') >= X) == b
+    assert pyDatalog.ask("(A.b[X]=='a') & A.d(X,Y)") == set([(a, 'a')])   
+    assert pyDatalog.ask("A.d(X,Y) & (A.b[X]=='a')") == set([(a, 'a')])   
+    
+    # A.x is a literal defined by a python resolver
+    assert(A.x(X).as_literal) == [] #TODO detect python resolver
 
     """ subclass                                              """
 
@@ -754,9 +768,11 @@ def test():
     
     w = Z('w')
     w = Z('w') # duplicated to test __refs__[cls]
+    
     assert Z.x(X).as_literal == [(z,)] #TODO detect python resolver
     assert not (~Z.x(z))
     assert ~Z.x(w)
+    
     assert ~ (Z.z[w]=='z')
     assert Z.pred(X).as_literal  == [(w,)] # not duplicated !
     assert(Z.pred(X) & ~ (Z.z[X]>='z')) == [(w,)]
@@ -783,6 +799,24 @@ def test():
     assert ((X==w) & (X.b[1:2]==Y)) == [(w, 'a')] 
     assert ((X==w) & (X.b[1:2]<'b')) == [(w,)]   
     assert ((X==w) & (Y==X.b)) == [(w, 'wa')]   
+
+    # Z.ok is an inherited class method
+    assert Z.ok(z, 1) == 'ok'
+    assert ((X==w) & (X.ok(1)==Y)) == [(w, 'ok')]
+    assert ((X==w) & (X.ok(1)[1:2]==Y)) == [(w, 'k')]
+    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.ok(1)==Y)") == set([(w, 'ok')])   
+    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.ok(1)[1:2]==Y)") == set([(w, 'k')])   
+    assert Z.ok(z, 1) <= 'z' # not a clause !
+    assert Z.ok(z, 1) <= Z.ok(z, 1)
+    assert not (Z.ok(z, 1) > Z.ok(z, 1))
+
+    # Z.d is a literal defined by an inherited clause
+    assert Z.d(z,'za') == [()]
+    assert Z.d(X,'za') == [(z,)]
+    assert (Z.d(X,'za') >= X) == z 
+    assert (Z.d(X,'wa') >= X) == w
+    assert pyDatalog.ask("(Z.b[X]=='wa') & Z.d(X,Y)") == set([(w, 'wa')])   
+    assert pyDatalog.ask("Z.d(X,Y) & (Z.b[X]=='wa')") == set([(w, 'wa')])   
 
     """ python resolvers                                              """
     
@@ -850,6 +884,7 @@ def test():
     assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
     assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')
     assert_error("p(X) <= (X=={})", "unhashable type: 'dict'")
+    assert_error("+ Z.d(a, 'b')", "Cannot assert a fact for a prefixed predicate")
 
     """ SQL Alchemy                    """
 
