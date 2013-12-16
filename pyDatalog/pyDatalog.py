@@ -85,11 +85,11 @@ DatalogError= util.DatalogError
 
 def assert_fact(predicate_name, *args):
     """ assert predicate_name(args) """
-    + pyParser.Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
+    + pyParser.Literal.make(predicate_name, [pyParser.Expression._pyD_for(arg) for arg in args])
 
 def retract_fact(predicate_name, *args):
     """ retracts predicate_name(args) """
-    - pyParser.Literal.make(predicate_name, [pyParser.Expression._for(arg) for arg in args])
+    - pyParser.Literal.make(predicate_name, [pyParser.Expression._pyD_for(arg) for arg in args])
 
 def program():
     """ A decorator for datalog program  """

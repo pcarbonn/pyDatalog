@@ -155,7 +155,7 @@ class LazyListOfList(LazyList):
 class Expression(object):
     """ base class for objects that can be part of an inequality, operation or slice """
     @classmethod
-    def _for(cls, operand):
+    def _pyD_for(cls, operand):
         """ factory that converts an operand to an Expression """
         if isinstance(operand, (Expression, Aggregate)):
             return operand
@@ -245,7 +245,7 @@ class VarSymbol(Expression):
         self._pyD_negated = False # for aggregate with sort in descending order
         self._pyD_precalculations = Body() # no precalculations
         if isinstance(name, (list, tuple, util.xrange)):
-            self._pyD_value = list(map(Expression._for, name))
+            self._pyD_value = list(map(Expression._pyD_for, name))
             self._pyD_name = str([element._pyD_name for element in self._pyD_value])
             self._pyD_type = 'tuple'
             self._pyD_lua = pyEngine.Interned.of([e._pyD_lua for e in self._pyD_value])
@@ -283,14 +283,14 @@ class VarSymbol(Expression):
         expr.variable = neg
         return expr
     
-    def _variables(self):
+    def _pyD_variables(self):
         """ returns an ordered dictionary of the variables in the varSymbol """
         if self._pyD_type == 'variable' and not self._pyD_name.startswith('_pyD_'):
             return OrderedDict({self._pyD_name : self})
         elif self._pyD_type == 'tuple':
             variables = OrderedDict()
             for element in self._pyD_value:
-                variables.update(element._variables())
+                variables.update(element._pyD_variables())
             return variables
         else:
             return OrderedDict()
@@ -409,7 +409,7 @@ class Function(Expression):
         return Literal.make_for_comparison(self, '==', other)
     
     # following methods are used when the function is used in an expression
-    def _variables(self):
+    def _pyD_variables(self):
         """ returns an ordered dictionary of the variables in the keys of the function"""
         return self._argument_precalculations._variables()
 
@@ -420,8 +420,8 @@ class Operation(Expression):
     """created when evaluating an operation (+, -, *, /, //) """
     def __init__(self, lhs, operator, rhs):
         self._pyD_operator = operator
-        self._pyD_lhs = Expression._for(lhs) # left  hand side
-        self._pyD_rhs = Expression._for(rhs)
+        self._pyD_lhs = Expression._pyD_for(lhs) # left  hand side
+        self._pyD_rhs = Expression._pyD_for(rhs)
         self._pyD_lua = pyEngine.Operation(self._pyD_lhs._pyD_lua, self._pyD_operator, self._pyD_rhs._pyD_lua)
         self._pyD_precalculations = pre_calculations((lhs, rhs)) #TODO test for slice, len
         
@@ -429,10 +429,10 @@ class Operation(Expression):
     def _pyD_name(self):
         return str(self)
     
-    def _variables(self):
+    def _pyD_variables(self):
         """ returns an ordered dictionary of the variables in this Operation"""
-        temp = self._pyD_lhs._variables()
-        temp.update(self._pyD_rhs._variables())
+        temp = self._pyD_lhs._pyD_variables()
+        temp.update(self._pyD_rhs._pyD_variables())
         return temp
     
     def __str__(self):
@@ -465,10 +465,10 @@ class Literal(object):
             if isinstance(arg, Variable):
                 arg.todo = self
                 del arg._data[:] # reset the variable. For use in in-line queries
-            self.terms.append(Expression._for(arg))
+            self.terms.append(Expression._pyD_for(arg))
                             
         for term in self.terms:
-            for var in term._variables().keys():
+            for var in term._pyD_variables().keys():
                 Thread_storage.variables.add(var) #call update the list of variables since the last clause
             
         tbl = [a._pyD_lua for a in self.terms]
@@ -488,7 +488,7 @@ class Literal(object):
     @classmethod
     def make_for_comparison(cls, self, operator, other):
         """ factory of Literal (or Body) for a comparison. """
-        other = Expression._for(other)
+        other = Expression._pyD_for(other)
         if isinstance(other, Function) and operator == '==':
             self, other = other, self
         if isinstance(self, Function):
@@ -528,7 +528,7 @@ class Literal(object):
             return OrderedDict()
         variables = OrderedDict()
         for term in self.terms:
-            variables.update(term._variables())
+            variables.update(term._pyD_variables())
         return variables
     
     def __le__(self, body):
@@ -671,7 +671,7 @@ class Body(LazyListOfList):
             if not base_literal.predicate_name.startswith('~'):
                 variables = OrderedDict()
                 for i in range(base_literal.prearity):
-                    variables.update(base_literal.terms[i]._variables())
+                    variables.update(base_literal.terms[i]._pyD_variables())
                 prearity = len(variables)
         literal = Literal.make('_pyD_query' + str(Body.counter.next()), list(self._variables().values()), prearity=prearity)
         literal <= self
