@@ -568,8 +568,6 @@ class Query(Literal, LazyListOfList):
         " unary + means insert into database as fact "
         if self._variables():
             raise util.DatalogError("Cannot assert a fact containing Variables", None, None)
-        if '.' in self.predicate_name:
-            raise util.DatalogError("Cannot assert a fact for a prefixed predicate", None, None)
         clause = pyEngine.Clause(self.lua, [])
         pyEngine.assert_(clause)
 

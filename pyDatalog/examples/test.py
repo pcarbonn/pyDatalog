@@ -884,7 +884,6 @@ def test():
     assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
     assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')
     assert_error("p(X) <= (X=={})", "unhashable type: 'dict'")
-    assert_error("+ Z.d(a, 'b')", "Cannot assert a fact for a prefixed predicate")
 
     """ SQL Alchemy                    """
 
