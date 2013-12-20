@@ -306,7 +306,7 @@ class Operation(object):
                     v = getattr(v, attribute)
                 return Interned.of(v)
             elif self.operator == '(':
-                return Interned.of(lhs.id.__call__(*rhs._id))
+                return Interned.of(lhs.id.__call__(*(rhs.id)))
             assert False # dead code
         return Operation(lhs, self.operator, rhs)
             
@@ -361,6 +361,7 @@ class Pred(Interned):
     
     @classmethod
     def is_known(cls, pred_id):
+        #TODO look at _pyD_ methods in classes, to detect more
         prefix = pred_id.split('.')[0] # we assumes it has a '.'
         if prefix in Class_dict:
             for cls in Class_dict[prefix].__mro__:

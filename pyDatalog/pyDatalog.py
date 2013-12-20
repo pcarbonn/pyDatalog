@@ -117,29 +117,82 @@ def clear():
     pyParser.clear()
     Logic()
 
+def _pyD_decorator(arg, copy=False):
+    # makes a copy of arg if copy=True, or if we can't modify arg
+    if hasattr(arg, '_pyD_atomized'): 
+        return arg
+    result = arg
+    if hasattr(arg, '__dict__') and (inspect.ismodule(arg) or inspect.isclass(arg) ):
+        new, ok = Dummy(), not copy
+        #TODO new class should inherit like arg does --> extended dictionary
+        for a in arg.__dict__:
+            new_f = _pyD_decorator(getattr(arg, a))
+            new.__dict__[a] = new_f #TODO can't use setattr because of Dummy ?
+            try:
+                setattr(arg, a, new_f) # fails for arg=str, for example
+            except:
+                ok = False
+        result = arg if ok else new
+    elif hasattr(arg, '__call__'): # it's a function
+        
+        def result(*arguments):
+            # if any argument is an Expression, return an Operation
+            # else immediately evaluate the function
+            # TODO support keyword arguments
+            # TODO keep default values
+            for a in arguments: 
+                if isinstance(a, pyParser.Expression):
+                    return pyParser.Operation(arg, '(', arguments) 
+            return arg(*arguments)
+        
+        try: # copy __doc__
+            result.__dict__.update(arg.__dict__)
+        except:
+            pass
+    try:
+        setattr(result, '_pyD_atomized', True)
+    except:
+        pass
+    return result
+
+ATOMS = ['_sum','sum_','_min','min_','_max','max_', '_len','len_','concat','concat_','rank','rank_',
+         'running_sum','running_sum_','range_','tuple_', 'format_']
+
 def create_atoms(*args):
-    """ create atoms for in-line queries """
+    """ create atoms for in-line clauses and queries """
     stack = inspect.stack()
     try:
         locals_ = stack[1][0].f_locals
-        args = [arg.split(',') for arg in args]
-        args = [arg.strip() for argl in args for arg in argl]
-        for arg in set(args + ['_sum','sum_','_min','min_','_max','max_',
-        '_len','len_','concat','concat_','rank','rank_','running_sum','running_sum_',
-        'range_','tuple_', 'format_']):
-            if arg in locals_: 
-                if not isinstance(locals_[arg], (pyParser.Symbol, pyParser.Variable)):
-                    raise util.DatalogError("Name conflict.  Can't redefine %s as atom" % arg, None, None)
+        args = [arg.strip() for arglist in args for arg in 
+                (arglist.split(',') if isinstance(arglist, util.string_types) else [arglist])]
+        for arg in set(args + ATOMS):
+            assert isinstance(arg, util.string_types)
+            words = arg.split('.')
+            if 2<len(words): #TODO deal with more
+                    raise util.DatalogError("Too many '.' in atom %s" % arg, None, None)
+            if words[0] in __builtins__:
+                root = __builtins__[words[0]]
+                # can't set attributes --> decorate the whole builtin !
+                locals_[words[0]] = _pyD_decorator(root, copy=True) # don't change builtins !
+            elif words[0] in locals_:
+                root = locals_[words[0]]
+                if len(words)==2: # e.g. str.split
+                    atom = getattr(root, words[1])
+                    setattr(root, words[1], _pyD_decorator(atom))
+                else: # e.g. math
+                    locals_[arg] = _pyD_decorator(root)
             else:
-                if arg[0] not in string.ascii_uppercase:
+                if len(words)==2: # e.g. kkecxivarenx.len
+                    raise util.DatalogError("Unknown variable : %s" % words[0], None, None)
+                if arg[0] not in string.ascii_uppercase: # e.g. queen
                     locals_[arg] = pyParser.Symbol(arg)
-                else:
-                    locals_[arg] = pyParser.Variable(arg)    
+                else: # e.g. X
+                    locals_[arg] = pyParser.Variable(arg)
     finally:
         del stack
 
 def variables(n):
-    """ create variables for in-line queries """
+    """ create variables for in-line clauses and queries """
     return [pyParser.Variable() for i in range(n)]
 
 Variable = pyParser.Variable
