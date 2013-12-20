@@ -244,6 +244,7 @@ class VarSymbol(Expression):
     def __init__ (self, name, forced_type=None):
         self._pyD_negated = False # for aggregate with sort in descending order
         self._pyD_precalculations = Body() # no precalculations
+        self._pyD_atomized = True
         if isinstance(name, (list, tuple, util.xrange)):
             self._pyD_value = list(map(Expression._pyD_for, name))
             self._pyD_name = str([element._pyD_name for element in self._pyD_value])

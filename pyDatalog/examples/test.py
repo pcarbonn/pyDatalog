@@ -1032,7 +1032,7 @@ if __name__ == "__main__":
     assert ( (X==(1,2)) & (X==Y)) == [((1, 2), (1, 2))]
     assert ( (X==(1,2)) & (Y==(1,2)) & (X==Y)) == [((1, 2), (1, 2))]
     assert ( (X==(1,2)) & (Y==(1,3)) & (X==Y)) == []
-    
+        
     eq(X,Y) <= (X==Y)
     assert ( eq(X,(1,2))) == [((1,2),)]
     assert ( eq(X,(1,(2,))) ) == [((1,(2,)),)] # nested
@@ -1089,16 +1089,63 @@ if __name__ == "__main__":
     assert unsafe3(1) == []
     assert unsafe3(2) == [()]
     assert unsafe3(X) == []
+
+    """ built-ins and import                    """
     
-    already = object()
+    # len
+    
+    pyDatalog.create_atoms('len')
+    assert (len('ok')) == 2
+    assert ((X==(1,2)) & (Y==len(X)) >= Y)==2
+    
+    # str.lower
+    
+    pyDatalog.create_atoms('str.lower')
+    assert (str.lower('OK')) == 'ok'
+    assert ((X=='OK') & (Y==str.lower(X)) >= Y) == 'ok'
+    
+    # str
+    
+    pyDatalog.create_atoms('str')
+    assert (str.lower('OK')) == 'ok'
+    assert ((X=='OK') & (Y==str.lower(X)) >= Y) == 'ok'
+    assert ((X==('1','2')) & (Y==str.join('.', X)) >= Y) == '1.2'
+    assert ((X=='ok') & (Y==str.format('Hello {0}', X)) >= Y) == 'Hello ok'
+    #not supported : print((X==('1','2')) & (Y=='.'.join(X)))
+    
+    # time
+    
+    import time
+    pyDatalog.create_atoms('time')
+    assert 0 < (time.time())
+    
+    # math
+    
+    import math
+    pyDatalog.create_atoms('math')
+    assert (math.cos(0)) == 1
+    assert ((X==0) & (Y==math.cos(X)) >= Y) == 1
+    
+    from math import cos
+    pyDatalog.create_atoms('cos')
+    assert (cos(0)) == 1
+    assert ((X==0) & (Y==cos(X)) >= Y) == 1
+    
+    # string
+    
+    import string
+    pyDatalog.create_atoms('string')
+    assert (string.digits) == '0123456789'
+
     _error = False
     try:
-        pyDatalog.create_atoms('already')
+        pyDatalog.create_atoms('xoiker.test')
     except Exception as e:
-        if e.value != "Name conflict.  Can't redefine already as atom":
+        if e.value != "Unknown variable : xoiker":
             print(e.value) 
         _error = True
     assert _error
+    
     print("Test completed successfully.")
 
     
