@@ -300,9 +300,9 @@ def test():
     pyDatalog.clear()
     @pyDatalog.program()
     def factorial(): 
-        (factorial[N] == F) <= (N < 1) & (F== -factorial[-N])
+        (factorial[N] == F) <= (F == N*factorial[N-1]) # most general clause first
         + (factorial[1]==1)
-        (factorial[N] == F) <= (N > 1) & (F == N*factorial[N-1])
+        (factorial[N] == F) <= (N < 1) & (F== -factorial[-N])
         assert ask(factorial[1] == F) == set([(1,)])
         assert ask(factorial[4] == F) == set([(24,)])
         assert ask(factorial[-4] == F) == set([(-24,)])
@@ -411,9 +411,9 @@ def test():
         assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] <  plus[5, plus[2,5]])) == set([()])
         assert (ask(plus[plus[1,2]+1, 2+plus[2,3]] <  plus[1, plus[2,5]])) == None
 
-        (discount[Total] == 100) <= (1000 < Total)
+        (discount[Total] == 1)  <=  (10   < Total) # most general clause first
         (discount[Total] == 10)  <= (100  < Total)
-        (discount[Total] == 1)  <=  (10   < Total)
+        (discount[Total] == 100) <= (1000 < Total)
         assert (ask(discount[2000]==Y) == set([(100,)])) 
         assert (ask(discount[200]==Y) == set([(10,)])) 
                 
