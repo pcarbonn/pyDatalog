@@ -395,7 +395,7 @@ class Literal(object):
         self.terms = terms
         if isinstance(pred, util.string_types):
             self.pred = Pred(pred, len(terms), aggregate)
-            self.pred.prearity = prearity or len(terms)
+            self.pred.prearity = len(terms) if prearity is None else prearity
             if pred[:1] == '~': #pred
                 self.pred.base_pred = Pred(pred[1:], len(terms))
                 self.pred.base_pred.prearity = self.pred.prearity
@@ -584,7 +584,7 @@ def relevant_clauses(literal):
         return list(literal.pred.db.values())
     else:
         #result= [ literal.pred.db[id_] for id_ in result ] + [ literal.pred.db[id_] for id_ in literal.pred.clauses]
-        return list(result) + list(literal.pred.clauses.values())
+        return list(result) + list(reversed(list(literal.pred.clauses.values())))
     
 """
 The remaining functions in this file implement the tabled logic

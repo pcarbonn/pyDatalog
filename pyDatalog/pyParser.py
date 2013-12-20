@@ -446,7 +446,7 @@ class Literal(object):
     """
     def __init__(self, predicate_name, args, prearity=None, aggregate=None):
         self.predicate_name = predicate_name
-        self.prearity = prearity or len(args)
+        self.prearity = len(args) if prearity is None else prearity
         self.pre_calculations = Body()
         
         self.args = args
@@ -474,7 +474,7 @@ class Literal(object):
             
         tbl = [a._pyD_lua for a in self.terms]
         # now create the literal for the head of a clause
-        self.lua = pyEngine.Literal(predicate_name, tbl, prearity, aggregate)
+        self.lua = pyEngine.Literal(predicate_name, tbl, self.prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
 
     @classmethod
