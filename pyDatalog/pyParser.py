@@ -159,7 +159,7 @@ class Expression(object):
         """ factory that converts an operand to an Expression """
         if isinstance(operand, (Expression, Aggregate)):
             return operand
-        if isinstance(operand, type(lambda: None)):
+        if isinstance(operand, type(lambda: None)) and (operand.__name__ if PY3 else operand.func_name) == '<lambda>':
             return Operation(None, operand, [Symbol(var) for var in getattr(operand,func_code).co_varnames])
         if isinstance(operand, slice):
             return Symbol([operand.start, operand.stop, operand.step])

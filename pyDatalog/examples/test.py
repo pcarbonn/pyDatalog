@@ -23,6 +23,7 @@ import cProfile
 from decimal import Decimal
 import math
 import re
+import sys
 import datetime
 
 from pyDatalog import pyDatalog
@@ -610,7 +611,7 @@ def test():
             super(A, self).__init__()
             self.b = b
         def ok(self, x):
-            return "ok"
+            return "ok"[x]
         def __repr__(self):
             return self.b
         @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
@@ -693,11 +694,24 @@ def test():
     assert (A.len[a]==Y) == [(1,)]
 
     # A.ok is a regular class method
-    assert A.ok(a, 1) == 'ok'
-    assert ((X==a) & (X.ok(1)==Y)) == [(a, 'ok')]
-    assert ((X==a) & (X.ok(1)[1:2]==Y)) == [(a, 'k')]
-    assert pyDatalog.ask("(A.b[X]=='a') & (X.ok(1)==Y)") == set([(a, 'ok')])   
-    assert pyDatalog.ask("(A.b[X]=='a') & (X.ok(1)[1:2]==Y)") == set([(a, 'k')])   
+    assert A.ok(a, 1) == 'k'
+    assert ((X==a) & (X.ok(1)==Y)) == [(a, 'k')]
+    assert ((X==a) & (X.ok(1)[0]==Y)) == [(a, 'k')]
+    assert pyDatalog.ask("(A.b[X]=='a') & (X.ok(1)==Y)") == set([(a, 'k')])   
+    assert pyDatalog.ask("(A.b[X]=='a') & (X.ok(1)[0]==Y)") == set([(a, 'k')])   
+    
+    pyDatalog.create_atoms('A.ok')
+    assert A.ok(a, 1) == 'k'
+    ok = A.ok
+    if sys.version_info[0] == 3: # only for python 3 ! 
+        # TODO 2.7 avoid error message : unbound method result() must be called with A instance as first argument
+        # workaround : use X.ok(1)
+        assert ((X==a) & (A.ok(X,1)==Y)) == [(a, 'k')]
+        
+        pyDatalog.create_atoms('ok')
+        assert ((X==a) & (ok(X,1)==Y)) == [(a, 'k')]
+        assert ((X==a) & (ok(X,1)[0]==Y)) == [(a, 'k')]    
+    assert ok(a, 1) == 'k'
     
     # A.d is a literal defined by a clause
     assert A.d(a,'a') == [()]
@@ -801,11 +815,11 @@ def test():
     assert ((X==w) & (Y==X.b)) == [(w, 'wa')]   
 
     # Z.ok is an inherited class method
-    assert Z.ok(z, 1) == 'ok'
-    assert ((X==w) & (X.ok(1)==Y)) == [(w, 'ok')]
-    assert ((X==w) & (X.ok(1)[1:2]==Y)) == [(w, 'k')]
-    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.ok(1)==Y)") == set([(w, 'ok')])   
-    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.ok(1)[1:2]==Y)") == set([(w, 'k')])   
+    assert Z.ok(z, 1) == 'k'
+    assert ((X==w) & (X.ok(1)==Y)) == [(w, 'k')]
+    assert ((X==w) & (X.ok(1)[0]==Y)) == [(w, 'k')]
+    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.ok(1)==Y)") == set([(w, 'k')])   
+    assert pyDatalog.ask("(Z.b[X]=='wa') & (X.ok(1)[0]==Y)") == set([(w, 'k')])   
     assert Z.ok(z, 1) <= 'z' # not a clause !
     assert Z.ok(z, 1) <= Z.ok(z, 1)
     assert not (Z.ok(z, 1) > Z.ok(z, 1))
@@ -883,7 +897,7 @@ def test():
     assert_error('(a_sum[X] == sum(Y, key=Y)) <= p(X, Z, Y)', "Error: Duplicate definition of aggregate function.")
     assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
     assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')
-    assert_error("p(X) <= (X=={})", "unhashable type: 'dict'")
+    assert_error("p(X) <= (X=={})", "") # error message is different in pypy
 
     """ SQL Alchemy                    """
 
@@ -1133,7 +1147,7 @@ if __name__ == "__main__":
     # string
     
     import string
-    pyDatalog.create_atoms('string')
+    #TODO 1.9 pyDatalog.create_atoms('string')
     assert (string.digits) == '0123456789'
 
     _error = False
@@ -1144,6 +1158,15 @@ if __name__ == "__main__":
             print(e.value) 
         _error = True
     assert _error
+    
+    def hello(X):
+        return 'Hello ' + X
+    
+    pyDatalog.create_atoms('hello')
+    #assert (hello('pyDatalog')) == 'Hello pyDatalog'
+    #assert((Y==hello('pyDatalog')) >= Y) == 'Hello pyDatalog'
+    assert (((X=='pyDatalog') & (Y==hello(X))) >= Y) == 'Hello pyDatalog'
+    assert (((X=='pyDatalog') & (Y==hello(X))) >= Y) == 'Hello pyDatalog'
     
     print("Test completed successfully.")
 
