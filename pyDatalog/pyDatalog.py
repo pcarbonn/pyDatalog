@@ -170,8 +170,9 @@ def create_atoms(*args):
             words = arg.split('.')
             if 2<len(words): #TODO deal with more
                     raise util.DatalogError("Too many '.' in atom %s" % arg, None, None)
-            if words[0] in __builtins__:
-                root = __builtins__[words[0]]
+            b = __builtins__ if isinstance(__builtins__, dict) else __builtins__.__dict__ # for pypy
+            if words[0] in b:
+                root = b[words[0]]
                 # can't set attributes --> decorate the whole builtin !
                 locals_[words[0]] = _pyD_decorator(root, copy=True) # don't change builtins !
             elif words[0] in locals_:
