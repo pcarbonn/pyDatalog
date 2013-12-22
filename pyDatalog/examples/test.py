@@ -130,11 +130,11 @@ def test():
         assert ask(X==1) == set([(1,)]) 
         assert ask(X==Y) == None
         assert ask(X==Y+1) == None
-        #TODO assert ask(X==True) == set([(True,)])
+        assert ask(X==True) == set([(True,)])
         assert ask(X==1) == set([(1,)]) 
         assert ask(X==False) == set([(False,)])
         assert ask(X==None) == set([(None,)])
-        #TOTO assert pyDatalog.ask('X==True') == set([(True,)])
+        assert pyDatalog.ask('X==True') == set([(True,)])
         assert pyDatalog.ask('X==False') == set([(False,)])
         assert pyDatalog.ask('X==None') == set([(None,)])
         assert ask((X==1) & (Y==1) & (X==Y)) == set([(1,1)])
