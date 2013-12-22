@@ -133,6 +133,8 @@ def test():
         assert ask(X==True) == set([(True,)])
         assert ask(X==1) == set([(1,)]) 
         assert ask(X==False) == set([(False,)])
+        assert ask(X==0) == set([(0,)]) 
+        assert ask(X==False) == set([(False,)])
         assert ask(X==None) == set([(None,)])
         assert pyDatalog.ask('X==True') == set([(True,)])
         assert pyDatalog.ask('X==False') == set([(False,)])
