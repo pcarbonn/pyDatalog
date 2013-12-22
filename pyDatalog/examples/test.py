@@ -1090,9 +1090,9 @@ if __name__ == "__main__":
     assert unsafe(3, 1) == [()] #this query is safe
     assert unsafe(3, Y) == [(1,)] #this query is safe
     assert unsafe(X, 1) == True # X is undefined
-    assert (unsafe(X,1) >= X) == None
+    assert (unsafe(X,1) >= X) == True
     assert (unsafe(2,Y) >= Y) == 1
-    assert (unsafe(X,Y) >= Y) == None
+    assert (unsafe(X,Y) >= Y) == True
     
     unsafe2(X) <= lower(3,2)
     assert unsafe2(3) == []
