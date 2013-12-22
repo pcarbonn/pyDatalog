@@ -121,7 +121,7 @@ def _pyD_decorator(arg, copy=False):
     # makes a copy of arg if copy=True, or if we can't modify arg
     if hasattr(arg, '_pyD_atomized'): 
         return arg
-    result = arg
+    atomized = arg
     if hasattr(arg, '__dict__') and (inspect.ismodule(arg) or inspect.isclass(arg) ):
         new, ok = Dummy(), not copy
         #TODO new class should inherit like arg does --> extended dictionary
@@ -132,28 +132,32 @@ def _pyD_decorator(arg, copy=False):
                 setattr(arg, a, new_f) # fails for arg=str, for example
             except:
                 ok = False
-        result = arg if ok else new
+        atomized = arg if ok else new
     elif hasattr(arg, '__call__'): # it's a function
+        if inspect.isgeneratorfunction(arg):
+            #TODO support atomized generator functions
+            atomized = arg
+        else:
+            def atomized(*arguments, **keyargs):
+                # if any argument is an Expression, return an Operation
+                # else immediately evaluate the function
+                # TODO fully support keyword arguments
+                # TODO keep default values
+                # TODO give it arg's name
+                for a in arguments: 
+                    if isinstance(a, pyParser.Expression):
+                        return pyParser.Operation(arg, '(', arguments) 
+                return arg(*arguments, **keyargs)
         
-        def result(*arguments):
-            # if any argument is an Expression, return an Operation
-            # else immediately evaluate the function
-            # TODO support keyword arguments
-            # TODO keep default values
-            for a in arguments: 
-                if isinstance(a, pyParser.Expression):
-                    return pyParser.Operation(arg, '(', arguments) 
-            return arg(*arguments)
-        
-        try: # copy __doc__
-            result.__dict__.update(arg.__dict__)
-        except:
-            pass
+            try: # copy __doc__
+                atomized.__dict__.update(arg.__dict__)
+            except:
+                pass
     try:
-        setattr(result, '_pyD_atomized', True)
+        setattr(atomized, '_pyD_atomized', True)
     except:
         pass
-    return result
+    return atomized
 
 ATOMS = ['_sum','sum_','_min','min_','_max','max_', '_len','len_','concat','concat_','rank','rank_',
          'running_sum','running_sum_','range_','tuple_', 'format_']

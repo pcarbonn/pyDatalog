@@ -1147,7 +1147,7 @@ if __name__ == "__main__":
     # string
     
     import string
-    #TODO 1.9 pyDatalog.create_atoms('string')
+    #TODO 1.9, 3.2 : pyDatalog.create_atoms('string')
     assert (string.digits) == '0123456789'
 
     _error = False
