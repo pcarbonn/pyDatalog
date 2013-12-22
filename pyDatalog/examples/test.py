@@ -132,7 +132,7 @@ def test():
         assert ask(X==Y+1) == None
         assert ask((X==1) & (Y==1) & (X==Y)) == set([(1,1)])
         assert ask((X==1) & (Y==2) & (X==Y-1)) == set([(1,2)])
-        #assert ask((X==1) & (Y==2) & (X+2==Y+1)) == set([(1,2)])
+        assert ask((X==1) & (Y==2) & (X+2==Y+1)) == set([(1,2)])
         assert ask((X==2) & (Y==X/2)) == set([(2,1)])
         assert ask((X==2) & (Y==X//2)) == set([(2,1)])
         
@@ -1090,9 +1090,9 @@ if __name__ == "__main__":
     assert unsafe(3, 1) == [()] #this query is safe
     assert unsafe(3, Y) == [(1,)] #this query is safe
     assert unsafe(X, 1) == True # X is undefined
-    assert (unsafe(X,1) >= X) == True
+    assert (unsafe(X,1) >= X) == None
     assert (unsafe(2,Y) >= Y) == 1
-    assert (unsafe(X,Y) >= Y) == True
+    assert (unsafe(X,Y) >= Y) == None
     
     unsafe2(X) <= lower(3,2)
     assert unsafe2(3) == []
@@ -1124,6 +1124,7 @@ if __name__ == "__main__":
     assert ((X=='OK') & (Y==str.lower(X)) >= Y) == 'ok'
     assert ((X==('1','2')) & (Y==str.join('.', X)) >= Y) == '1.2'
     assert ((X=='ok') & (Y==str.format('Hello {0}', X)) >= Y) == 'Hello ok'
+    assert (((X=='o.k') & ((Y,Z)==str.split(X, '.'))) >= Y) == 'o'
     #not supported : print((X==('1','2')) & (Y=='.'.join(X)))
     
     # time
