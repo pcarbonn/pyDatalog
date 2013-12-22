@@ -160,7 +160,8 @@ class Const(Interned):
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
     def __new__(cls,  _id):
-        r = repr(_id) if isinstance(_id, (util.string_types, float, Decimal)) else _id
+        r = repr(_id) if isinstance(_id, (util.string_types, float, Decimal)) \
+            else '_pyD_True_pyD_' if _id is True else _id
         with Const.lock:
             o = cls.registry.get(r, Interned.notFound)
             if o is Interned.notFound: 
