@@ -239,6 +239,7 @@ class VarSymbol(Expression):
         self._pyD_negated = False # for aggregate with sort in descending order
         self._pyD_precalculations = Body() # no precalculations
         self._pyD_atomized = True
+        name = True if name=='True' else False if name =='False' else name
         if isinstance(name, (list, tuple, util.xrange)):
             self._pyD_value = list(map(Expression._pyD_for, name))
             self._pyD_name = str([element._pyD_name for element in self._pyD_value])
@@ -246,7 +247,8 @@ class VarSymbol(Expression):
             self._pyD_lua = pyEngine.Interned.of([e._pyD_lua for e in self._pyD_value])
             self._pyD_precalculations = pre_calculations(self._pyD_value)
         elif forced_type=="constant" or isinstance(name, (int, float)) \
-        or not name or (name[0] not in string.ascii_uppercase + '_' and not '.' in name):
+        or name in (True, False, None) \
+        or (isinstance(name, util.string_types) and name[0] not in string.ascii_uppercase + '_' and not '.' in name):
             self._pyD_value = name
             self._pyD_name = str(name)
             self._pyD_type = 'constant'
@@ -879,9 +881,10 @@ class Running_sum(Rank_aggregate):
 class ProgramContext(object):
     """class to safely use ProgramMode within the "with" statement"""
     def __enter__(self):
+        self.Mode = Thread_storage.ProgramMode
         Thread_storage.ProgramMode = True
     def __exit__(self, exc_type, exc_value, traceback):
-        Thread_storage.ProgramMode = False
+        Thread_storage.ProgramMode = self.Mode
  
 def add_symbols(names, variables):
     """ add the names to the variables dictionary"""
