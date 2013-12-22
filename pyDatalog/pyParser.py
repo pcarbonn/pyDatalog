@@ -459,7 +459,7 @@ class Literal(object):
                 raise util.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
             if isinstance(arg, Variable):
                 arg.todo = self
-                del arg._data[:] # reset the variable. For use in in-line queries
+                arg._data = [] # reset the variable. For use in in-line queries
             self.terms.append(Expression._pyD_for(arg))
                             
         for term in self.terms:
@@ -681,6 +681,10 @@ class Body(LazyListOfList):
         literal.todo, self.todo = None, None
         if not Thread_storage.ProgramMode and self._data: 
             if self._data is True:
+                for arg in literal.terms:
+                    if isinstance(arg, Variable):
+                        arg._data = True
+                        arg.todo = None
                 return True
             transposed = list(zip(*(self._data))) # transpose result
             result = []
