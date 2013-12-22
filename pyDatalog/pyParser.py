@@ -118,7 +118,7 @@ class LazyList(UserList.UserList):
     
     def v(self):
         """ returns the first value in the list, or None """
-        return True if self.data is True else self._data[0] if self.data else None
+        return True if self.data is True else self._data[0] if 0<len(self._data) else None
 
 class LazyListOfList(LazyList):
     """ represents the result of an inline query (a Literal or Body)"""
@@ -131,13 +131,7 @@ class LazyListOfList(LazyList):
         """ returns the first value of the variable in the result of a query, or None """
         if not isinstance(variable, Variable):
             return variable.__le__(self)
-        
-        if self.data is True: 
-            return True
-        elif self.data:
-            for t in self.literal().terms:
-                if id(t) == id(variable):
-                    return t.data[0]
+        return variable.v()
     
     def __str__(self):
         """ pretty print the result """

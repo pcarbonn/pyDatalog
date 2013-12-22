@@ -530,7 +530,8 @@ def insert(pred):
     return pred
 
 def remove(pred):
-    if pred.id in Logic.tl.logic.Db : del Logic.tl.logic.Db[pred.id]
+    if pred.id in Logic.tl.logic.Db : 
+        del Logic.tl.logic.Db[pred.id]
     return pred
     
 
@@ -567,12 +568,11 @@ def retract(clause):
         else:
             del pred.clauses[id_]
         del pred.db[id_]  # remove clause from pred.db
-    """ TODO retract last fact removes pred ??  problem with assert function
-    if len(pred.db) == 0 and pred.prim == None: # if no definition left
+    # delete it completely if it's a temporary query predicate
+    if pred.name.startswith('_pyD_query') and len(pred.db) == 0 and pred.prim == None:
         remove(pred)
-    """
     return clause
-
+    
 def relevant_clauses(literal):
     """ returns matching clauses for a literal query, using index """
     result = None
