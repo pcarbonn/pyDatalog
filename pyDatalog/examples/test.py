@@ -1171,6 +1171,17 @@ if __name__ == "__main__":
         _error = True
     assert _error
     
+    class A(object):
+        pass
+    _error = False
+    try:
+        pyDatalog.create_atoms('A.qsetrwxcfv')
+    except Exception as e:
+        if e.message != "type object 'A' has no attribute 'qsetrwxcfv'":
+            print(e.message) 
+        _error = True
+    assert _error
+    
     def hello(X):
         return 'Hello ' + X
     
