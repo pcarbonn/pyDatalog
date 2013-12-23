@@ -818,7 +818,7 @@ def search(subgoal):
     class0 = literal0.pred._class()
     terms = literal0.terms
     
-    if class0 and terms[0].is_constant and terms[0].id is None: return
+    if class0 and terms[1].is_constant and terms[1].id is None: return
     if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
         if Logging: logging.debug("pyDatalog will search negation of %s" % literal0)
         base_literal = Literal(literal0.pred.base_pred, terms)
