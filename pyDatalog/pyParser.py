@@ -94,7 +94,8 @@ Thread_storage.variables = set([]) #call list of variables parsed since the last
 
 def clear():
     Thread_storage.ProgramMode = False
-
+    Thread_storage.variables = set([])
+    
 """                             Parser classes                                                   """
 
 class LazyList(UserList.UserList):

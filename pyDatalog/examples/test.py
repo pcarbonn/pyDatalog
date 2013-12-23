@@ -1177,8 +1177,9 @@ if __name__ == "__main__":
     try:
         pyDatalog.create_atoms('A.qsetrwxcfv')
     except Exception as e:
-        if e.message != "type object 'A' has no attribute 'qsetrwxcfv'":
-            print(e.message) 
+        e_message = e.message if hasattr(e, 'message') else e.args[0]
+        if e_message != "type object 'A' has no attribute 'qsetrwxcfv'":
+            print(e_message) 
         _error = True
     assert _error
     
