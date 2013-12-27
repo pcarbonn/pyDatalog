@@ -10,8 +10,8 @@ import random
 import threading
 import time
 
-pyDatalog.create_atoms('N,X0,X1,X2,X3,X4,X5,X6,X7')
-pyDatalog.create_atoms('ok,queens, next_queen')
+pyDatalog.create_terms('N,X0,X1,X2,X3,X4,X5,X6,X7')
+pyDatalog.create_terms('ok,queens, next_queen')
 
 def add_logic(n):
     ok(X1, N, X2) <= (X1!=X2) & (X1!= X2+N) & (X1!=X2-N)

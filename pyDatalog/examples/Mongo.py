@@ -40,7 +40,7 @@ Employee._pyD_diploma2 = classmethod(_pyD_diploma2) # attach the resolver to the
 from pyDatalog import pyDatalog
 
 print("\n *** combined SQLite and Mongo query :\n")
-pyDatalog.create_atoms('X, N, Diploma')
+pyDatalog.create_terms('X, N, Diploma')
 
 # Who has a salary of 6800 and a MSc. diploma
 (Employee.salary[X]==6800) & (Employee.diploma[X]=="MSc.")

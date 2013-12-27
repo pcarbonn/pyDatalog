@@ -36,7 +36,7 @@ methods for direct access to datalog knowledge base:
   * ask(code) : returns the result of the query contained in the code string
   * variables(n) : convenience function to create multiple variables in one statement
   * clear() : resets the datalog database
-  * create_atoms() : creates atoms for in-line queries
+  * create_terms() : creates terms for in-line queries
   * variables() : creates variables for in-line queries
 Variable : a class to define Variable, for use in datalog queries. (defined in pyParser)
 Answer class defines the object returned by ask()
@@ -162,7 +162,7 @@ def _pyD_decorator(arg, copy=False):
 ATOMS = ['_sum','sum_','_min','min_','_max','max_', '_len','len_','concat','concat_','rank','rank_',
          'running_sum','running_sum_','range_','tuple_', 'format_']
 
-def create_atoms(*args):
+def create_terms(*args):
     """ create atoms for in-line clauses and queries """
     stack = inspect.stack()
     try:
@@ -195,6 +195,8 @@ def create_atoms(*args):
                     locals_[arg] = pyParser.Variable(arg)
     finally:
         del stack
+
+create_atoms = create_terms # for backward compatibility
 
 def variables(n):
     """ create variables for in-line clauses and queries """

@@ -72,7 +72,7 @@ session.add(Sam)
 session.commit()
 
 """ 4. Query the objects using the datalog engine """
-pyDatalog.create_atoms('X, Y, N, lowest')
+pyDatalog.create_terms('X, Y, N, lowest')
 
 # the following python statements implicitly use the datalog clauses in the class definition
 
