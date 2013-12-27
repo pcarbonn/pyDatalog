@@ -387,8 +387,21 @@ class Symbol(VarSymbol):
     def __setitem__(self, keys, value):
         """  called when evaluating f[X] = expression """
         function = Function(self._pyD_name, keys)
-        # following statement translates it into (f[X]==V) <= (V==expression)
-        (function == function._pyD_symbol) <= (function._pyD_symbol == value)
+        value = Expression._pyD_for(value)
+        if Expression._pyD_for(keys)._pyD_lua.is_const() and value._pyD_lua.is_const():
+            +(function == value)
+        else:
+            (function == function._pyD_symbol) <= (function._pyD_symbol == value)
+            
+    def __delitem__(self, keys):
+        """  called when evaluating del f[X] """
+        function = Function(self._pyD_name, keys)
+        Y = Variable()
+        if Expression._pyD_for(keys)._pyD_lua.is_const():
+            -(function == ((function == Y) >= Y) )
+        else:
+            literal = (function == Y)
+            literal.lua.pred.reset_clauses()
         
 class Function(Expression):
     """ represents predicate[a, b]"""

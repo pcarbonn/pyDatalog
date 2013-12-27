@@ -385,7 +385,7 @@ def test():
         assert ask(b==f[X]) == set([('a',)])
         assert ask(f[X]==f[X]) == set([('a',)])
     
-        + (f[a]==c)
+        f[a]=c
         assert ask(f[a]==X) == set([('c',)])
         
         + (f[a]==a)
@@ -395,7 +395,7 @@ def test():
         assert ask(f[X]==f[a]+'') == set([('a',)])
         + (f[c]==c)
         assert ask(f[f[a]]==X) == set([('a',)])
-        - (f[c]==c)
+        del f[c]
         - (f[a]==a)
         assert ask(f[f[a]]==X) == None
 
@@ -415,6 +415,8 @@ def test():
         
         g[X] = f[X]+f[X]
         assert(ask(g[a]==X)) == set([('cc',)])
+        del g[X]
+        assert(ask(g[a]==X)) == None
         
         h(X,Y) <= (f[X]==Y)
         assert (ask(h(X,'c'))) == set([('a',)])
