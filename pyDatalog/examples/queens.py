@@ -2,8 +2,8 @@
 from pyDatalog import pyDatalog
 import time
 
-pyDatalog.create_atoms('N,X0,X1,X2,X3,X4,X5,X6,X7')
-pyDatalog.create_atoms('ok,queens,next_queen')
+pyDatalog.create_terms('N,X0,X1,X2,X3,X4,X5,X6,X7')
+pyDatalog.create_terms('ok,queens,next_queen')
 
 # when is it ok to have a queen in row X1 and another in row X2, separated by N columns
 # this is memoized !

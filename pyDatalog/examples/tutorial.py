@@ -4,7 +4,7 @@ https://sites.google.com/site/pydatalog/Online-datalog-tutorial
 """
 
 from pyDatalog import pyDatalog
-pyDatalog.create_atoms('parent,bill,ancestor,descendents,manager, X,Y,Z,N,N1,F,  factorial, first_remainder, odd,even, _split')
+pyDatalog.create_terms('parent,bill,ancestor,descendents,manager, X,Y,Z,N,N1,F,  factorial, first_remainder, odd,even, _split')
 
 + parent(bill,'John Adams')
 
@@ -71,7 +71,7 @@ John = Employee('John', None, 6800)
 Mary = Employee('Mary', John, 6300)
 Sam = Employee('Sam', Mary, 5900)
 
-pyDatalog.create_atoms('has_car, X')
+pyDatalog.create_terms('has_car, X')
 + has_car(Mary)
 print(has_car(X)) # prints [(Mary,)]
 

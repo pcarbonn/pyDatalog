@@ -8,8 +8,8 @@ from pyDatalog import pyDatalog
 import random
 import threading
 
-pyDatalog.create_atoms('N,X0,X1,X2,X3,X4,X5,X6,X7')
-pyDatalog.create_atoms('ok,queens, next_queen')
+pyDatalog.create_terms('N,X0,X1,X2,X3,X4,X5,X6,X7')
+pyDatalog.create_terms('ok,queens, next_queen')
 
 @pyDatalog.predicate()
 def ok3(X1, N, X2):

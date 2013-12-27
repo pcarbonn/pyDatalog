@@ -13,7 +13,7 @@ Below is a solution based on pyDatalog
 from pyDatalog import pyDatalog, pyEngine
 import time
 
-pyDatalog.create_atoms('solution,move,X,Y,Z,N,N1,N2')
+pyDatalog.create_terms('solution,move,X,Y,Z,N,N1,N2')
 
 # valid moves are exchange of 1<->2, 1<->4, ... 
 @pyDatalog.predicate()

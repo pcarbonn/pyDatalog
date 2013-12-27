@@ -3,8 +3,8 @@ from pyDatalog import pyDatalog
 import time
 from pyDatalog import pyEngine
 
-pyDatalog.create_atoms('N,N1, X,Y, X0,X1,X2,X3,X4,X5,X6,X7')
-pyDatalog.create_atoms('ok,queens, next_queen, pred, pred2')
+pyDatalog.create_terms('N,N1, X,Y, X0,X1,X2,X3,X4,X5,X6,X7')
+pyDatalog.create_terms('ok,queens, next_queen, pred, pred2')
 
 size=8
 

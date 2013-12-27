@@ -312,8 +312,8 @@ def test():
     pyDatalog.clear()
     @pyDatalog.program()
     def factorial(): 
-        (factorial[N] == F) <= (F == N*factorial[N-1]) # most general clause first
-        + (factorial[1]==1)
+        factorial[N] = N*factorial[N-1] # most general clause first
+        factorial[1] = 1
         (factorial[N] == F) <= (N < 1) & (F== -factorial[-N])
         assert ask(factorial[1] == F) == set([(1,)])
         assert ask(factorial[4] == F) == set([(24,)])
@@ -333,6 +333,7 @@ def test():
     # string manipulation
     @pyDatalog.program()
     def _lambda(): 
+        assert ask((X=='world') & (Y==(lambda X: 'hello ' + X))) == set([('world', 'hello world')])
         split(X, Y,Z) <= (X == Y+'-'+Z)
         assert ask(split(X, 'a', 'b')) == set([('a-b',)])
         split(X, Y,Z) <= (Y == (lambda X: X.split('-')[0])) & (Z == (lambda X: X.split('-')[1]))
@@ -1027,6 +1028,9 @@ if __name__ == "__main__":
     pyDatalog.create_atoms('X')
     p(X) & (X=='b')
     assert (X._value() == [])
+    
+    assert ((X=='world') & (Y=='hello ' + X)) == [('world', 'hello world')]
+    #TODO print((X=='world') & (Y==(lambda X: 'hello ' + X)))
     
     pyDatalog.create_atoms('p2')
     
