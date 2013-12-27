@@ -430,21 +430,14 @@ class Literal(object):
         return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
 
 
-def get_id(literal): #id
-    """ The id's encoding ensures that two literals are structurally the
-        same if they have the same id. """
-    if not hasattr(literal, 'id'): # cached
-        literal.id = literal.pred.id + ''.join([term.key for term in literal.terms])
-    return literal.id
-
-
 def get_key(literal): #id
-    """ A literal's key is similar to get_id, but only uses the terms up to the prearity. 
-        It is used to ensure unicity of results of functions like "pred[k]=v" """
+    """ The id's encoding ensures that two literals are structurally the
+        same (up to prearity terms) if they have the same id. 
+        Prearity is used to ensure unicity of results of functions like "pred[k]=v" """
     if not hasattr(literal, 'key'): # cached
         terms = literal.terms
         if len(terms) == literal.pred.prearity:
-            literal.key = get_id(literal)
+            literal.key = literal.pred.id + ''.join([term.key for term in literal.terms])
         else:
             literal.key = literal.pred.id + ''.join([terms[i].key for i in range(literal.pred.prearity)])
     return literal.key

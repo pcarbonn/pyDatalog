@@ -32,11 +32,9 @@ files.
 #id  identifiers ################################################
 
 The id's encoding ensures that two literals are structurally the
-same if they have the same id.
-
-A literal's key is similar to get_id, but only uses the terms up to the prearity. 
-It is used to ensure unicity of results of functions like "pred[k]=v"
-
+same (up to prearity terms) if they have the same id. 
+Prearity is used to ensure unicity of results of functions like "pred[k]=v"
+        
 Two literal's variant tags are the same if there is a one-to-one
 mapping of variables to variables, such that when the mapping is
 applied to one literal, the result is a literal that is the same as
