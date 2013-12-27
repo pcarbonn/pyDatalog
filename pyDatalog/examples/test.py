@@ -146,12 +146,14 @@ def test():
         assert ask((X==1) & (Y==2) & (X+2==Y+1)) == set([(1,2)])
         assert ask((X==2) & (Y==X/2)) == set([(2,1)])
         assert ask((X==2) & (Y==X//2)) == set([(2,1)])
+        assert ask((X==2) & (Y==X**2)) == set([(2,4)])
         
         assert ask((X==1) & (Y==1+X)) == set([(1,2)])
         assert ask((X==1) & (Y==1-X)) == set([(1,0)])
         assert ask((X==1) & (Y==2*X)) == set([(1,2)])
         assert ask((X==2) & (Y==2/X)) == set([(2,1)])
         assert ask((X==2) & (Y==2//X)) == set([(2,1)])
+        assert ask((X==2) & (Y==3**X)) == set([(2,9)])
         
         assert ask((Y==5) & (X==format_('5 is {}', Y))) == set([(5, '5 is 5')])
         assert ask(X==format_('5 is {} {}', 5, 'test'))  == set([('5 is 5 test',)])
