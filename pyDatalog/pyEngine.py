@@ -698,13 +698,13 @@ def fact(subgoal, literal):
     if literal is True:
         if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
         subgoal.facts, subgoal.is_done = True, True
-        for waiter in reversed(subgoal.waiters):
-            resolvent = Clause(waiter.clause.head, [bodi for bodi in waiter.clause.body[1:] ])
+        for waiter in subgoal.waiters:
+            resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
             schedule(Add_clause(waiter.subgoal, resolvent))
     elif subgoal.facts is not True and not subgoal.facts.get(get_key(literal)):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[get_key(literal)] = literal
-        for waiter in reversed(subgoal.waiters):
+        for waiter in subgoal.waiters:
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
                 schedule(Add_clause(waiter.subgoal, resolvent))
@@ -729,10 +729,10 @@ def rule(subgoal, clause, selected):
         sg.waiters.append(Waiter(subgoal, clause))
         todo = []
         if sg.facts is True:
-            resolvent = Clause(clause.head, [bodi for bodi in clause.body[1:] ])
+            resolvent = Clause(clause.head, clause.body[1:])
             todo.append(resolvent)
         else:
-            for fact in list(sg.facts.values()):
+            for fact in sg.facts.values():
                 resolvent = resolve(clause, fact)
                 if resolvent != None: 
                     todo.append(resolvent)
