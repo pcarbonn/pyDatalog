@@ -398,7 +398,7 @@ class Literal(object):
         if isinstance(pred, util.string_types):
             self.pred = Pred(pred, len(terms), aggregate)
             self.pred.prearity = len(terms) if prearity is None else prearity
-            if pred[:1] == '~': #pred
+            if pred.startswith('~'): #pred
                 self.pred.base_pred = Pred(pred[1:], len(terms))
                 self.pred.base_pred.prearity = self.pred.prearity
         else:
@@ -542,7 +542,7 @@ def assert_(clause):
         pred.db[id_] = clause
         if not clause.body: # if it is a fact, update indexes
             for i, term in enumerate(clause.head.terms):
-                clauses = pred.index[i].setdefault(term, set([])) # create a set if needed
+                clauses = pred.index[i].setdefault(term, set()) # create a set if needed
                 clauses.add(clause)
         else:
             pred.clauses[id_] = clause
@@ -573,7 +573,7 @@ def relevant_clauses(literal):
     result = None
     for i, term in enumerate(literal.terms):
         if term.is_constant:
-            facts = literal.pred.index[i].get(term) or set({})
+            facts = literal.pred.index[i].get(term, set()) # default : a set
             result = facts if result == None else result.intersection(facts)
     if result == None: # no constants found
         return list(literal.pred.db.values())
