@@ -639,6 +639,11 @@ def resolve(clause, literal):
 # A stack of thunks is used to avoid the stack overflow problem
 # by delaying the evaluation of some functions
 
+# op codes
+SEARCH = 1
+ADD_CLAUSE = 2
+MERGE = 3
+
 # Schedule a task for later invocation
 
 class Thunk(object):
@@ -655,41 +660,33 @@ def complete(subgoal, post_thunk):
     Ts = Logic.tl.logic
     Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
     Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
-    thunk = lambda subgoal=subgoal: merge(subgoal) or search(subgoal)
-    schedule(Thunk(thunk))
+    schedule((MERGE, subgoal))
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
     if Logging: logging.debug('push')
     Ts.Stack[-1][1].appendleft(Thunk(post_thunk)) 
-    
 
 def invoke(subgoal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
     Ts = Logic.tl.logic
-    thunk = lambda subgoal=subgoal: search(subgoal)
-    Ts.Tasks, Ts.Subgoals, Ts.Goal = deque([Thunk(thunk),]), {}, subgoal
+    Ts.Tasks, Ts.Subgoals, Ts.Goal = deque([(SEARCH, subgoal),]), {}, subgoal
     while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
         while Ts.Tasks and not Ts.Goal.is_done:
-            Ts.Tasks.popleft().do() # get the thunk and execute it
+            todo = Ts.Tasks.popleft()
+            if isinstance(todo, Thunk):
+                todo.do() # get the thunk and execute it
+            elif todo[0] is SEARCH:
+                search(todo[1])
+            elif todo[0] is ADD_CLAUSE:
+                add_clause(*(todo[1]))
+            elif todo[0] is MERGE:
+                merge(todo[1])
+                search(todo[1])
         if Ts.Stack: 
             Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
             if Logging: logging.debug('pop')
     Ts.Tasks, Ts.Subgoals, Ts.Goal = None, {}, None
 
-# dedicated objects give better performance than thunks 
-class Search(object):
-    def __init__(self, subgoal):
-        self.subgoal = subgoal
-    def do(self):
-        search(self.subgoal)
-
-class Add_clause(object):
-    def __init__(self, subgoal, clause):
-        self.subgoal = subgoal
-        self.clause = clause
-    def do(self):
-        add_clause(self.subgoal, self.clause)
-        
 ################## add derived facts and use rules ##############
 
 def fact(subgoal, literal):
@@ -704,14 +701,14 @@ def fact(subgoal, literal):
         subgoal.facts, subgoal.is_done = True, True
         for waiter in subgoal.waiters:
             resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
-            schedule(Add_clause(waiter.subgoal, resolvent))
+            schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
     elif subgoal.facts is not True and not subgoal.facts.get(get_key(literal)):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[get_key(literal)] = literal
         for waiter in subgoal.waiters:
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
-                schedule(Add_clause(waiter.subgoal, resolvent))
+                schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
         if len(subgoal.facts)==1 \
         and all(subgoal.literal.terms[i].is_constant 
                 for i in range(subgoal.literal.pred.prearity)):
@@ -741,12 +738,12 @@ def rule(subgoal, clause, selected):
                 if resolvent != None: 
                     todo.append(resolvent)
         for t in todo:
-            schedule(Add_clause(subgoal, t))
+            schedule((ADD_CLAUSE, (subgoal, t)))
     else:
         sg = Subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
         merge(sg)
-        return schedule(Search(sg))
+        return schedule((SEARCH, sg))
     
 def add_clause(subgoal, clause):
     """ SLG_NEWCLAUSE in the reference article """
@@ -886,7 +883,7 @@ def search(subgoal):
                 if env != None:
                     clause = subst_in_clause(renamed, env, class0)
                     if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
-                    schedule(Add_clause(subgoal, clause))
+                    schedule((ADD_CLAUSE, (subgoal, clause)))
             return
         elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
             literal1 = literal.equalized()
@@ -900,7 +897,7 @@ def search(subgoal):
                 if env != None:
                     renamed = subst_in_clause(renamed, env, class0)
                     if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
-                    schedule(Add_clause(subgoal, renamed))
+                    schedule((ADD_CLAUSE, (subgoal, renamed)))
                 return
             
     if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
