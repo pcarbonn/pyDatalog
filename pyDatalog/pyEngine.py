@@ -350,7 +350,7 @@ class Pred(Interned):
                 words = pred_name.split(']')
                 o.comparison = words[1] if 1 < len(words) else '' # for f[X]<Y
     
-                o.db = {}
+                o.db = OrderedDict()
                 o.clauses = OrderedDict()
                 # one index per term. An index is a dictionary of sets
                 o.index = [{} for i in range(int(o.arity))]
@@ -529,6 +529,11 @@ def remove(pred):
         del Logic.tl.logic.Db[pred.id]
     return pred
     
+def preadd(dictionary, key, value):
+    old_items = list(dictionary.items())
+    dictionary.clear()
+    dictionary[key] = value
+    dictionary.update(old_items)
 
 def assert_(clause):
     """ Add a safe clause to the database """
@@ -539,13 +544,13 @@ def assert_(clause):
         if pred.aggregate and id_ in pred.db:
             raise util.DatalogError("Error: Duplicate definition of aggregate function.", None, None)
         retract(clause) # to ensure unicity of functions
-        pred.db[id_] = clause
+        preadd(pred.db, id_, clause) # pred.db[id_] = clause
         if not clause.body: # if it is a fact, update indexes
             for i, term in enumerate(clause.head.terms):
                 clauses = pred.index[i].setdefault(term, set()) # create a set if needed
                 clauses.add(clause)
         else:
-            pred.clauses[id_] = clause
+            preadd(pred.clauses, id_, clause) # pred.clauses[id_] = clause
         insert(pred)
     return clause
 
@@ -578,8 +583,7 @@ def relevant_clauses(literal):
     if result == None: # no constants found
         return list(literal.pred.db.values())
     else:
-        #result= [ literal.pred.db[id_] for id_ in result ] + [ literal.pred.db[id_] for id_ in literal.pred.clauses]
-        return list(result) + list(reversed(list(literal.pred.clauses.values())))
+        return list(result) + list(literal.pred.clauses.values())
     
 """
 The remaining functions in this file implement the tabled logic
