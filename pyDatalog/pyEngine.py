@@ -44,10 +44,7 @@ import re
 import threading
 import weakref
 
-try:
-    from . import util
-except ValueError:
-    import util
+from . import util
 
 Logging = False # True --> logging is activated.  Kept for performance reason
 Auto_print = False # True => automatically prints the result of a query

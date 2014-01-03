@@ -78,14 +78,9 @@ import threading
 PY3 = sys.version_info[0] == 3
 func_code = '__code__' if PY3 else 'func_code'
 
-try:
-    from . import pyEngine
-    from . import util
-    from . import UserList
-except ValueError:
-    import pyEngine
-    import util
-    import UserList
+from . import pyEngine
+from . import util
+from . import UserList
 
 # global variable to differentiate between in-line queries and pyDatalog program / ask
 Thread_storage = threading.local()
