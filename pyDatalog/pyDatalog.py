@@ -52,18 +52,11 @@ import inspect
 import string
 import weakref
 
-try:
-    from . import version
-    from . import Logic
-    from . import pyEngine
-    from . import pyParser
-    from . import util
-except ValueError:
-    import version
-    import Logic
-    import pyEngine
-    import pyParser
-    import util
+from . import version
+from . import Logic
+from . import pyEngine
+from . import pyParser
+from . import util
     
 print("pyDatalog version %s" % version.__version__)
 

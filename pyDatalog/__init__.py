@@ -1,10 +1,6 @@
 
-try:
-    from . import version
-    from . import Logic
-except ValueError:
-    import version
-    import Logic
+from . import version
+from . import Logic
     
 Logic = Logic.Logic # give easy access to the Logic class
 
