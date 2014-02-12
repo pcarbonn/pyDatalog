@@ -35,7 +35,7 @@ Some notable differences between python and lua:
 * lua variables are global by default, python ones are local by default
 * variable bindings in a closure.  See http://tiny.cc/7837cw, http://tiny.cc/rq47cw
 """
-from collections import deque, OrderedDict
+from collections import OrderedDict
 from decimal import Decimal
 import gc
 from itertools import groupby
@@ -526,12 +526,6 @@ def remove(pred):
         del Logic.tl.logic.Db[pred.id]
     return pred
     
-def preadd(dictionary, key, value):
-    old_items = list(dictionary.items())
-    dictionary.clear()
-    dictionary[key] = value
-    dictionary.update(old_items)
-
 def assert_(clause):
     """ Add a safe clause to the database """
     pred = clause.head.pred
@@ -541,13 +535,13 @@ def assert_(clause):
         if pred.aggregate and id_ in pred.db:
             raise util.DatalogError("Error: Duplicate definition of aggregate function.", None, None)
         retract(clause) # to ensure unicity of functions
-        preadd(pred.db, id_, clause) # pred.db[id_] = clause
+        pred.db[id_] = clause
         if not clause.body: # if it is a fact, update indexes
             for i, term in enumerate(clause.head.terms):
                 clauses = pred.index[i].setdefault(term, set()) # create a set if needed
                 clauses.add(clause)
         else:
-            preadd(pred.clauses, id_, clause) # pred.clauses[id_] = clause
+            pred.clauses[id_] = clause
         insert(pred)
     return clause
 
@@ -580,7 +574,7 @@ def relevant_clauses(literal):
     if result == None: # no constants found
         return list(literal.pred.db.values())
     else:
-        return list(result) + list(literal.pred.clauses.values())
+        return list(literal.pred.clauses.values()) + list(result)
     
 """
 The remaining functions in this file implement the tabled logic
@@ -656,20 +650,20 @@ def complete(subgoal, post_thunk):
     """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
     Ts = Logic.tl.logic
     Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
-    Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
+    Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, list(), subgoal
     schedule((MERGE, subgoal))
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
     if Logging: logging.debug('push')
-    Ts.Stack[-1][1].appendleft(Thunk(post_thunk)) 
+    Ts.Stack[-1][1].append(Thunk(post_thunk)) 
 
 def invoke(subgoal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
     Ts = Logic.tl.logic
-    Ts.Tasks, Ts.Subgoals, Ts.Goal = deque([(SEARCH, subgoal),]), {}, subgoal
+    Ts.Tasks, Ts.Subgoals, Ts.Goal = list([(SEARCH, subgoal),]), {}, subgoal
     while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
         while Ts.Tasks and not Ts.Goal.is_done:
-            todo = Ts.Tasks.popleft()
+            todo = Ts.Tasks.pop()
             if isinstance(todo, Thunk):
                 todo.do() # get the thunk and execute it
             elif todo[0] is SEARCH:

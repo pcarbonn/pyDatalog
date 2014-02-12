@@ -433,6 +433,12 @@ def test():
         (discount[Total] == 100) <= (1000 < Total)
         assert (ask(discount[2000]==Y) == set([(100,)])) 
         assert (ask(discount[200]==Y) == set([(10,)])) 
+
+        default[X] = 0
+        (default[X] == 1) <= (0<X) & (X<10)
+        
+        assert ask(default[0]==X) == set([(0,)])
+        assert ask(default[3]==X) == set([(1,)])
                 
     @pyDatalog.program()
     def function_comparison(): 
