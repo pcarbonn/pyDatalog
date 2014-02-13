@@ -22,12 +22,8 @@ USA
 
 import copy
 import threading
-import weakref
 
-try:
-    from . import pyEngine
-except ValueError:
-    import pyEngine
+from . import pyEngine, pyParser
 
 class Logic(object):
     """ 
@@ -39,6 +35,7 @@ class Logic(object):
     tl = threading.local()  # contains the Logic in the current thread
     def __new__(cls, logic=None):
         if isinstance(logic, cls):
+            pyParser.clear()
             Logic.tl.logic = copy.copy(logic) 
             Logic.tl.logic.Subgoals = {}
             Logic.tl.logic.Tasks = None
@@ -50,6 +47,7 @@ class Logic(object):
     
     def __init__(self, logic=None):
         if not (logic) or not (hasattr(self, 'Db')):
+            pyParser.clear()
             pyEngine.clear()  # make sure the singleton has what's needed
             
     def clear(self):

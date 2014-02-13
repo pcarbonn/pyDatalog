@@ -4,7 +4,7 @@ Created on 3 juin 2013
 @author: pcarbonn
 '''
 
-from pyDatalog import pyDatalog
+from pyDatalog import pyDatalog, Logic
 import random
 import threading
 
@@ -18,7 +18,7 @@ def ok3(X1, N, X2):
 
 def queen(thread_name):
     n = int(random.random() * 8) + 1 # 1 to 8
-    pyDatalog.clear()
+    Logic()
     
     queens(X0)                      <= (X0._in(range(n)))
     queens(X0,X1)                   <= queens(X0)                   & next_queen(X0,X1)
