@@ -3,5 +3,6 @@ pause
 cd "C:\Users\pcarbonn\Documents\98 Eclipse\pyDatalog\build\lib"
 del *.*
 cd "C:\Users\pcarbonn\Documents\98 Eclipse\pyDatalog"
-setup.py register sdist upload
+c:\python27\python.exe setup.py register sdist upload
+c:\python27\python.exe setup.py bdist_wheel upload
 pause
