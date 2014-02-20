@@ -228,8 +228,7 @@ class Expression(object):
         return Operation(self, '.',  VarSymbol(name, forced_type='constant'))
 
     def __call__ (self, *args, **kwargs):
-        if kwargs:
-            raise "Sorry, key word arguments are not supported yet"
+        assert not kwargs, "Sorry, key word arguments are not supported yet"
         return Operation(self, '(', args)
 
     
@@ -358,6 +357,7 @@ class Symbol(VarSymbol):
         elif self._pyD_name == 'format_':
             return Operation(args[0], '%', args[1:])
         elif '.' in self._pyD_name: #call
+            assert not kwargs, "Sorry, key word arguments are not supported yet"
             pre_term = (VarSymbol.make_for_prefix(self._pyD_name), ) #prefixed
             if pyEngine.Pred.is_known('%s/%i' % (self._pyD_name, len(args)+1)):
                 return Literal.make(self._pyD_name, pre_term + tuple(args))
@@ -611,15 +611,12 @@ class Query(Literal, LazyListOfList):
     def literal(self):
         return self
 
-class Call(Expression): #call
+class Call(Operation): #call
     """ represents an ambiguous A.b(X) : usually an expression, but sometimes a literal"""
     def __init__(self, name, args):
-        self._pyD_name, self._pyD_args = name, args
-        self.as_literal = Query(self._pyD_name, self._pyD_args)
-        for arg in self._pyD_args:
-            if isinstance(arg, Variable):
-                arg.todo = self.as_literal
-    
+        self.as_literal = Query(name, args)
+        Operation.__init__(self, name, '(', args)
+
     @property
     def literals(self):
         return [self.as_literal]
