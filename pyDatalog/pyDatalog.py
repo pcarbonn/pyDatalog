@@ -110,22 +110,34 @@ def clear():
     pyParser.clear()
     Logic()
 
-def _pyD_decorator(arg, copy=False):
-    # makes a copy of arg if copy=True, or if we can't modify arg
+class Classe(object):
+    def __init__(self, cls):
+        self.cls = cls
+    def __call__(self, *arguments, **keyargs):
+        for a in arguments: 
+            if isinstance(a, pyParser.Expression):
+                assert not keyargs, "Sorry, key word arguments are not supported yet" #TODO
+                return pyParser.Operation(self.cls, '(', arguments) 
+        return self.cls(*arguments, **keyargs)
+        
+
+def _pyD_decorator(arg):
     if hasattr(arg, '_pyD_atomized'): 
         return arg
     atomized = arg
-    if hasattr(arg, '__dict__') and (inspect.ismodule(arg) or inspect.isclass(arg) ):
-        new, ok = Dummy(), not copy
-        #TODO new class should inherit like arg does --> extended dictionary
+    if inspect.isclass(arg):
+        atomized = Classe(arg)
+        for c in arg.__mro__[-2::-1]: # reverse order, ignoring object class
+            for a in c.__dict__:
+                try:
+                    new_f = _pyD_decorator(getattr(arg, a))
+                    atomized.__dict__[a] = new_f
+                except AttributeError:
+                    pass # sometimes raised by pypy, e.g. for time
+    elif inspect.ismodule(arg):
         for a in arg.__dict__:
             new_f = _pyD_decorator(getattr(arg, a))
-            new.__dict__[a] = new_f #TODO can't use setattr because of Dummy ?
-            try:
-                setattr(arg, a, new_f) # fails for arg=str, for example
-            except:
-                ok = False
-        atomized = arg if ok else new
+            setattr(arg, a, new_f)
     elif hasattr(arg, '__call__'): # it's a function
         if inspect.isgeneratorfunction(arg):
             #TODO support atomized generator functions
@@ -134,11 +146,10 @@ def _pyD_decorator(arg, copy=False):
             def atomized(*arguments, **keyargs):
                 # if any argument is an Expression, return an Operation
                 # else immediately evaluate the function
-                # TODO fully support keyword arguments
-                # TODO keep default values
-                # TODO give it arg's name
+                # TODO give it arg's name ?
                 for a in arguments: 
                     if isinstance(a, pyParser.Expression):
+                        assert not keyargs, "Sorry, key word arguments are not supported yet" #TODO
                         return pyParser.Operation(arg, '(', arguments) 
                 return arg(*arguments, **keyargs)
         
@@ -156,7 +167,7 @@ ATOMS = ['_sum','sum_','_min','min_','_max','max_', '_len','len_','concat','conc
          'running_sum','running_sum_','range_','tuple_', 'format_']
 
 def create_terms(*args):
-    """ create atoms for in-line clauses and queries """
+    """ create terms for in-line clauses and queries """
     stack = inspect.stack()
     try:
         locals_ = stack[1][0].f_locals
@@ -168,10 +179,9 @@ def create_terms(*args):
             if 2<len(words): #TODO deal with more
                     raise util.DatalogError("Too many '.' in atom %s" % arg, None, None)
             b = __builtins__ if isinstance(__builtins__, dict) else __builtins__.__dict__ # for pypy
-            if words[0] in b:
+            if words[0] in b: # if it 's a builtin
                 root = b[words[0]]
-                # can't set attributes --> decorate the whole builtin !
-                locals_[words[0]] = _pyD_decorator(root, copy=True) # don't change builtins !
+                locals_[words[0]] = _pyD_decorator(root) 
             elif words[0] in locals_:
                 root = locals_[words[0]]
                 if len(words)==2: # e.g. str.split

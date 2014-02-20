@@ -1145,6 +1145,10 @@ if __name__ == "__main__":
     # str
     
     pyDatalog.create_atoms('str')
+    assert ( ((X==8) & (Y==str(X))) >= Y) == "8"
+    assert ( ((X=='uPeP') & (Y==X.lower())) >= Y) == 'upep'
+    assert ( ((X==8) & (Y==str(X).lower())) >= Y) == "8"
+    
     assert (str.lower('OK')) == 'ok'
     assert ((X=='OK') & (Y==str.lower(X)) >= Y) == 'ok'
     assert ((X==('1','2')) & (Y==str.join('.', X)) >= Y) == '1.2'
@@ -1186,13 +1190,31 @@ if __name__ == "__main__":
     assert _error
     
     class A(object):
-        pass
+        def __init__(self, arg):
+            self.arg = arg
+        def two(self):
+            """ function : two """
+            return 2*self.arg
+        def __str__(self):
+            return str(self.arg)
+        
+    class B(A):
+        def two(self):
+            """ function : two """
+            return 4*self.arg
+
+    pyDatalog.create_terms('A,B')
+    assert str( ((X==8) & (Y==A(X))) >= Y) == "8"
+    assert ( ((X==8) & (Y==A(X).two())) >= Y) == 16
+    assert ( ((X==8) & (Y==B(X).two())) >= Y) == 32
+    assert ( ((X==8) & (Y==A.two(A(X)))) >= Y) == 16
+
     _error = False
     try:
         pyDatalog.create_atoms('A.qsetrwxcfv')
     except Exception as e:
         e_message = e.message if hasattr(e, 'message') else e.args[0]
-        if e_message != "type object 'A' has no attribute 'qsetrwxcfv'":
+        if e_message != "'Classe' object has no attribute 'qsetrwxcfv'":
             print(e_message) 
         _error = True
     assert _error
@@ -1201,8 +1223,8 @@ if __name__ == "__main__":
         return 'Hello ' + X
     
     pyDatalog.create_atoms('hello')
-    #assert (hello('pyDatalog')) == 'Hello pyDatalog'
-    #assert((Y==hello('pyDatalog')) >= Y) == 'Hello pyDatalog'
+    assert (hello('pyDatalog')) == 'Hello pyDatalog'
+    assert((Y==hello('pyDatalog')) >= Y) == 'Hello pyDatalog'
     assert (((X=='pyDatalog') & (Y==hello(X))) >= Y) == 'Hello pyDatalog'
     assert (((X=='pyDatalog') & (Y==hello(X))) >= Y) == 'Hello pyDatalog'
     
