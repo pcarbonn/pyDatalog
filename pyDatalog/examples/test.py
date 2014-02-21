@@ -1208,6 +1208,8 @@ if __name__ == "__main__":
     assert ( ((X==8) & (Y==A(X).two())) >= Y) == 16
     assert ( ((X==8) & (Y==B(X).two())) >= Y) == 32
     assert ( ((X==8) & (Y==A.two(A(X)))) >= Y) == 16
+    + (p[8]==8)
+    assert str( ((X==8) & (Y==A(p[X]+1))) >= Y) == "9"
 
     _error = False
     try:
