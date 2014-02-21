@@ -433,7 +433,7 @@ class Operation(Expression):
         self._pyD_lhs = Expression._pyD_for(lhs) # left  hand side
         self._pyD_rhs = Expression._pyD_for(rhs)
         self._pyD_lua = pyEngine.Operation(self._pyD_lhs._pyD_lua, self._pyD_operator, self._pyD_rhs._pyD_lua)
-        self._pyD_precalculations = pre_calculations((lhs, rhs)) #TODO test for slice, len
+        self._pyD_precalculations = pre_calculations((self._pyD_lhs, self._pyD_rhs)) #TODO test for slice, len
         
     @property
     def _pyD_name(self):
