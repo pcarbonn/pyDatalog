@@ -1,7 +1,6 @@
 
 from pyDatalog import pyDatalog
 import time
-from pyDatalog import pyEngine
 
 pyDatalog.create_terms('N,N1, X,Y, X0,X1,X2,X3,X4,X5,X6,X7')
 pyDatalog.create_terms('ok,queens, next_queen, pred, pred2')
@@ -10,15 +9,13 @@ size=8
 
 # when is it ok to have a queen in row X1 and another in row X2, separated by N columns
 # this is memoized !
+queens(N, X)    <= (N>1) & queens(N-1, X[:-1]) & next_queen(N, X)
+queens(1, X)    <= (X1._in(range(size))) & (X[0]==X1)
+
+next_queen(N, X) <= (N>2) & next_queen(N-1, X[1:]) & ok(X[0], N-1, X[-1]) 
+next_queen(2, X) <= queens(1,(X1,)) & ok(X[0], 1, X1) & (X[1] == X1)
+
 ok(X1, N, X2) <= (X1 != X2) & (X1 != X2+N) & (X1 != X2-N)
-
-pred(N, N1)     <= (N > 1) & (N1 == N-1)
-queens(1, X)    <= (X1._in(range(size))) & (X1 == X[0])
-queens(N, X)    <= pred(N, N1) & queens(N1, X[:-1]) & next_queen(N, X)
-
-pred2(N, N1)     <= (N >2) & (N1 == N-1)
-next_queen(2, X) <= (X1._in(range(8))) & ok(X[0], 1, X1) & (X1 == X[1])
-next_queen(N, X) <= pred2(N, N1) & next_queen(N1, X[1:]) & ok(X[0], N1, X[-1]) 
 
 start_time = time.time()
 print(queens(size, (X0,X1,X2,X3,X4,X5,X6,X7)))
