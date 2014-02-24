@@ -357,13 +357,12 @@ class Symbol(VarSymbol):
         elif self._pyD_name == 'format_':
             return Operation(args[0], '%', args[1:])
         elif '.' in self._pyD_name: #call
-            assert not kwargs, "Sorry, key word arguments are not supported yet"
             pre_term = (VarSymbol.make_for_prefix(self._pyD_name), ) #prefixed
             if pyEngine.Pred.is_known('%s/%i' % (self._pyD_name, len(args)+1)):
-                return Literal.make(self._pyD_name, pre_term + tuple(args))
-            return Call(self._pyD_name, pre_term + tuple(args))
+                return Literal.make(self._pyD_name, pre_term + tuple(args), kwargs)
+            return Call(self._pyD_name, pre_term + tuple(args), kwargs)
         else: # create a literal
-            literal = Literal.make(self._pyD_name, tuple(args))
+            literal = Literal.make(self._pyD_name, tuple(args), kwargs)
             return literal
 
     def __getattr__(self, name):
@@ -453,23 +452,24 @@ class Literal(object):
     created by source code like 'p(a, b)'
     operator '<=' means 'is true if', and creates a Clause
     """
-    def __init__(self, predicate_name, args, prearity=None, aggregate=None):
-        self.predicate_name = predicate_name
-        self.prearity = len(args) if prearity is None else prearity
+    def __init__(self, predicate_name, args, kwargs={}, prearity=None, aggregate=None):
+        t = sorted(kwargs.items())
+        self.predicate_name = '_'.join([predicate_name]+[p[0] for p in t])
+        self.args = list(args) + [p[1] for p in t]
+        self.prearity = len(self.args) if prearity is None else prearity
         self.pre_calculations = Body()
         
-        self.args = args
         self.todo = self
         
-        cls_name = predicate_name.split('.')[0].replace('~','') if 1< len(predicate_name.split('.')) else ''
+        cls_name = self.predicate_name.split('.')[0].replace('~','') if 1< len(self.predicate_name.split('.')) else ''
         if pyEngine.Class_dict.get(cls_name, None):
-            if 2<=len(args) and not isinstance(args[1], VarSymbol) and cls_name not in [c.__name__ for c in args[1].__class__.__mro__]:
+            if 2<=len(self.args) and not isinstance(self.args[1], VarSymbol) and cls_name not in [c.__name__ for c in self.args[1].__class__.__mro__]:
                 raise TypeError("Object is incompatible with the class that is queried.") #prefixed
 
         self.terms = [] # the list of args converted to Expression
-        for arg in args:
+        for arg in self.args:
             if isinstance(arg, Literal):
-                raise util.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (predicate_name, self.terms), None, None)
+                raise util.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (self.predicate_name, self.terms), None, None)
             elif isinstance(arg, Aggregate):
                 raise util.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
             if isinstance(arg, Variable):
@@ -483,17 +483,17 @@ class Literal(object):
             
         tbl = [a._pyD_lua for a in self.terms]
         # now create the literal for the head of a clause
-        self.lua = pyEngine.Literal(predicate_name, tbl, self.prearity, aggregate)
+        self.lua = pyEngine.Literal(self.predicate_name, tbl, self.prearity, aggregate)
         # TODO check that l.pred.aggregate is empty
 
     @classmethod
-    def make(cls, predicate_name, terms, prearity=None, aggregate=None):
+    def make(cls, predicate_name, terms, kwargs={}, prearity=None, aggregate=None):
         """ factory class that creates a Query or HeadLiteral """
         precalculations = pre_calculations(terms)
         if predicate_name[-1]=='!': #pred e.g. aggregation literal
-            return precalculations & HeadLiteral(predicate_name, terms, prearity, aggregate)
+            return precalculations & HeadLiteral(predicate_name, terms, kwargs, prearity, aggregate)
         else:
-            return precalculations & Query(predicate_name, terms, prearity, aggregate)
+            return precalculations & Query(predicate_name, terms, kwargs, prearity, aggregate)
     
     @classmethod
     def make_for_comparison(cls, self, operator, other):
@@ -511,7 +511,7 @@ class Literal(object):
                 
                 # 1 create literal for queries
                 terms[-1] = (Symbol('X')) # (X, X)
-                l = Literal.make(name, terms, prearity, other)
+                l = Literal.make(name, terms, {}, prearity, other)
                 add_clause(l, l) # body will be ignored, but is needed to make the clause safe
 
                 # 2 prepare literal for the calculation. It can be used in the head only
@@ -519,8 +519,8 @@ class Literal(object):
                 del terms[-1] # --> (X,)
                 terms.extend(other.args)
                 prearity = len(terms) # (X,Y,Z)
-                return Literal.make(name + '!', terms, prearity=prearity) #pred
-            literal = Query(name, terms, prearity)
+                return Literal.make(name + '!', terms, {}, prearity=prearity) #pred
+            literal = Query(name, terms, {}, prearity)
             return self._argument_precalculations & other._pyD_precalculations & literal
         else:
             if not isinstance(other, Expression):
@@ -564,9 +564,9 @@ class Query(Literal, LazyListOfList):
     unary operator '+' means insert it as fact
     binary operator '&' means 'and', and returns a Body
     """
-    def __init__(self, predicate_name, terms, prearity=None, aggregate=None):
+    def __init__(self, predicate_name, terms, kwargs={}, prearity=None, aggregate=None):
         LazyListOfList.__init__(self)
-        Literal.__init__(self, predicate_name, terms, prearity, aggregate)
+        Literal.__init__(self, predicate_name, terms, kwargs, prearity, aggregate)
         
     def ask(self):
         self._data = Body(self.pre_calculations, self).ask()
@@ -613,8 +613,8 @@ class Query(Literal, LazyListOfList):
 
 class Call(Operation): #call
     """ represents an ambiguous A.b(X) : usually an expression, but sometimes a literal"""
-    def __init__(self, name, args):
-        self.as_literal = Query(name, args)
+    def __init__(self, name, args, kwargs):
+        self.as_literal = Query(name, args, kwargs)
         Operation.__init__(self, name, '(', args)
 
     @property
@@ -678,7 +678,7 @@ class Body(LazyListOfList):
                 for i in range(base_literal.prearity):
                     variables.update(base_literal.terms[i]._pyD_variables())
                 prearity = len(variables)
-        literal = Literal.make('_pyD_query' + str(Body.counter.next()), list(self._variables().values()), prearity=prearity)
+        literal = Literal.make('_pyD_query' + str(Body.counter.next()), list(self._variables().values()), {}, prearity=prearity)
         literal <= self
         return literal
         

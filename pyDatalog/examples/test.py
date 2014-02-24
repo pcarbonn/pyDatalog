@@ -123,6 +123,16 @@ def test():
         +tuple12( (1,(2,(4,))))
         assert ask(tuple12((1,(2,(X,))))) == set([(3,), (4,)])
         
+        +q(b=b, a=a)
+        assert ask(q(a=a, b=b)) == set([()])
+        assert ask(q(b=b, a=a)) == set([()])
+        assert ask(q_a_b(a,b)) == set([()])
+        pyDatalog.retract_fact('q_a_b', 'a', 'b')
+        assert (ask(q(b=b, a=a))) == None
+        pyDatalog.assert_fact('q_a_b', 'c', 'd')
+        assert ask(q(b=d, a=c)) == set([()])
+            
+        
     """ (in)equality                                             """
 
     @pyDatalog.program()
