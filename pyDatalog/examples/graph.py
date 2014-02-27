@@ -10,7 +10,7 @@ This file illustrates algorithms that can be used with graphs, trees, hierarchie
 
 from pyDatalog import pyDatalog
 
-pyDatalog.create_terms('link, reach, path, all_path, path_with_cost, shortest_path')
+pyDatalog.create_terms('link, can_reach, path, all_path, path_with_cost, shortest_path')
 pyDatalog.create_terms('X, Y, Z, P, P2, C, C2')
 
 +link(1,2)
