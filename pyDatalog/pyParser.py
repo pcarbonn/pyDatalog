@@ -129,18 +129,20 @@ class LazyListOfList(LazyList):
             return variable.__le__(self)
         return variable.v()
     
-    def __str__(self):
+    def __unicode__(self):
         """ pretty print the result """
-        if self.data in (True, [], [()]): return str(self._data)
+        if self.data in (True, [], [()]): return util.unicode_type(self._data)
         # get the widths of each column
-        widths = [max(len(str(x)) for x in column) for column in zip(*(self._data))]
-        widths = [max(widths[i], len(str(self.variables[i]))) for i in util.xrange(len(widths))]
+        widths = [max(len(util.unicode_type(x)) for x in column) for column in zip(*(self._data))]
+        widths = [max(widths[i], len(util.unicode_type(self.variables[i]))) for i in util.xrange(len(widths))]
         # get the formating string
         fofo = ' | '.join('%%-%ss' % widths[i] for i in util.xrange(len(widths)))
         return '\n'.join((fofo % self.variables, 
                             '-|-'.join( widths[i]*'-' for i in util.xrange(len(widths))),
                             '\n'.join(fofo % s for s in self._data)))
 
+    def __str__(self):
+        return util.cast_to_str(self.__unicode__())
 
 class Expression(object):
     """ base class for objects that can be part of an inequality, operation or slice """
@@ -241,7 +243,7 @@ class VarSymbol(Expression):
         name = True if name=='True' else False if name =='False' else name
         if isinstance(name, (list, tuple, util.xrange)):
             self._pyD_value = list(map(Expression._pyD_for, name))
-            self._pyD_name = str([element._pyD_name for element in self._pyD_value])
+            self._pyD_name = util.unicode_type([element._pyD_name for element in self._pyD_value])
             self._pyD_type = 'tuple'
             self._pyD_lua = pyEngine.Interned.of([e._pyD_lua for e in self._pyD_value])
             self._pyD_precalculations = pre_calculations(self._pyD_value)
@@ -249,7 +251,7 @@ class VarSymbol(Expression):
         or name in (True, False, None) \
         or (isinstance(name, util.string_types) and name[0] not in string.ascii_uppercase + '_' and not '.' in name):
             self._pyD_value = name
-            self._pyD_name = str(name)
+            self._pyD_name = util.unicode_type(name)
             self._pyD_type = 'constant'
             self._pyD_lua = pyEngine.Const(name)
         else:
@@ -376,7 +378,10 @@ class Symbol(VarSymbol):
         return Function(self._pyD_name, keys)
 
     def __str__(self):
-        return str(self._pyD_name)
+        return util.cast_to_str(self._pyD_name)
+    
+    def __unicode__(self):
+        return util.unicode_type(self._pyD_name)
     
     def __setitem__(self, keys, value):
         """  called when evaluating f[X] = expression """
@@ -422,8 +427,11 @@ class Function(Expression):
         """ returns an ordered dictionary of the variables in the keys of the function"""
         return self._argument_precalculations._variables()
 
+    def __unicode__(self):
+        return "%s[%s]" % (self._pyD_name.split('[')[0], ','.join(util.unicode_type(key) for key in self._pyD_keys))
+    
     def __str__(self):
-        return "%s[%s]" % (self._pyD_name.split('[')[0], ','.join(str(key) for key in self._pyD_keys))
+        return util.cast_to_str(self.__unicode__())
     
 class Operation(Expression):
     """created when evaluating an operation (+, -, *, /, //) """
@@ -436,7 +444,7 @@ class Operation(Expression):
         
     @property
     def _pyD_name(self):
-        return str(self)
+        return util.unicode_type(self)
     
     def _pyD_variables(self):
         """ returns an ordered dictionary of the variables in this Operation"""
@@ -444,9 +452,12 @@ class Operation(Expression):
         temp.update(self._pyD_rhs._pyD_variables())
         return temp
     
-    def __str__(self):
-        return '(' + str(self._pyD_lhs._pyD_name) + self._pyD_operator + str(self._pyD_rhs._pyD_name) + ')'
+    def __unicode__(self):
+        return '(' + util.unicode_type(self._pyD_lhs._pyD_name) + self._pyD_operator + util.unicode_type(self._pyD_rhs._pyD_name) + ')'
 
+    def __str__(self):
+        return util.cast_to_str(self.__unicode__())
+    
 class Literal(object):
     """
     created by source code like 'p(a, b)'
@@ -595,16 +606,16 @@ class Query(Literal, LazyListOfList):
         " literal & literal" 
         return Body(self, other)
 
-    def __str__(self):
+    def __unicode__(self):
         if Thread_storage.ProgramMode:
-            terms = list(map (str, self.terms))
-            return str(self.predicate_name) + "(" + ','.join(terms) + ")"
+            terms = list(map (util.unicode_type, self.terms))
+            return util.unicode_type(self.predicate_name) + "(" + ','.join(terms) + ")"
         else:
-            return LazyListOfList.__str__(self)
+            return LazyListOfList.__unicode__(self)
     
     def __eq__(self, other):
         if Thread_storage.ProgramMode:
-            raise util.DatalogError("Syntax error near equality: consider using brackets. %s" % str(self), None, None)
+            raise util.DatalogError("Syntax error near equality: consider using brackets. %s" % util.unicode_type(self), None, None)
         else:
             return super(Literal, self).__eq__(other)
 
@@ -662,10 +673,10 @@ class Body(LazyListOfList):
         b = Body(self, body2)
         return b if len(b.literals) != 1 else b.literals[0]
     
-    def __str__(self):
+    def __unicode__(self):
         if True: # use False for debugging of parser
-            return LazyListOfList.__str__(self)
-        return ' & '.join(list(map (str, self.literals)))
+            return LazyListOfList.__unicode__(self)
+        return ' & '.join(list(map (util.unicode_type, self.literals)))
 
     def literal(self):
         """ return a literal that can be queried to resolve the body """
@@ -678,7 +689,7 @@ class Body(LazyListOfList):
                 for i in range(base_literal.prearity):
                     variables.update(base_literal.terms[i]._pyD_variables())
                 prearity = len(variables)
-        literal = Literal.make('_pyD_query' + str(Body.counter.next()), list(self._variables().values()), {}, prearity=prearity)
+        literal = Literal.make('_pyD_query' + util.unicode_type(Body.counter.next()), list(self._variables().values()), {}, prearity=prearity)
         literal <= self
         return literal
         
@@ -1010,7 +1021,8 @@ def ask(code):
         newglobals = {}
         add_symbols(code.co_names, newglobals)
         parsed_code = eval(code, newglobals)
-        return Answer.make(parsed_code.ask())
+        a = parsed_code.ask()
+        return Answer.make(a)
 
 class Answer(object):
     """ object returned by ask() """
@@ -1035,7 +1047,8 @@ class Answer(object):
         return other == True if self.answers is True \
             else other == set(self.answers) if self.answers \
             else other is None
+            
     def __str__(self):
         return 'True' if self.answers is True \
-            else str(set(self.answers)) if self.answers is not True \
+            else util.unicode_type(set(self.answers)).encode('utf-8') if self.answers is not True \
             else 'True'

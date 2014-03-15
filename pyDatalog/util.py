@@ -51,15 +51,27 @@ class lazy_property(object):
 ###################### support for Python 2 and 3 ####################################
 # inspired by the six library
 
+DEFAULT_ENCODING = sys.getdefaultencoding()
+
+def no_code(x):
+    return x
+
+def encode(u):
+    return u.encode(DEFAULT_ENCODING, "replace")
+
 PY2 = sys.version_info[0] == 2
 
 if PY2:
     string_types = basestring,
+    unicode_type = unicode
+    cast_to_str = encode
     
     import __builtin__ as builtins
     xrange = builtins.xrange
 else:
     string_types = str,
+    unicode_type = str
+    cast_to_str = no_code
     xrange = range
 
 if PY2:
