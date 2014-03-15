@@ -1,3 +1,4 @@
+# coding=UTF-8
 """
 pyDatalog
 
@@ -35,11 +36,12 @@ def test():
     """)
     assert pyDatalog.ask('p(a)') == set([()])
     
-    pyDatalog.assert_fact('p', 'a', 'b')
-    assert pyDatalog.ask('p(a, "b")') == set([()])
-    pyDatalog.retract_fact('p', 'a', 'b')
-    assert pyDatalog.ask('p(a, "b")') == None
-    
+    pyDatalog.assert_fact('p', 'a', u'é')
+    assert pyDatalog.ask('p(a, X)') == set([(u'é',)])
+    assert pyDatalog.ask(u"p(a, u'é')") == set([()])
+    pyDatalog.retract_fact('p', 'a', u'é')
+    assert pyDatalog.ask(u'p(a, u"é")') == None
+
     """unary facts                                                            """
     
     @pyDatalog.program()
@@ -74,6 +76,9 @@ def test():
         # strings, integer, float, datetime
         + p('c')
         assert ask(p(c)) == set([()])
+        + p(u'é')
+        assert ask(p(u'é')) == set([()])
+        - p(u'é')
         
         + p(1)
         assert ask(p(1)) == set([()])
@@ -1036,13 +1041,18 @@ if __name__ == "__main__":
     
     """ In-line queries using create_atoms                    """
     
-    pyDatalog.create_atoms('p', 'Y, eq, Z')
+    pyDatalog.create_atoms('p', 'd, Y, eq, Z')
     +p('a')
+    +p(u'é')
     
     p(Y)
-    assert (Y._value() == ['a',])
-    p(Decimal(2.0))
-    assert p(Y) >= Y == Decimal(2.0)
+    assert (set(Y._value()) == set(['a',u'é']))
+    - p(u'é')
+    assert ((Y==u'é') >= Y) == u'é'
+    
+    + d(Decimal(2.0))
+    d(Y)
+    assert (d(Y) >= Y) == Decimal(2.0)
     
     X = pyDatalog.Variable()
     pyDatalog.create_atoms('X')
