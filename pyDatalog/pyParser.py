@@ -513,24 +513,11 @@ class Literal(object):
         if isinstance(other, Function) and operator == '==':
             self, other = other, self
         if isinstance(self, Function):
+            if isinstance(other, Aggregate): # p[X]==aggregate()
+                return other.make_literal_for(self, operator)
             #TODO perf : do not add pre-term for non prefixed #prefixed
             name, prearity = self._pyD_name + operator, 1+len(self._pyD_keys)
             terms = [VarSymbol.make_for_prefix(self._pyD_name)] + list(self._pyD_keys) + [other]  #prefixed
-            if isinstance(other, Aggregate): # p[X]==aggregate() # TODO create 2 literals here
-                if operator != '==':
-                    raise util.DatalogError("Aggregate operator can only be used with equality.", None, None)
-                
-                # 1 create literal for queries
-                terms[-1] = (Symbol('X')) # (X, X)
-                l = Literal.make(name, terms, {}, prearity, other)
-                add_clause(l, l) # body will be ignored, but is needed to make the clause safe
-
-                # 2 prepare literal for the calculation. It can be used in the head only
-                #TODO for speed use terms[1:], prearity-1
-                del terms[-1] # --> (X,)
-                terms.extend(other.args)
-                prearity = len(terms) # (X,Y,Z)
-                return Literal.make(name + '!', terms, {}, prearity=prearity) #pred
             literal = Query(name, terms, {}, prearity)
             return self._argument_precalculations & other._pyD_precalculations & literal
         else:
@@ -776,27 +763,43 @@ class Aggregate(object):
         """returns the arity of the aggregate function, not of the full predicate """
         return len(self.args)
 
-    def get_slices(self, result):
-        """ significant indexes in the result rows"""
-        # this cannot be determined at __init__ because the predicate keys are not known
-        # it also varies depending on the number of constants in the function keys
-        self.order_by_start = len(result[0]) - len(self.order_by) - self.sep_arity
+    def make_literal_for(self, function, operator):
+        if operator != '==':
+            raise util.DatalogError("Aggregate operator can only be used with equality.", None, None)
+
+        #TODO perf : do not add pre-term for non prefixed #prefixed
+        name, prearity = function._pyD_name + operator, 1+len(function._pyD_keys)
+        terms = [VarSymbol.make_for_prefix(function._pyD_name)] + list(function._pyD_keys) + [self]  #prefixed
+        
+        # 1 create literal for queries
+        terms[-1] = (Symbol('X')) # (X, X)
+        l = Literal.make(name, terms, {}, prearity, self)
+        add_clause(l, l) # body will be ignored, but is needed to make the clause safe
+
+        # 2 prepare literal for the calculation. It can be used in the head only
+        #TODO for speed use terms[1:], prearity-1
+        del terms[-1] # --> (X,)
+        terms.extend(self.args)
+        prearity = len(terms) # (X,Y,Z)
+        
+        self.order_by_start = prearity - len(self.order_by) - self.sep_arity
         self.for_each_start = self.order_by_start - len(self.for_each)
         self.to_add = self.for_each_start-1
         
-        self.slice_for_each = slice(self.for_each_start, self.order_by_start)
-        self.reversed_order_by = range(len(result[0])-1-self.sep_arity, self.order_by_start-1,  -1)
-        self.slice_group_by = slice(1, self.for_each_start-self.Y_arity)  #prefixed
-                 
+        self.slice_for_each = range(self.for_each_start, self.order_by_start)
+        self.reversed_order_by = range(prearity-1-self.sep_arity, self.order_by_start-1,  -1)
+        self.slice_group_by = range(1, self.for_each_start-self.Y_arity)  #prefixed
+        
+        return Literal.make(name + '!', terms, {}, prearity=prearity) #pred
+        
     def sort_result(self, result):
         """ sort result according to the aggregate argument """
-        self.get_slices(result)
         # first sort per order_by, allowing for _pyD_negated
         for i in self.reversed_order_by:
             result.sort(key=lambda literal, i=i: literal[i].id,
                 reverse = self.order_by[i-self.order_by_start]._pyD_negated)
         # then sort per group_by
-        result.sort(key=lambda literal, self=self: [id(term) for term in literal[self.slice_group_by]])
+        result.sort(key=lambda literal, self=self: [literal[i].id for i in self.slice_group_by])
         pass
     
     def key(self, result):
@@ -879,17 +882,16 @@ class Rank_aggregate(Aggregate):
     
     def key(self, result):
         """ return the grouping key of a result """
-        return list(result[self.slice_for_each])
+        return list(result[i] for i in self.slice_for_each)
     
     def sort_result(self, result):
         """ sort result according to the aggregate argument """
-        self.get_slices(result)
         # first sort per order_by, allowing for _pyD_negated
         for i in self.reversed_order_by:
             result.sort(key=lambda literal, i=i: literal[i].id,
                 reverse = self.order_by[i-self.order_by_start]._pyD_negated)
         # then sort per for_each
-        result.sort(key=lambda literal, self=self: [id(term) for term in literal[self.slice_for_each]])
+        result.sort(key=lambda literal, self=self: [literal[i].id for i in self.slice_for_each])
 
     def add(self, row):
         self._value += 1
