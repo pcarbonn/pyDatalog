@@ -791,10 +791,12 @@ def _aggregate(base_subgoal, subgoal, literal):
         for k, v in groupby(result, aggregate.key):
             aggregate.reset()
             for r in v:
-                if aggregate.add(r):
-                    break
-            k = aggregate.fact(k)
-            fact_candidate(subgoal, class0, k)
+                row = aggregate.add(r)
+                if row is not None:
+                    fact_candidate(subgoal, class0, row)
+            row = aggregate.fact(k)
+            if row is not None:
+                fact_candidate(subgoal, class0, row)
 
 def search(subgoal):
     """ 

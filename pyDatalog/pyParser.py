@@ -775,21 +775,26 @@ class Aggregate(object):
     def arity(self):
         """returns the arity of the aggregate function, not of the full predicate """
         return len(self.args)
+
+    def get_slices(self, result):
+        """ significant indexes in the result rows"""
+        # this cannot be determined at __init__ because the predicate keys are not known
+        # it also varies depending on the number of constants in the function keys
+        self.order_by_start = len(result[0]) - len(self.order_by) - self.sep_arity
+        self.for_each_start = self.order_by_start - len(self.for_each)
+        self.to_add = self.for_each_start-1
         
+        self.slice_for_each = slice(self.for_each_start, self.order_by_start)
+        self.reversed_order_by = range(len(result[0])-1-self.sep_arity, self.order_by_start-1,  -1)
+        self.slice_group_by = slice(1, self.for_each_start-self.Y_arity)  #prefixed
+                 
     def sort_result(self, result):
         """ sort result according to the aggregate argument """
-        # significant indexes in the result rows
-        order_by_start = len(result[0]) - len(self.order_by) - self.sep_arity
-        for_each_start = order_by_start - len(self.for_each)
-        self.to_add = for_each_start-1
-        
-        self.slice_for_each = slice(for_each_start, order_by_start)
-        self.reversed_order_by = range(len(result[0])-1-self.sep_arity, order_by_start-1,  -1)
-        self.slice_group_by = slice(1, for_each_start-self.Y_arity)  #prefixed
+        self.get_slices(result)
         # first sort per order_by, allowing for _pyD_negated
         for i in self.reversed_order_by:
             result.sort(key=lambda literal, i=i: literal[i].id,
-                reverse = self.order_by[i-order_by_start]._pyD_negated)
+                reverse = self.order_by[i-self.order_by_start]._pyD_negated)
         # then sort per group_by
         result.sort(key=lambda literal, self=self: [id(term) for term in literal[self.slice_group_by]])
         pass
@@ -870,32 +875,37 @@ class Max_aggregate(Min_aggregate):
 
 class Rank_aggregate(Aggregate):
     """ represents rank_(for_each=Z, order_by=T)"""
-    required_kw = ('for_each', 'order_by')
+    required_kw = ('order_by',)
     
-    def reset(self):
-        self.count = 0
-        self._value = None
+    def key(self, result):
+        """ return the grouping key of a result """
+        return list(result[self.slice_for_each])
+    
+    def sort_result(self, result):
+        """ sort result according to the aggregate argument """
+        self.get_slices(result)
+        # first sort per order_by, allowing for _pyD_negated
+        for i in self.reversed_order_by:
+            result.sort(key=lambda literal, i=i: literal[i].id,
+                reverse = self.order_by[i-self.order_by_start]._pyD_negated)
+        # then sort per for_each
+        result.sort(key=lambda literal, self=self: [id(term) for term in literal[self.slice_for_each]])
 
     def add(self, row):
-        # retain the value if (X,) == (Z,)
-        if row[self.slice_group_by] == row[self.slice_for_each]:
-            self._value = [row[0],] + list(row[self.slice_group_by]) + [pyEngine.Const(self.count),] #prefixed
-            return self._value
-        self.count += 1
+        self._value += 1
+        return list(row[:len(row)-self.arity]) + [pyEngine.Const(self._value-1)] #TODO
         
     def fact(self, k):
-        return self._value
+        return None
 
 class Running_sum(Rank_aggregate):
     """ represents running_sum(Y, for_each=Z, order_by=T"""
     required_kw = ('Y', 'for_each', 'order_by')
     
-    def add(self,row):
-        self.count += row[self.to_add].id # TODO
-        if row[1:self.to_add] == row[self.slice_for_each]: #prefixed
-            self._value = list(row[:self.to_add]) + [pyEngine.Const(self.count),]
-            return self._value
-
+    def add(self, row):
+        self._value += row[self.to_add].id
+        return list(row[:len(row)-self.arity]) + [pyEngine.Const(self._value)] #TODO
+        
         
 """                             Parser methods                                                   """
 
