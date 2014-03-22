@@ -618,7 +618,7 @@ def test():
         assert ask(a_rank[a,X]==0) == set([('b',), ('c',)])
         assert ask(a_rank[a,X]==Y) == set([('b', 0), ('c', 0)])
         assert ask(a_rank[X,Y]==1) == None
-
+        """
         # reversed
         (b_rank[X,Y] == rank(for_each=(X,Y2), order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
         assert ask(b_rank[X,Y]==Z) == set([('a', 'b', 0), ('a', 'c', 1), ('b', 'b', 0)])
@@ -628,7 +628,8 @@ def test():
         assert ask(b_rank[a,X]==Y) == set([('b', 0), ('c', 1)])
         assert ask(b_rank[X,Y]==0) == set([('a', 'b'), ('b', 'b')])
         assert ask(b_rank[a,y]==Y) == None
-
+        """
+        
     @pyDatalog.program()
     def running_sum(): 
         +movement('Account1', 'date1', 10)
@@ -662,6 +663,7 @@ def test():
         assert ask(a_run_sum[X,Y]==6) == set([('b', 'b')])
         assert ask(a_run_sum[a,y]==Y) == None
 
+        """
         (b_run_sum[X,Y] == running_sum(Z, for_each=(X,Y2), order_by=-Z)) <= q(X, Y, Z) & q(X,Y2,Z)
         assert ask(b_run_sum[X,Y]==Z) == set([('a', 'b', 2), ('a', 'c', 1), ('b', 'b', 4)])
         assert ask(b_run_sum[a,b]==2) == set([()])
@@ -670,6 +672,7 @@ def test():
         assert ask(b_run_sum[a,X]==Y) == set([('b', 2), ('c', 1)])
         assert ask(b_run_sum[X,Y]==4) == set([('b', 'b')])
         assert ask(b_run_sum[a,y]==Y) == None
+        """
 
     """ simple in-line queries                                        """
     X = pyDatalog.Variable()
@@ -968,7 +971,6 @@ def test():
     assert_error("ask((Z.b[X]=='wa') & (X.b[1]<Y))", 'Error: right hand side of comparison must be bound: ') 
     assert_ask("A.u[X]==Y", "Predicate without definition \(or error in resolver\): A.u\[1\]==/3")
     assert_ask("A.u[X,Y]==Z", "Predicate without definition \(or error in resolver\): A.u\[2\]==/4")
-    assert_error('(a_sum[X] == sum(Y, key=Y)) <= p(X, Z, Y)', "Error: Duplicate definition of aggregate function.")
     assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
     assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')
     assert_error("p(X) <= (X=={})", "") # error message is different in pypy
