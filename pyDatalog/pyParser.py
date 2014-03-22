@@ -405,17 +405,13 @@ class Symbol(VarSymbol):
 class Function(Expression):
     """ represents predicate[a, b]"""
     counter = util.Counter() # counter of functions evaluated so far
-    @classmethod
-    def newSymbol(cls):
-        """ returns a new unique Symbol associated to a Function """
-        return Symbol('_pyD_X%i' % Function.counter.next())
         
     def __init__(self, name, keys):
         self._pyD_keys = keys if isinstance(keys, tuple) else (keys,)
         self._pyD_name = "%s[%i]" % (name, len(self._pyD_keys))
         self._argument_precalculations = pre_calculations(self._pyD_keys)
                 
-        self._pyD_symbol = Function.newSymbol()
+        self._pyD_symbol = Symbol('_pyD_X%i' % Function.counter.next())
         self._pyD_lua = self._pyD_symbol._pyD_lua
         self._pyD_precalculations = self._argument_precalculations & (self == self._pyD_symbol)
     
@@ -501,7 +497,7 @@ class Literal(object):
     def make(cls, predicate_name, terms, kwargs={}, prearity=None, aggregate=None):
         """ factory class that creates a Query or HeadLiteral """
         precalculations = pre_calculations(terms)
-        if predicate_name[-1]=='!': #pred e.g. aggregation literal
+        if '!' in predicate_name: #pred e.g. aggregation literal
             return precalculations & HeadLiteral(predicate_name, terms, kwargs, prearity, aggregate)
         else:
             return precalculations & Query(predicate_name, terms, kwargs, prearity, aggregate)
@@ -721,12 +717,15 @@ def add_clause(head,body):
 
 ##################################### Aggregation #####################################
     
+from itertools import groupby
+
 class Aggregate(object):
     """ 
     represents a generic aggregation_method(X, for_each=Y, order_by=Z, sep=sep)
     e.g. 'sum(Y,key=Z)' in '(a[X]==sum(Y,key=Z))'
     pyEngine calls sort_result(), key(), reset(), add() and fact() to compute the aggregate
     """
+    counter = util.Counter()
     
     def __init__(self, Y=None, for_each=tuple(), order_by=tuple(), sep=None):
         # convert for_each=Z to for_each=(Z,)
@@ -767,44 +766,74 @@ class Aggregate(object):
         if operator != '==':
             raise util.DatalogError("Aggregate operator can only be used with equality.", None, None)
 
+        name = function._pyD_name + operator
+        result = function._pyD_symbol
         #TODO perf : do not add pre-term for non prefixed #prefixed
-        name, prearity = function._pyD_name + operator, 1+len(function._pyD_keys)
-        terms = [VarSymbol.make_for_prefix(function._pyD_name)] + list(function._pyD_keys) + [self]  #prefixed
+        terms = [VarSymbol.make_for_prefix(function._pyD_name)] + list(function._pyD_keys) + [result]  #prefixed
+        self.index_first_arg = len(terms)-1 # position of the value to add
         
-        # 1 create literal for queries
-        terms[-1] = (Symbol('X')) # (X, X)
-        l = Literal.make(name, terms, {}, prearity, self)
-        add_clause(l, l) # body will be ignored, but is needed to make the clause safe
+        # 1 create literal that can be queried
+        head = Literal.make(name, terms, {}, prearity=len(terms)-1)
 
-        # 2 prepare literal for the calculation. It can be used in the head only
-        #TODO for speed use terms[1:], prearity-1
-        del terms[-1] # --> (X,)
-        terms.extend(self.args)
-        prearity = len(terms) # (X,Y,Z)
+        # 2 create clause to resolve it
         
-        self.order_by_start = prearity - len(self.order_by) - self.sep_arity
-        self.for_each_start = self.order_by_start - len(self.for_each)
-        self.to_add = self.for_each_start-1
+        terms[-1:-1] = self.args # insert the aggregate arguments before the result
+
+        # determine list of variables, without duplication
+        variables, new_terms = {}, [] 
+        for variable in terms:
+            if isinstance(variable, VarSymbol) and variable._pyD_name not in variables:
+                variables[variable._pyD_name] = len(new_terms)
+                new_terms.append(variable)
+                
+        new_name = name + '!' + str(Aggregate.counter.next())
+        body = Literal.make(new_name, new_terms, {}, aggregate=self) #pred
+        add_clause(head, body)
+                
+        self.index_value = variables[self.Y._pyD_name] if self.Y is not None else None
+        self.slice_for_each = [variables[variable._pyD_name] for variable in self.for_each]
+        self.reversed_order_by = [variables[variable._pyD_name] for variable in self.order_by][::-1]
+        self.reverse_order = [variable._pyD_negated for variable in new_terms[:-1]]
+        self.slice_group_by = [variables[variable._pyD_name] for variable in function._pyD_keys]
         
-        self.slice_for_each = range(self.for_each_start, self.order_by_start)
-        self.reversed_order_by = range(prearity-1-self.sep_arity, self.order_by_start-1,  -1)
-        self.slice_group_by = range(1, self.for_each_start-self.Y_arity)  #prefixed
+        # return a literal without the result
+        new_literal = Literal.make(new_name, new_terms[:-1], {})
+        return new_literal
         
-        return Literal.make(name + '!', terms, {}, prearity=prearity) #pred
+    def fact_candidate(self, subgoal, row):
+        if row is not None:
+            class0 = subgoal.literal.pred._class()
+            row[self.index_first_arg:-1] = [""] * (len(row)-self.index_first_arg-1)
+            pyEngine.fact_candidate(subgoal, class0, row)
+
+    def complete(self, base_subgoal, subgoal):
+        """ calculate the aggregate after base facts have been found """
+        #TODO avoid intermediate result
+        
+        result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
+        if result:
+            self.sort_result(result)
+            for _, v in groupby(result, self.key):
+                self.reset()
+                for r in v:
+                    row = self.add(r)
+                    self.fact_candidate(subgoal, row)
+                row = self.fact(r)
+                self.fact_candidate(subgoal, row)
         
     def sort_result(self, result):
         """ sort result according to the aggregate argument """
         # first sort per order_by, allowing for _pyD_negated
         for i in self.reversed_order_by:
-            result.sort(key=lambda literal, i=i: literal[i].id,
-                reverse = self.order_by[i-self.order_by_start]._pyD_negated)
+            result.sort(key=lambda literal, i=i, self=self: literal[i].id,
+                reverse = self.reverse_order[i])
         # then sort per group_by
         result.sort(key=lambda literal, self=self: [literal[i].id for i in self.slice_group_by])
         pass
     
     def key(self, result):
         """ return the grouping key of a result """
-        return list(result[:len(result)-self.arity])
+        return list(result[i] for i in self.slice_group_by)
     
     def reset(self):
         """ by default, _value is 0 """
@@ -815,16 +844,16 @@ class Aggregate(object):
         """ by default, value is _value"""
         return self._value
     
-    def fact(self, key):
+    def fact(self, row):
         """ returns the terms of an aggregated fact"""
-        return key + [pyEngine.Const(self.value)]
+        return list(row) + [self.value]
        
 class Sum_aggregate(Aggregate):
     """ represents sum_(Y, for_each=(Z,T))"""
     required_kw = ('Y', 'for_each')
 
     def add(self, row):
-        self._value += row[-self.arity].id
+        self._value += row[self.index_value].id
         
 class Len_aggregate(Aggregate, Operation):
     """ represents len_(X) : a simple or aggregate operation"""
@@ -845,7 +874,7 @@ class Tuple(Aggregate):
         self._value = []
         
     def add(self, row):
-        self._value.append(row[-self.arity].id)
+        self._value.append(row[self.index_value].id)
         
     @property
     def value(self):
@@ -867,7 +896,7 @@ class Min_aggregate(Aggregate):
         self._value = None
         
     def add(self, row):
-        self._value = row[-self.arity].id if self._value is None else self._value
+        self._value = row[self.index_value].id if self._value is None else self._value
 
 class Max_aggregate(Min_aggregate):
     """ represents max_(Y, order_by=(Z,T))"""
@@ -888,14 +917,14 @@ class Rank_aggregate(Aggregate):
         """ sort result according to the aggregate argument """
         # first sort per order_by, allowing for _pyD_negated
         for i in self.reversed_order_by:
-            result.sort(key=lambda literal, i=i: literal[i].id,
-                reverse = self.order_by[i-self.order_by_start]._pyD_negated)
+            result.sort(key=lambda literal, i=i, self=self: literal[i].id,
+                reverse = self.reverse_order[i])
         # then sort per for_each
         result.sort(key=lambda literal, self=self: [literal[i].id for i in self.slice_for_each])
 
     def add(self, row):
         self._value += 1
-        return list(row[:len(row)-self.arity]) + [pyEngine.Const(self._value-1)] #TODO
+        return list(row) + [self._value-1]
         
     def fact(self, k):
         return None
@@ -905,8 +934,8 @@ class Running_sum(Rank_aggregate):
     required_kw = ('Y', 'for_each', 'order_by')
     
     def add(self, row):
-        self._value += row[self.to_add].id
-        return list(row[:len(row)-self.arity]) + [pyEngine.Const(self._value)] #TODO
+        self._value += row[self.index_value].id
+        return list(row) + [self._value] #TODO
         
         
 """                             Parser methods                                                   """

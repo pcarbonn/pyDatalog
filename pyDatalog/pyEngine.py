@@ -38,7 +38,6 @@ Some notable differences between python and lua:
 from collections import OrderedDict
 from decimal import Decimal
 import gc
-from itertools import groupby
 import logging
 import re
 import threading
@@ -331,7 +330,7 @@ class Pred(Interned):
     """ A predicate symbol has a name, an arity, and a database table.  
         It can also have a function used to implement a primitive."""
     lock = threading.RLock()
-    def __new__(cls, pred_name, arity, aggregate=None):
+    def __new__(cls, pred_name, arity):
         assert isinstance(pred_name, util.string_types)
         _id = '%s/%i' % (pred_name, arity)
         with Pred.lock:
@@ -353,9 +352,7 @@ class Pred(Interned):
                 o.index = [{} for i in range(int(o.arity))]
                 o.prim = None
                 o.expression = None
-                o.aggregate = aggregate
                 Logic.tl.logic.Pred_registry[_id] = o
-        if aggregate: o.aggregate = aggregate
         return o
     
     @classmethod
@@ -389,11 +386,12 @@ class Literal(object):
     """ A literal is a predicate and a sequence of terms, 
         the number of which must match the predicate's arity.
     """
-    __slots__ = ['terms', 'pred', 'id', 'key', 'tag']
+    __slots__ = ['terms', 'pred', 'id', 'key', 'tag', 'aggregate']
     def __init__(self, pred, terms, prearity=None, aggregate=None):
         self.terms = terms
+        self.aggregate = aggregate
         if isinstance(pred, util.string_types):
-            self.pred = Pred(pred, len(terms), aggregate)
+            self.pred = Pred(pred, len(terms))
             self.pred.prearity = len(terms) if prearity is None else prearity
             if pred.startswith('~'): #pred
                 self.pred.base_pred = Pred(pred[1:], len(terms))
@@ -405,7 +403,7 @@ class Literal(object):
     def _renamed(self, new_name):
         _id = '%s/%i' % (new_name, len(self.terms))
         pred= Logic.tl.logic.Pred_registry.get(_id, new_name)
-        return Literal(pred, list(self.terms), prearity=self.pred.prearity)
+        return Literal(pred, list(self.terms), prearity=self.pred.prearity, aggregate=self.aggregate)
         
     def rebased(self, parent_class): 
         """ returns a literal prefixed by parent class """
@@ -450,7 +448,7 @@ def get_tag(literal): #id
 
 def subst(literal, env): #unify
     if not env: return literal
-    return Literal(literal.pred, [term.subst(env) for term in literal.terms])
+    return Literal(literal.pred, [term.subst(env) for term in literal.terms], aggregate=literal.aggregate)
 
 
 def shuffle(literal, env): #shuffle
@@ -532,8 +530,6 @@ def assert_(clause):
     id_ = get_clause_id(clause)
 
     if not pred.prim:                   # Ignore assertions for primitives.
-        if pred.aggregate and id_ in pred.db:
-            raise util.DatalogError("Error: Duplicate definition of aggregate function.", None, None)
         retract(clause) # to ensure unicity of functions
         pred.db[id_] = clause
         if not clause.body: # if it is a fact, update indexes
@@ -780,24 +776,6 @@ def _(self):
         yield None
 Pred.parent_classes = _
 
-def _aggregate(base_subgoal, subgoal, literal):
-    """ calculate the aggregate after base facts have been found """
-    #TODO avoid intermediate result
-    result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
-    if result:
-        class0 = subgoal.literal.pred._class()
-        aggregate = literal.pred.aggregate
-        aggregate.sort_result(result)
-        for k, v in groupby(result, aggregate.key):
-            aggregate.reset()
-            for r in v:
-                row = aggregate.add(r)
-                if row is not None:
-                    fact_candidate(subgoal, class0, row)
-            row = aggregate.fact(k)
-            if row is not None:
-                fact_candidate(subgoal, class0, row)
-
 def search(subgoal):
     """ 
     Search for derivations of the literal associated with this subgoal 
@@ -837,7 +815,7 @@ def search(subgoal):
                     fact_candidate(subgoal, class0, result)
                 return
         if _class: 
-             # TODO add special method for custom comparison
+            # TODO add special method for custom comparison
             method_name = '_pyD_%s%i' % (literal.pred.suffix, int(literal.pred.arity - 1)) #prefixed
             if literal.pred.suffix and method_name in _class.__dict__:
                 if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
@@ -856,18 +834,13 @@ def search(subgoal):
         if literal.pred.prim: # X==Y, X < Y+Z
             if Logging : logging.debug("pyDatalog uses comparison primitive for %s" % literal)
             return literal.pred.prim(literal, subgoal)
-        elif literal.pred.aggregate:
+        elif literal.aggregate:
             if Logging : logging.debug("pyDatalog uses aggregate primitive for %s" % literal)
-            aggregate = literal.pred.aggregate
-            base_terms = list(terms)
-            del base_terms[-1]
-            base_terms.extend([ Var('V%i' % i) for i in range(aggregate.arity)])
-            base_literal = Literal(literal.pred.name + '!', base_terms) #pred
-    
+            base_literal = Literal(literal.pred.name, list(terms[:-1])) # without aggregate to avoid infinite loop
             base_subgoal = Subgoal(base_literal)
             complete(base_subgoal,
-                    lambda base_subgoal=base_subgoal, subgoal=subgoal, literal=literal:
-                        _aggregate(base_subgoal, subgoal, literal))
+                    lambda base_subgoal=base_subgoal, subgoal=subgoal, aggregate=literal.aggregate:
+                        aggregate.complete(base_subgoal, subgoal))
             return
         elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
             for clause in relevant_clauses(literal):
