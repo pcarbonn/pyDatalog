@@ -1,3 +1,4 @@
+ï»¿# coding=UTF-8
 """
 pyDatalog
 
@@ -126,19 +127,19 @@ in original source code :
     (f[Key]==aggregate(Value, for_each=For_each, order_by=Order_by)) <= q(Key, Value, For_each, Order_by)
 
 in knowledge base :
-    (f[Key]==_pyD_X1) <= f!1°(Key, Value, Group_by, For_each, Order_by, _pyD_X1)
-        where f!1° is a literal with aggregate attribute
+    (f[Key]==_pyD_X1) <= f!1Â°(Key, Value, Group_by, For_each, Order_by, _pyD_X1)
+        where f!1Â° is a literal with aggregate attribute
               whose argument list has no repetition of variables
     f!1(Key, Value, Group_by, For_each, Order_by) <= q(Key, Value, Group_by, For_each, Order_by)
         where the argument list of f!1 has no repetition of variables
 
-resolution algorithm for f!1°:
+resolution algorithm for f!1Â°:
     drop the last term
     variabilize Key that are not in Group_by (for rank, running_sum aggregation)
     find all f!(Key, Value, Group_by, For_each, Order_by)
     group by Group_by
     sort by Order_by
     apply aggregate 
-    return f!°(Key, "", "", "", "", _pyD_X1) solutions
+    return f!Â°(Key, "", "", "", "", _pyD_X1) solutions
 
 """

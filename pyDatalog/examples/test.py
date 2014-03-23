@@ -20,12 +20,22 @@ Foundation, Inc.  51 Franklin St, Fifth Floor, Boston, MA 02110-1301
 USA
 
 """
+
 import cProfile
 from decimal import Decimal
 import math
 import re
 import sys
 import datetime
+
+import sys
+if sys.version < '3':
+    import codecs
+    def u(x):
+        return codecs.unicode_escape_decode(x)[0]
+else:
+    def u(x):
+        return x
 
 from pyDatalog import pyDatalog
 def test():
@@ -36,12 +46,15 @@ def test():
     """)
     assert pyDatalog.ask('p(a)') == set([()])
     
-    pyDatalog.assert_fact('p', 'a', u'é')
-    assert pyDatalog.ask('p(a, X)') == set([(u'é',)])
-    assert pyDatalog.ask(u"p(a, u'é')") == set([()])
-    pyDatalog.retract_fact('p', 'a', u'é')
-    assert pyDatalog.ask(u'p(a, u"é")') == None
-
+    @pyDatalog.program()
+    def unicode_(): 
+        +p(a, u('\xf6'))
+        assert ask(p(X,Y)) == set([('a', u('\xf6'))])
+        assert ask(p(a, X)) == set([(u('\xf6'),)])
+        assert ask(p(a, u('\xf6'))) == set([()])
+        -p(a, u('\xf6'))
+        assert ask(p(a, u('\xf6'))) == None
+        
     """unary facts                                                            """
     
     @pyDatalog.program()
@@ -76,9 +89,6 @@ def test():
         # strings, integer, float, datetime
         + p('c')
         assert ask(p(c)) == set([()])
-        + p(u'é')
-        assert ask(p(u'é')) == set([()])
-        - p(u'é')
         
         + p(1)
         assert ask(p(1)) == set([()])
@@ -1065,12 +1075,12 @@ if __name__ == "__main__":
     
     pyDatalog.create_atoms('p', 'd, Y, eq, Z')
     +p('a')
-    +p(u'é')
+    +p(u('\xf6'))
     
     p(Y)
-    assert (set(Y._value()) == set(['a',u'é']))
-    - p(u'é')
-    assert ((Y==u'é') >= Y) == u'é'
+    assert (set(Y._value()) == set(['a',u('\xf6')]))
+    - p(u('\xf6'))
+    assert ((Y==u('\xf6')) >= Y) == u('\xf6')
     
     + d(Decimal(2.0))
     d(Y)
