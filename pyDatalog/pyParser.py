@@ -800,6 +800,8 @@ class Aggregate(object):
             self.slice_group_by = [variables[variable._pyD_name] for variable in self.group_by]
         else:
             self.slice_group_by = [variables[variable._pyD_name] for variable in function._pyD_keys]
+        self.slice_to_variabilize = [variables[variable._pyD_name] for variable in function._pyD_keys 
+                                     if variables[variable._pyD_name] not in self.slice_group_by]
         
         # return a literal without the result
         new_literal = Literal.make(new_name, new_terms[:-1], {})

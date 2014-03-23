@@ -836,7 +836,10 @@ def search(subgoal):
             return literal.pred.prim(literal, subgoal)
         elif literal.aggregate:
             if Logging : logging.debug("pyDatalog uses aggregate primitive for %s" % literal)
-            base_literal = Literal(literal.pred.name, list(terms[:-1])) # without aggregate to avoid infinite loop
+            base_terms = list(terms[:-1])
+            for i in literal.aggregate.slice_to_variabilize:
+                base_terms[i] = Fresh_var()
+            base_literal = Literal(literal.pred.name, base_terms) # without aggregate to avoid infinite loop
             base_subgoal = Subgoal(base_literal)
             complete(base_subgoal,
                     lambda base_subgoal=base_subgoal, subgoal=subgoal, aggregate=literal.aggregate:
