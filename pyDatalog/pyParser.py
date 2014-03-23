@@ -278,7 +278,7 @@ class VarSymbol(Expression):
         neg._pyD_negated = True
 
         expr = 0 - self
-        expr.variable = neg
+        expr._pyD_variable = neg
         return expr
     
     def _pyD_variables(self):
@@ -735,14 +735,12 @@ class Aggregate(object):
         self.order_by = (order_by,) if isinstance(order_by, Expression) else tuple(order_by)
         
         # try to recast expressions to variables
-        self.group_by = tuple([e.__dict__.get('variable', e) for e in self.group_by]) 
-        self.for_each = tuple([e.__dict__.get('variable', e) for e in self.for_each]) 
-        self.order_by = tuple([e.__dict__.get('variable', e) for e in self.order_by])
+        self.group_by = tuple([e.__dict__.get('_pyD_variable', e) for e in self.group_by]) 
+        self.for_each = tuple([e.__dict__.get('_pyD_variable', e) for e in self.for_each]) 
+        self.order_by = tuple([e.__dict__.get('_pyD_variable', e) for e in self.order_by])
         
-        if not all([isinstance(e, VarSymbol) for e in self.for_each]):
-            raise util.DatalogError("for_each argument of aggregate must be variable(s).", None, None)
-        if not all([isinstance(e, VarSymbol) for e in self.order_by]):
-            raise util.DatalogError("order_by argument of aggregate must be variable(s).", None, None)
+        if not all([isinstance(e, VarSymbol) for e in self.group_by + self.for_each + self.order_by]):
+            raise util.DatalogError("Arguments of aggregate must be variable(s).", None, None)
         
         if sep and not isinstance(sep, util.string_types):
             raise util.DatalogError("Separator in aggregation must be a string", None, None)
@@ -799,9 +797,11 @@ class Aggregate(object):
         if isinstance(self, Rank_aggregate): # can't use required_kw because rank does not require group_by
             self.slice_group_by = [variables[variable._pyD_name] for variable in self.group_by]
         else:
-            self.slice_group_by = [variables[variable._pyD_name] for variable in function._pyD_keys]
+            self.slice_group_by = [variables[Expression._pyD_for(variable)._pyD_name] 
+                                   for variable in function._pyD_keys if isinstance(variable, VarSymbol)]
         self.slice_to_variabilize = [variables[variable._pyD_name] for variable in function._pyD_keys 
-                                     if variables[variable._pyD_name] not in self.slice_group_by]
+                                     if isinstance(variable, VarSymbol) 
+                                     and variables[variable._pyD_name] not in self.slice_group_by]
         
         # return a literal without the result
         new_literal = Literal.make(new_name, new_terms[:-1], {})
