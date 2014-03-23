@@ -586,8 +586,8 @@ def test():
         (a_min3[Y] == min(Z, key=(-X,Z))) <= q(X, Y, Z)
         assert ask(a_min3[b]==Y) == set([(4,)]), "a_min3"
         
-        (a_min1[1] == min(Z, order_by=(Z))) <= q(X, Y, Z)
-        assert ask(a_min1[1]==Y) == set([(1,)])
+        (a_min1[1] == min(X, order_by=(Z))) <= q(X, Y, Z)
+        assert ask(a_min1[1]==Y) == set([('a',)])
         
     @pyDatalog.program()
     def max(): 
