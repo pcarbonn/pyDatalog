@@ -1085,5 +1085,5 @@ class Answer(object):
             
     def __str__(self):
         return 'True' if self.answers is True \
-            else util.unicode_type(set(self.answers)).encode('utf-8') if self.answers is not True \
+            else util.cast_to_str(util.unicode_type(set(self.answers))) if self.answers is not True \
             else 'True'
