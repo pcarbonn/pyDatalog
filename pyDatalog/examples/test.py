@@ -593,7 +593,7 @@ def test():
         
         (place[Person]==rank(order_by=Score)) <= score(Person, Score)
         assert ask(place[Person]==Rank) == set([('Superman', 2),('Tom', 0),('Jerry', 1)])
-        #print ask(place['Jerry']==Rank) # TODO
+        assert ask(place['Jerry']==Rank) == set([(1,)])
         assert ask(place[Person]==1) == set([('Jerry',)])
 
         (a_rank1[Z] == rank(group_by=Z, order_by=Z)) <= q(X, Y, Z)
@@ -605,7 +605,7 @@ def test():
 
         (a_rank2[X,Y] == rank(order_by=Z)) <= q(X, Y, Z)
         assert ask(a_rank2[X,Y]==Z) == set([('a','c', 0), ('a','b', 1), ('b', 'b', 2)])
-        assert ask(a_rank2[X,Y]==1) #TODO== set([(a,b)])
+        assert ask(a_rank2[X,Y]==1) == set([('a','b')])
         assert ask(a_rank2[a,Y]==Z) == set([('c',0),('b',1)])
         assert ask(a_rank2[a,Y]==1) == set([('b',)])
         assert ask(a_rank2[a,Y]==0) == set([('c',)])
@@ -643,7 +643,7 @@ def test():
         
         assert ask(balance[Account, Date]==Amount) == set([('Account1', 'date1', 10),('Account1', 'date2', 2),('Account1', 'date3', 0),('Account2', 'date1', 10),('Account2', 'date2', 5)])
         assert ask(balance['Account1', Date]==Amount) == set([('date1', 10), ('date2', 2), ('date3', 0)])
-        #TODO assert ask(balance[Account, 'date2']==Amount) #TODO !
+        assert ask(balance[Account, 'date2']==Amount) == set([('Account1', 2), ('Account2', 5)])
         assert ask(balance[Account, Date]==0) == set([('Account1', 'date3')])
 
         (a_run_sum1[Z] == running_sum(Z, group_by=Z, order_by=Z)) <= q(X, Y, Z)
@@ -656,10 +656,10 @@ def test():
         # running_sum
         (a_run_sum[X,Y] == running_sum(Z, group_by=(Y), order_by=Z2)) <= q(X, Y, Z) & q(X,Y,Z2)
         assert ask(a_run_sum[X,Y]==Z) == set([('a', 'b', 2), ('a', 'c', 1), ('b', 'b', 6)])
-        #assert ask(a_run_sum[b,b]==6) == set([()])
-        #assert ask(a_run_sum[b,b]==Y) == set([(6,)])
+        assert ask(a_run_sum[b,b]==6) == set([()])
+        assert ask(a_run_sum[b,b]==Y) == set([(6,)])
         assert ask(a_run_sum[X,b]==Z) == set([('a',2),('b',6)])
-        #assert ask(a_run_sum[a,X]==Y) == set([('b', 3), ('c', 1)])
+        assert ask(a_run_sum[a,X]==Y) == set([('b', 2), ('c', 1)])
         assert ask(a_run_sum[X,Y]==6) == set([('b', 'b')])
         assert ask(a_run_sum[a,y]==Y) == None
 
