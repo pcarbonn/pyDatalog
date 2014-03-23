@@ -344,9 +344,9 @@ class Symbol(VarSymbol):
             else:
                 return max(args)
         elif self._pyD_name in ('rank', 'rank_'):
-            return Rank_aggregate(None, for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
+            return Rank_aggregate(None, group_by=kwargs.get('group_by', []), order_by=kwargs.get('order_by', []))
         elif self._pyD_name in ('running_sum', 'running_sum_'):
-            return Running_sum(args[0], for_each=kwargs.get('for_each', []), order_by=kwargs.get('order_by', []))
+            return Running_sum(args[0], group_by=kwargs.get('group_by', []), order_by=kwargs.get('order_by', []))
         elif self._pyD_name == 'tuple_':
             return Tuple(args[0], order_by=kwargs.get('order_by', []))
         elif self._pyD_name in ('_len', 'len_'):
@@ -727,13 +727,15 @@ class Aggregate(object):
     """
     counter = util.Counter()
     
-    def __init__(self, Y=None, for_each=tuple(), order_by=tuple(), sep=None):
+    def __init__(self, Y=None, group_by=tuple(), for_each=tuple(), order_by=tuple(), sep=None):
         # convert for_each=Z to for_each=(Z,)
         self.Y = Y
+        self.group_by = (group_by,) if isinstance(group_by, Expression) else tuple(group_by)
         self.for_each = (for_each,) if isinstance(for_each, Expression) else tuple(for_each)
         self.order_by = (order_by,) if isinstance(order_by, Expression) else tuple(order_by)
         
         # try to recast expressions to variables
+        self.group_by = tuple([e.__dict__.get('variable', e) for e in self.group_by]) 
         self.for_each = tuple([e.__dict__.get('variable', e) for e in self.for_each]) 
         self.order_by = tuple([e.__dict__.get('variable', e) for e in self.order_by])
         
@@ -753,7 +755,7 @@ class Aggregate(object):
                 raise util.DatalogError("Error: argument missing in aggregate", None, None)
         
         # used to create literal.
-        self.args = ((Y,) if Y is not None else tuple()) + self.for_each + self.order_by + ((sep,) if sep is not None else tuple())
+        self.args = ((Y,) if Y is not None else tuple()) + self.group_by + self.for_each + self.order_by + ((sep,) if sep is not None else tuple())
         self.Y_arity = 1 if Y is not None else 0
         self.sep_arity = 1 if sep is not None else 0
         
@@ -794,7 +796,10 @@ class Aggregate(object):
         self.slice_for_each = [variables[variable._pyD_name] for variable in self.for_each]
         self.reversed_order_by = [variables[variable._pyD_name] for variable in self.order_by][::-1]
         self.reverse_order = [variable._pyD_negated for variable in new_terms[:-1]]
-        self.slice_group_by = [variables[variable._pyD_name] for variable in function._pyD_keys]
+        if isinstance(self, Rank_aggregate): # can't use required_kw because rank does not require group_by
+            self.slice_group_by = [variables[variable._pyD_name] for variable in self.group_by]
+        else:
+            self.slice_group_by = [variables[variable._pyD_name] for variable in function._pyD_keys]
         
         # return a literal without the result
         new_literal = Literal.make(new_name, new_terms[:-1], {})
@@ -828,7 +833,7 @@ class Aggregate(object):
             result.sort(key=lambda literal, i=i, self=self: literal[i].id,
                 reverse = self.reverse_order[i])
         # then sort per group_by
-        result.sort(key=lambda literal, self=self: [literal[i].id for i in self.slice_group_by])
+        result.sort(key=lambda literal, self=self: [id(literal[i]) for i in self.slice_group_by]) # faster than .id; ok for group_by
         pass
     
     def key(self, result):
@@ -906,22 +911,9 @@ class Max_aggregate(Min_aggregate):
             a._pyD_negated = not(a._pyD_negated)
 
 class Rank_aggregate(Aggregate):
-    """ represents rank_(for_each=Z, order_by=T)"""
+    """ represents rank_(group_by=Z, order_by=T)"""
     required_kw = ('order_by',)
     
-    def key(self, result):
-        """ return the grouping key of a result """
-        return list(result[i] for i in self.slice_for_each)
-    
-    def sort_result(self, result):
-        """ sort result according to the aggregate argument """
-        # first sort per order_by, allowing for _pyD_negated
-        for i in self.reversed_order_by:
-            result.sort(key=lambda literal, i=i, self=self: literal[i].id,
-                reverse = self.reverse_order[i])
-        # then sort per for_each
-        result.sort(key=lambda literal, self=self: [literal[i].id for i in self.slice_for_each])
-
     def add(self, row):
         self._value += 1
         return list(row) + [self._value-1]
@@ -930,12 +922,12 @@ class Rank_aggregate(Aggregate):
         return None
 
 class Running_sum(Rank_aggregate):
-    """ represents running_sum(Y, for_each=Z, order_by=T"""
-    required_kw = ('Y', 'for_each', 'order_by')
+    """ represents running_sum(Y, group_by=Z, order_by=T"""
+    required_kw = ('Y', 'group_by', 'order_by')
     
     def add(self, row):
         self._value += row[self.index_value].id
-        return list(row) + [self._value] #TODO
+        return list(row) + [self._value]
         
         
 """                             Parser methods                                                   """

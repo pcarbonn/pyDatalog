@@ -596,7 +596,7 @@ def test():
         #print ask(place['Jerry']==Rank) # TODO
         assert ask(place[Person]==1) == set([('Jerry',)])
 
-        (a_rank1[Z] == rank(for_each=Z, order_by=Z)) <= q(X, Y, Z)
+        (a_rank1[Z] == rank(group_by=Z, order_by=Z)) <= q(X, Y, Z)
         assert ask(a_rank1[X]==Y) == set([(1, 0), (2, 0), (4, 0)])
         assert ask(a_rank1[X]==0) == set([(1,), (2,), (4,)])
         assert ask(a_rank1[1]==X) == set([(0,)])
@@ -611,7 +611,7 @@ def test():
         assert ask(a_rank2[a,Y]==0) == set([('c',)])
 
         # rank
-        (a_rank[X,Y] == rank(for_each=(X,Y), order_by=Z)) <= q(X, Y, Z) & q(X,Y2,Z2)
+        (a_rank[X,Y] == rank(group_by=(X,Y), order_by=Z)) <= q(X, Y, Z) & q(X,Y2,Z2)
         assert ask(a_rank[X,Y]==Z) == set([('a', 'b', 0), ('a', 'c', 0), ('b', 'b', 0)])
         assert ask(a_rank[a,b]==1) == None
         assert ask(a_rank[a,b]==Y) == set([(0,)])
@@ -620,7 +620,7 @@ def test():
         assert ask(a_rank[X,Y]==1) == None
         """
         # reversed
-        (b_rank[X,Y] == rank(for_each=(X,Y2), order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
+        (b_rank[X,Y] == rank(group_by=(X,Y2), order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
         assert ask(b_rank[X,Y]==Z) == set([('a', 'b', 0), ('a', 'c', 1), ('b', 'b', 0)])
         assert ask(b_rank[a,b]==0) == set([()])
         assert ask(b_rank[a,b]==Y) == set([(0,)])
@@ -639,14 +639,14 @@ def test():
         +movement('Account2', 'date1', 10)
         +movement('Account2', 'date2', -5)
         
-        (balance[Account, Date] == running_sum(Amount, for_each=Account, order_by=Date)) <= movement(Account, Date, Amount)
+        (balance[Account, Date] == running_sum(Amount, group_by=Account, order_by=Date)) <= movement(Account, Date, Amount)
         
         assert ask(balance[Account, Date]==Amount) == set([('Account1', 'date1', 10),('Account1', 'date2', 2),('Account1', 'date3', 0),('Account2', 'date1', 10),('Account2', 'date2', 5)])
         assert ask(balance['Account1', Date]==Amount) == set([('date1', 10), ('date2', 2), ('date3', 0)])
         #TODO assert ask(balance[Account, 'date2']==Amount) #TODO !
         assert ask(balance[Account, Date]==0) == set([('Account1', 'date3')])
 
-        (a_run_sum1[Z] == running_sum(Z, for_each=Z, order_by=Z)) <= q(X, Y, Z)
+        (a_run_sum1[Z] == running_sum(Z, group_by=Z, order_by=Z)) <= q(X, Y, Z)
         assert ask(a_run_sum1[X]==Y) == set([(1, 1), (2, 2), (4, 4)])
         assert ask(a_run_sum1[X]==1) == set([(1,)])
         assert ask(a_run_sum1[1]==X) == set([(1,)])
@@ -654,7 +654,7 @@ def test():
         assert ask(a_run_sum1[1]==0) == None
 
         # running_sum
-        (a_run_sum[X,Y] == running_sum(Z, for_each=(Y), order_by=Z2)) <= q(X, Y, Z) & q(X,Y,Z2)
+        (a_run_sum[X,Y] == running_sum(Z, group_by=(Y), order_by=Z2)) <= q(X, Y, Z) & q(X,Y,Z2)
         assert ask(a_run_sum[X,Y]==Z) == set([('a', 'b', 2), ('a', 'c', 1), ('b', 'b', 6)])
         #assert ask(a_run_sum[b,b]==6) == set([()])
         #assert ask(a_run_sum[b,b]==Y) == set([(6,)])
@@ -664,7 +664,7 @@ def test():
         assert ask(a_run_sum[a,y]==Y) == None
 
         """
-        (b_run_sum[X,Y] == running_sum(Z, for_each=(X,Y2), order_by=-Z)) <= q(X, Y, Z) & q(X,Y2,Z)
+        (b_run_sum[X,Y] == running_sum(Z, group_by=(X,Y2), order_by=-Z)) <= q(X, Y, Z) & q(X,Y2,Z)
         assert ask(b_run_sum[X,Y]==Z) == set([('a', 'b', 2), ('a', 'c', 1), ('b', 'b', 4)])
         assert ask(b_run_sum[a,b]==2) == set([()])
         assert ask(b_run_sum[a,b]==Y) == set([(2,)])
