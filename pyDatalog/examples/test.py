@@ -576,6 +576,9 @@ def test():
         (a_min3[Y] == min(Z, key=(-X,Z))) <= q(X, Y, Z)
         assert ask(a_min3[b]==Y) == set([(4,)]), "a_min3"
         
+        (a_min1[1] == min(Z, order_by=(Z))) <= q(X, Y, Z)
+        assert ask(a_min1[1]==Y) == set([(1,)])
+        
     @pyDatalog.program()
     def max(): 
         assert max(1,2) == 2
@@ -595,6 +598,24 @@ def test():
         assert ask(place[Person]==Rank) == set([('Superman', 2),('Tom', 0),('Jerry', 1)])
         assert ask(place['Jerry']==Rank) == set([(1,)])
         assert ask(place[Person]==1) == set([('Jerry',)])
+        
+        # second definition of aggregrate
+        + other_score('Phil', 5)
+        (place[Person]==rank(order_by=Score)) <= other_score(Person, Score)
+        assert ask(place[Person]==Rank) == set([('Superman', 2),('Tom', 0),('Jerry', 1),('Phil', 0)])
+        assert ask(place['Phil']==Rank) == set([(0,)])
+        
+        # reverse ranking
+        (reverse_place[Person]==rank(order_by=-Score)) <= score(Person, Score)
+        assert ask(reverse_place[Person]==Rank) == set([('Superman', 0),('Tom', 2),('Jerry', 1)])
+        assert ask(reverse_place['Superman']==Rank) == set([(0,)])
+        assert ask(reverse_place[Person]==2) == set([('Tom',)])
+
+        # multiple keys, group_by
+        (multi_place[Person, Score]==rank(group_by=Person, order_by=Score)) <= score(Person, Score)
+        assert ask(multi_place[Person, Score]==Rank) == set([('Superman', 10, 0),('Tom', 3,0),('Jerry', 8,0)])
+        assert ask(multi_place['Superman', Score]==Rank) == set([(10,0,)])
+        assert ask(multi_place[Person, 3]==0) == set([('Tom',)])
 
         (a_rank1[Z] == rank(group_by=Z, order_by=Z)) <= q(X, Y, Z)
         assert ask(a_rank1[X]==Y) == set([(1, 0), (2, 0), (4, 0)])
@@ -602,13 +623,6 @@ def test():
         assert ask(a_rank1[1]==X) == set([(0,)])
         assert ask(a_rank1[1]==0) == set([()])
         assert ask(a_rank1[1]==1) == None
-
-        (a_rank2[X,Y] == rank(order_by=Z)) <= q(X, Y, Z)
-        assert ask(a_rank2[X,Y]==Z) == set([('a','c', 0), ('a','b', 1), ('b', 'b', 2)])
-        assert ask(a_rank2[X,Y]==1) == set([('a','b')])
-        assert ask(a_rank2[a,Y]==Z) == set([('c',0),('b',1)])
-        assert ask(a_rank2[a,Y]==1) == set([('b',)])
-        assert ask(a_rank2[a,Y]==0) == set([('c',)])
 
         # rank
         (a_rank[X,Y] == rank(group_by=(X,Y), order_by=Z)) <= q(X, Y, Z) & q(X,Y2,Z2)
@@ -618,61 +632,30 @@ def test():
         assert ask(a_rank[a,X]==0) == set([('b',), ('c',)])
         assert ask(a_rank[a,X]==Y) == set([('b', 0), ('c', 0)])
         assert ask(a_rank[X,Y]==1) == None
-        """
-        # reversed
-        (b_rank[X,Y] == rank(group_by=(X,Y2), order_by=-Z2)) <= q(X, Y, Z) & q(X,Y2,Z2)
-        assert ask(b_rank[X,Y]==Z) == set([('a', 'b', 0), ('a', 'c', 1), ('b', 'b', 0)])
-        assert ask(b_rank[a,b]==0) == set([()])
-        assert ask(b_rank[a,b]==Y) == set([(0,)])
-        assert ask(b_rank[a,X]==1) == set([('c',)])
-        assert ask(b_rank[a,X]==Y) == set([('b', 0), ('c', 1)])
-        assert ask(b_rank[X,Y]==0) == set([('a', 'b'), ('b', 'b')])
-        assert ask(b_rank[a,y]==Y) == None
-        """
         
     @pyDatalog.program()
     def running_sum(): 
-        +movement('Account1', 'date1', 10)
-        +movement('Account1', 'date2', -6)
-        +movement('Account1', 'date2', -2) #TODO ?
-        +movement('Account1', 'date3', -2)
-        +movement('Account2', 'date1', 10)
-        +movement('Account2', 'date2', -5)
+        +movement('Account1', 2014,1,1, 10)
+        +movement('Account1', 2014,1,2, -6)
+        +movement('Account1', 2014,1,2, -2) #TODO ?
+        +movement('Account1', 2014,1,3, -2)
+        +movement('Account2', 2014,1,1, 10)
+        +movement('Account2', 2014,1,2, -5)
         
-        (balance[Account, Date] == running_sum(Amount, group_by=Account, order_by=Date)) <= movement(Account, Date, Amount)
-        
-        assert ask(balance[Account, Date]==Amount) == set([('Account1', 'date1', 10),('Account1', 'date2', 2),('Account1', 'date3', 0),('Account2', 'date1', 10),('Account2', 'date2', 5)])
-        assert ask(balance['Account1', Date]==Amount) == set([('date1', 10), ('date2', 2), ('date3', 0)])
-        assert ask(balance[Account, 'date2']==Amount) == set([('Account1', 2), ('Account2', 5)])
-        assert ask(balance[Account, Date]==0) == set([('Account1', 'date3')])
+        (balance[Account, Y,M,D] == running_sum(Amount, group_by=Account, order_by=(Y,M,D))) <= movement(Account, Y,M,D, Amount)
+        assert ask(balance[Account, Y,M,D]==Amount) == set([('Account1', 2014,1,1, 10),('Account1', 2014,1,2, 2),('Account1', 2014,1,3, 0),
+                                                           ('Account2', 2014,1,1, 10),('Account2', 2014,1,2, 5)])
+        assert ask(balance['Account1', Y,M,D]==Amount) == set([(2014,1,1, 10), (2014,1,2, 2), (2014,1,3, 0)])
+        assert ask(balance[Account, 2014,1,2]==Amount) == set([('Account1', 2), ('Account2', 5)])
+        assert ask(balance[Account, Y,M,D]==0) == set([('Account1', 2014,1,3)])
 
-        (a_run_sum1[Z] == running_sum(Z, group_by=Z, order_by=Z)) <= q(X, Y, Z)
-        assert ask(a_run_sum1[X]==Y) == set([(1, 1), (2, 2), (4, 4)])
-        assert ask(a_run_sum1[X]==1) == set([(1,)])
-        assert ask(a_run_sum1[1]==X) == set([(1,)])
-        assert ask(a_run_sum1[1]==1) == set([()])
-        assert ask(a_run_sum1[1]==0) == None
+        # end of month
+        (balance[Account, Y,M] == running_sum(Amount, group_by=Account, order_by=(Y,M,D))) <= movement(Account, Y,M,D, Amount)
+        assert ask(balance[Account, Y,M]==Amount) == set([('Account1', 2014,1, 0), ('Account2', 2014,1,5)])
+        assert ask(balance['Account1', Y,M]==Amount) == set([(2014,1, 0)])
+        assert ask(balance[Account, 2014,1]==Amount) == set([('Account1',0), ('Account2', 5)])
+        assert ask(balance[Account, Y,M]==0) == set([('Account1', 2014,1)])
 
-        # running_sum
-        (a_run_sum[X,Y] == running_sum(Z, group_by=(Y), order_by=Z2)) <= q(X, Y, Z) & q(X,Y,Z2)
-        assert ask(a_run_sum[X,Y]==Z) == set([('a', 'b', 2), ('a', 'c', 1), ('b', 'b', 6)])
-        assert ask(a_run_sum[b,b]==6) == set([()])
-        assert ask(a_run_sum[b,b]==Y) == set([(6,)])
-        assert ask(a_run_sum[X,b]==Z) == set([('a',2),('b',6)])
-        assert ask(a_run_sum[a,X]==Y) == set([('b', 2), ('c', 1)])
-        assert ask(a_run_sum[X,Y]==6) == set([('b', 'b')])
-        assert ask(a_run_sum[a,y]==Y) == None
-
-        """
-        (b_run_sum[X,Y] == running_sum(Z, group_by=(X,Y2), order_by=-Z)) <= q(X, Y, Z) & q(X,Y2,Z)
-        assert ask(b_run_sum[X,Y]==Z) == set([('a', 'b', 2), ('a', 'c', 1), ('b', 'b', 4)])
-        assert ask(b_run_sum[a,b]==2) == set([()])
-        assert ask(b_run_sum[a,b]==Y) == set([(2,)])
-        assert ask(b_run_sum[a,X]==1) == set([('c',)])
-        assert ask(b_run_sum[a,X]==Y) == set([('b', 2), ('c', 1)])
-        assert ask(b_run_sum[X,Y]==4) == set([('b', 'b')])
-        assert ask(b_run_sum[a,y]==Y) == None
-        """
 
     """ simple in-line queries                                        """
     X = pyDatalog.Variable()
@@ -964,7 +947,7 @@ def test():
     assert_error("p(X) <= (manager[X]== max(X, order_by=X))", "Aggregation cannot appear in the body of a clause")
     assert_error("q(min(X, order_by=X)) <= p(X)", "Syntax error: Incorrect use of aggregation\.")
     assert_error("manager[X]== min(X, order_by=X) <= manager(X)", "Syntax error: please verify parenthesis around \(in\)equalities")
-    assert_error("(manager[X]== min(X, order_by=X+2)) <= manager(X)", "order_by argument of aggregate must be variable\(s\).")
+    assert_error("(manager[X]== min(X, order_by=X+2)) <= manager(X)", "Arguments of aggregate must be variable\(s\).")
     assert_error("ask(X<1)", 'Error: left hand side of comparison must be bound: ')
     assert_error("ask(X<Y)", 'Error: left hand side of comparison must be bound: ')
     assert_error("ask(1<Y)", 'Error: left hand side of comparison must be bound: ')
