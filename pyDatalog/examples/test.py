@@ -905,6 +905,16 @@ def test():
     """ python resolvers                                              """
     
     @pyDatalog.predicate()
+    def q2(X,Y):
+        yield (1,2)
+        yield (2,3)
+    
+    assert pyDatalog.ask('q(X,Y)') == set([(1, 2), (2, 3)])
+    assert pyDatalog.ask('q(1,Y)') == set([(2,)])
+    assert pyDatalog.ask('q(1,2)') == set([()])
+
+    # deprecated : function name without the arity
+    @pyDatalog.predicate()
     def p(X,Y):
         yield (1,2)
         yield (2,3)
