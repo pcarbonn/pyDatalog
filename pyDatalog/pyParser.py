@@ -590,17 +590,10 @@ class Query(Literal, LazyListOfList):
         return Body(self, other)
 
     def __unicode__(self):
-        if Thread_storage.ProgramMode:
-            terms = list(map (util.unicode_type, self.terms))
-            return util.unicode_type(self.predicate_name) + "(" + ','.join(terms) + ")"
-        else:
-            return LazyListOfList.__unicode__(self)
+        return LazyListOfList.__unicode__(self)
     
     def __eq__(self, other):
-        if Thread_storage.ProgramMode:
-            raise util.DatalogError("Syntax error near equality: consider using brackets. %s" % util.unicode_type(self), None, None)
-        else:
-            return super(Literal, self).__eq__(other)
+        return LazyListOfList.__eq__(self, other)
 
     def literal(self):
         return self

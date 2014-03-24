@@ -974,7 +974,6 @@ def test():
     assert_error("ask((Z.b[X]=='wa') & (X.b[1]<Y))", 'Error: right hand side of comparison must be bound: ') 
     assert_ask("A.u[X]==Y", "Predicate without definition \(or error in resolver\): A.u\[1\]==/3")
     assert_ask("A.u[X,Y]==Z", "Predicate without definition \(or error in resolver\): A.u\[2\]==/4")
-    assert_error('(two(X)==Z) <= (Z==X+(lambda X: X))', 'Syntax error near equality: consider using brackets. two\(X\)')
     assert_error('p(X) <= sum(X, key=X)', 'Invalid body for clause')
     assert_error("p(X) <= (X=={})", "") # error message is different in pypy
 
