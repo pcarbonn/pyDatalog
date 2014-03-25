@@ -63,7 +63,6 @@ Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRn
     * Max_aggregate
     * Rank_aggregate
     * Running_sum
-* ProgramContext : class to safely differentiate between In-line queries and pyDatalog program / ask(), using ProgramMode global variable
 * _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
 """
 
@@ -84,11 +83,9 @@ from . import UserList
 
 # global variable to differentiate between in-line queries and pyDatalog program / ask
 Thread_storage = threading.local()
-Thread_storage.ProgramMode = False
 Thread_storage.variables = set([]) #call list of variables parsed since the last clause
 
 def clear():
-    Thread_storage.ProgramMode = False
     Thread_storage.variables = set([])
     
 """                             Parser classes                                                   """
@@ -313,17 +310,21 @@ def pre_calculations(args):
             pre_calculations = pre_calculations & arg._pyD_precalculations
     return pre_calculations
         
-class Symbol(VarSymbol):
+class Symbol(Variable):
     """
     can be constant, list, tuple, variable or predicate name
     ask() creates a query
     """
+    def __init__(self, name, forced_type=None):
+        LazyList.__init__(self)
+        VarSymbol.__init__(self, name, forced_type)
+
     def __call__ (self, *args, **kwargs):
         """ called when evaluating p(args) """
         if self._pyD_name == 'ask': # call ask() and return an answer
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
-            return Answer.make(args[0].ask())
+            return Answer.make(args[0].ask(inline=False))
         
         # manage the aggregate functions
         elif self._pyD_name in ('_sum', 'sum_'):
@@ -562,8 +563,8 @@ class Query(Literal, LazyListOfList):
         LazyListOfList.__init__(self)
         Literal.__init__(self, predicate_name, terms, kwargs, prearity, aggregate)
         
-    def ask(self):
-        self._data = Body(self.pre_calculations, self).ask()
+    def ask(self, inline=True):
+        self._data = Body(self.pre_calculations, self).ask(inline)
         self.todo = None
         return self._data
 
@@ -673,12 +674,12 @@ class Body(LazyListOfList):
         """unary ~ means negation """
         return ~(self.literal())
 
-    def ask(self):
+    def ask(self, inline=True):
         """ resolve the query and determine the values of its variables"""
         literal = self.literal()
         self._data = literal.lua.ask()
         literal.todo, self.todo = None, None
-        if not Thread_storage.ProgramMode and self._data: 
+        if inline and self._data: 
             if self._data is True:
                 for arg in literal.terms:
                     if isinstance(arg, Variable):
@@ -927,14 +928,6 @@ class Running_sum(Rank_aggregate):
         
 """                             Parser methods                                                   """
 
-class ProgramContext(object):
-    """class to safely use ProgramMode within the "with" statement"""
-    def __enter__(self):
-        self.Mode = Thread_storage.ProgramMode
-        Thread_storage.ProgramMode = True
-    def __exit__(self, exc_type, exc_value, traceback):
-        Thread_storage.ProgramMode = self.Mode
- 
 def add_symbols(names, variables):
     """ add the names to the variables dictionary"""
     for name in names:
@@ -999,8 +992,7 @@ def load(code, newglobals=None, defined=None, function='load'):
     for name in set(code.co_names).difference(defined): # for names that are not defined
         add_symbols((name,), newglobals)
     try:
-        with ProgramContext():
-            util.exec_(code, newglobals)
+        util.exec_(code, newglobals)
     except util.DatalogError as e:
         e.function = function
         traceback = sys.exc_info()[2]
@@ -1042,15 +1034,14 @@ def add_program(func):
 
 def ask(code):
     """ runs the query in the code string """
-    with ProgramContext():
-        tree = ast.parse(code, 'ask', 'eval')
-        tree = _transform_ast().visit(tree)
-        code = compile(tree, 'ask', 'eval')
-        newglobals = {}
-        add_symbols(code.co_names, newglobals)
-        parsed_code = eval(code, newglobals)
-        a = parsed_code.ask()
-        return Answer.make(a)
+    tree = ast.parse(code, 'ask', 'eval')
+    tree = _transform_ast().visit(tree)
+    code = compile(tree, 'ask', 'eval')
+    newglobals = {}
+    add_symbols(code.co_names, newglobals)
+    parsed_code = eval(code, newglobals)
+    a = parsed_code.ask(inline=False)
+    return Answer.make(a)
 
 class Answer(object):
     """ object returned by ask() """
