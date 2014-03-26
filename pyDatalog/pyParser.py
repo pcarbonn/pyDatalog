@@ -324,7 +324,7 @@ class Symbol(Variable):
         if self._pyD_name == 'ask': # call ask() and return an answer
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
-            return Answer.make(args[0].ask(inline=False))
+            return Answer.make(args[0].ask())
         
         # manage the aggregate functions
         elif self._pyD_name in ('_sum', 'sum_'):
@@ -563,8 +563,8 @@ class Query(Literal, LazyListOfList):
         LazyListOfList.__init__(self)
         Literal.__init__(self, predicate_name, terms, kwargs, prearity, aggregate)
         
-    def ask(self, inline=True):
-        self._data = Body(self.pre_calculations, self).ask(inline)
+    def ask(self):
+        self._data = Body(self.pre_calculations, self).ask()
         self.todo = None
         return self._data
 
@@ -674,27 +674,21 @@ class Body(LazyListOfList):
         """unary ~ means negation """
         return ~(self.literal())
 
-    def ask(self, inline=True):
+    def ask(self):
         """ resolve the query and determine the values of its variables"""
         literal = self.literal()
         self._data = literal.lua.ask()
         literal.todo, self.todo = None, None
-        if inline and self._data: 
-            if self._data is True:
-                for arg in literal.terms:
-                    if isinstance(arg, Variable):
-                        arg._data = True
-                        arg.todo = None
-                return True
-            transposed = list(zip(*(self._data))) # transpose result
-            result = []
-            for i, arg in enumerate(literal.terms):
-                if isinstance(arg, Variable) and len(arg._data)==0:
-                    arg._data.extend(transposed[i])
-                    arg.todo = None
-                    result.append(transposed[i])
-            self._data = list(zip(*result)) if result else [()]
         - (literal <= self) # delete the temporary clause
+        # update the variables
+        transposed = list(zip(*(self._data))) if isinstance(self._data, list) else None # transpose result
+        for i, arg in enumerate(self._variables().values()):
+            if isinstance(arg, Variable):
+                if self._data is True:
+                    arg._data = True
+                elif self._data:
+                    arg._data.extend(transposed[i])
+                arg.todo = None
         return self._data
 
 def add_clause(head,body):
@@ -1040,7 +1034,7 @@ def ask(code):
     newglobals = {}
     add_symbols(code.co_names, newglobals)
     parsed_code = eval(code, newglobals)
-    a = parsed_code.ask(inline=False)
+    a = parsed_code.ask()
     return Answer.make(a)
 
 class Answer(object):
