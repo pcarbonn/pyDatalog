@@ -19,6 +19,16 @@ Foundation, Inc.  51 Franklin St, Fifth Floor, Boston, MA 02110-1301
 USA
 """
 
+"""
+* Aggregate : represents calls to aggregation method, e.g. min(X)
+    * Sum
+    * Len
+    * Concat
+    * Min
+    * Max
+    * Rank
+    * Running_sum
+"""
 ##################################### Aggregation #####################################
     
 from itertools import groupby

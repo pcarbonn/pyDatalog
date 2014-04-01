@@ -55,14 +55,6 @@ Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRn
         * Variable : represents a variable in in-line queries
     * Function : represents f[X]
     * Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
-* Aggregate : represents calls to aggregation method, e.g. min(X)
-    * Sum_aggregate
-    * Len_aggregate
-    * Concat_aggregate
-    * Min_aggregate
-    * Max_aggregate
-    * Rank_aggregate
-    * Running_sum
 * _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
 """
 
