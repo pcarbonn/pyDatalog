@@ -29,9 +29,6 @@ http://www.python.org/download/releases/2.0.1/license/ )
 Design principle:
 Instead of writing our own parser, we use python's parser.  
 
-The base objects are Symbol and VarSymbol : they represent atoms and variables respectively
-and have methods to implement the datalog language.
-
 Methods exposed by this file include:
 * load(code)
 * add_program(func)
@@ -50,9 +47,7 @@ Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRn
     * Query
 * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
 * Expression : base class for objects that can be part of an inequality, operation or slice
-    * VarSymbol : represents a constant, a variable or a predicate 
-        * Symbol : represents a constant, a variable or a predicate in ProgramMode. Instantiated before executing the datalog program
-        * Variable : represents a variable in in-line queries
+    * Term : represents a constant, a variable, a tuple, or a predicate name 
     * Function : represents f[X]
     * Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
 * _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
@@ -114,9 +109,9 @@ class LazyListOfList(LazyList):
     
     def __ge__(self, variable):
         """ returns the first value of the variable in the result of a query, or None """
-        if not isinstance(variable, Variable):
-            return variable.__le__(self)
-        return variable.v()
+        if isinstance(variable, Term) and variable.is_variable():
+            return variable.v()
+        return variable.__le__(self)
     
     def __unicode__(self):
         """ pretty print the result """
@@ -142,10 +137,13 @@ class Expression(object):
         if isinstance(operand, (Expression, Aggregate)):
             return operand
         if isinstance(operand, type(lambda: None)) and (operand.__name__ if PY3 else operand.func_name) == '<lambda>':
-            return Operation(None, operand, [Symbol(var) for var in getattr(operand,func_code).co_varnames])
+            return Operation(None, operand, [Term(var) for var in getattr(operand,func_code).co_varnames])
         if isinstance(operand, slice):
-            return Symbol([operand.start, operand.stop, operand.step])
-        return Symbol(operand, forced_type="constant")
+            return Term([operand.start, operand.stop, operand.step])
+        return Term(operand, forced_type="constant")
+    
+    def is_variable(self):
+        return False
     
     # handlers of inequality and operations
     def __eq__(self, other):
@@ -193,7 +191,7 @@ class Expression(object):
     def __pow__(self, other):
         return Operation(self, '**', other)
     
-    # called by constant + Symbol (or lambda + symbol)
+    # called by constant + Term (or lambda + symbol)
     def __radd__(self, other):
         return Operation(other, '+', self)
     def __rsub__(self, other):
@@ -217,16 +215,23 @@ class Expression(object):
     
     def __getattr__(self, name):
         """ called when evaluating <expression>.attribute """
-        return Operation(self, '.',  VarSymbol(name, forced_type='constant'))
+        return Operation(self, '.',  Term(name, forced_type='constant'))
 
     def __call__ (self, *args, **kwargs):
         assert not kwargs, "Sorry, key word arguments are not supported yet"
         return Operation(self, '(', args)
 
     
-class VarSymbol(Expression):
-    """ represents the symbol of a variable, both inline and in pyDatalog program """
-    def __init__ (self, name, forced_type=None):
+class Term(threading.local, Expression, LazyList):
+    """
+    can be constant, list, tuple, variable or predicate name
+    ask() creates a query
+    """
+    
+    def __init__(self, name='??', forced_type=None):
+        name = 'X%i' % id(self) if name =='??' else name
+        LazyList.__init__(self)
+        
         self._pyD_negated = False # for aggregate with sort in descending order
         self._pyD_precalculations = Body() # no precalculations
         self._pyD_atomized = True
@@ -259,21 +264,15 @@ class VarSymbol(Expression):
         """ returns either '_pyD_class' or the prefix"""
         prefix = name.split('.')[0]
         if prefix in pyEngine.Class_dict or prefix not in Thread_storage.variables:
-            return VarSymbol('_pyD_class', forced_type='constant')
-        return VarSymbol(prefix)
+            return Term('_pyD_class', forced_type='constant')
+        return Term(prefix)
 
-    def __neg__(self):
-        """ called when evaluating -X. Used in aggregate arguments """
-        neg = Symbol(self._pyD_value)
-        neg._pyD_negated = True
-
-        expr = 0 - self
-        expr._pyD_variable = neg
-        return expr
+    def is_variable(self):
+        return self._pyD_type == 'variable' and not self._pyD_name.startswith('_pyD_')
     
     def _pyD_variables(self):
         """ returns an ordered dictionary of the variables in the varSymbol """
-        if self._pyD_type == 'variable' and not self._pyD_name.startswith('_pyD_'):
+        if self.is_variable():
             return OrderedDict({self._pyD_name : self})
         elif self._pyD_type == 'tuple':
             variables = OrderedDict()
@@ -283,101 +282,32 @@ class VarSymbol(Expression):
         else:
             return OrderedDict()
     
-class Variable(threading.local, VarSymbol, LazyList):
-    def __init__(self, name=None):
-        name = 'X%i' % id(self) if name is None else name
-        LazyList.__init__(self)
-        VarSymbol.__init__(self, name)
-
     def __add__(self, other):
         return Operation(self, '+', other)
     def __radd__(self, other):
         return Operation(other, '+', self)
 
+    def __neg__(self):
+        """ called when evaluating -X. Used in aggregate arguments """
+        neg = Term(self._pyD_value)
+        neg._pyD_negated = True
 
-def pre_calculations(args):
-    """ collects the pre_calculations of all args"""
-    pre_calculations = Body()
-    for arg in args:
-        if isinstance(arg, Expression):
-            pre_calculations = pre_calculations & arg._pyD_precalculations
-    return pre_calculations
-        
-class Symbol(Variable):
-    """
-    can be constant, list, tuple, variable or predicate name
-    ask() creates a query
-    """
-    def __init__(self, name, forced_type=None):
-        LazyList.__init__(self)
-        VarSymbol.__init__(self, name, forced_type)
-
-    def __call__ (self, *args, **kwargs):
-        """ called when evaluating p(args) """
-        from . import Aggregate
-        if self._pyD_name == 'ask': # call ask() and return an answer
-            if 1<len(args):
-                raise RuntimeError('Too many arguments for ask !')
-            return Answer.make(args[0].ask())
-        
-        # manage the aggregate functions
-        elif self._pyD_name in ('_sum', 'sum_'):
-            if isinstance(args[0], VarSymbol):
-                return Aggregate.Sum(args[0], for_each=kwargs.get('for_each', kwargs.get('key', [])))
-            else:
-                return sum(args)
-        elif self._pyD_name in ('concat', 'concat_'):
-            return Aggregate.Concat(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])), sep=kwargs['sep'])
-        elif self._pyD_name in ('_min', 'min_'):
-            if isinstance(args[0], VarSymbol):
-                return Aggregate.Min(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
-            else:
-                return min(args)
-        elif self._pyD_name in ('_max', 'max_'):
-            if isinstance(args[0], VarSymbol):
-                return Aggregate.Max(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
-            else:
-                return max(args)
-        elif self._pyD_name in ('rank', 'rank_'):
-            return Aggregate.Rank(None, group_by=kwargs.get('group_by', []), order_by=kwargs.get('order_by', []))
-        elif self._pyD_name in ('running_sum', 'running_sum_'):
-            return Aggregate.Running_sum(args[0], group_by=kwargs.get('group_by', []), order_by=kwargs.get('order_by', []))
-        elif self._pyD_name == 'tuple_':
-            return Aggregate.Tuple(args[0], order_by=kwargs.get('order_by', []))
-        elif self._pyD_name in ('_len', 'len_'):
-            if isinstance(args[0], VarSymbol):
-                return Aggregate.Len(args[0])
-            else: 
-                return len(args[0]) 
-        elif self._pyD_name == 'range_':
-            return Operation(None, '..', args[0])
-        elif self._pyD_name == 'format_':
-            return Operation(args[0], '%', args[1:])
-        elif '.' in self._pyD_name: #call
-            pre_term = (VarSymbol.make_for_prefix(self._pyD_name), ) #prefixed
-            if pyEngine.Pred.is_known('%s/%i' % (self._pyD_name, len(args)+1)):
-                return Literal.make(self._pyD_name, pre_term + tuple(args), kwargs)
-            return Call(self._pyD_name, pre_term + tuple(args), kwargs)
-        else: # create a literal
-            literal = Literal.make(self._pyD_name, tuple(args), kwargs)
-            return literal
-
+        expr = 0 - self
+        expr._pyD_variable = neg
+        return expr
+    
     def __getattr__(self, name):
         """ called when evaluating class.attribute """
         if self._pyD_name in Thread_storage.variables: #prefixed
-            return Operation(self, '.', name)
-        return Symbol(self._pyD_name + '.' + name)
-    
+            return Operation(self, '.', Term(name, forced_type='constant'))
+        return Term(self._pyD_name + '.' + name)
+
     def __getitem__(self, keys):
         """ called when evaluating name[keys] """
+        if self._pyD_name in Thread_storage.variables: #prefixed
+            return Expression.__getitem__(self, keys)
         return Function(self._pyD_name, keys)
 
-    def __str__(self):
-        return util.cast_to_str(self._pyD_name)
-    
-    def __unicode__(self):
-        return util.unicode_type(self._pyD_name)
-    
     def __setitem__(self, keys, value):
         """  called when evaluating f[X] = expression """
         function = Function(self._pyD_name, keys)
@@ -390,12 +320,82 @@ class Symbol(Variable):
     def __delitem__(self, keys):
         """  called when evaluating del f[X] """
         function = Function(self._pyD_name, keys)
-        Y = Variable()
+        Y = Term('??')
         if Expression._pyD_for(keys)._pyD_lua.is_const():
             -(function == ((function == Y) >= Y) )
         else:
             literal = (function == Y)
             literal.lua.pred.reset_clauses()
+
+    def __call__ (self, *args, **kwargs):
+        """ called when evaluating p(args) """
+        from . import Aggregate
+        if self._pyD_name == 'ask': # call ask() and return an answer
+            if 1<len(args):
+                raise RuntimeError('Too many arguments for ask !')
+            return Answer.make(args[0].ask())
+        
+        # manage the aggregate functions
+        elif self._pyD_name in ('_sum', 'sum_'):
+            if isinstance(args[0], Term):
+                return Aggregate.Sum(args[0], for_each=kwargs.get('for_each', kwargs.get('key', [])))
+            else:
+                return sum(args)
+        elif self._pyD_name in ('concat', 'concat_'):
+            return Aggregate.Concat(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])), sep=kwargs['sep'])
+        elif self._pyD_name in ('_min', 'min_'):
+            if isinstance(args[0], Term):
+                return Aggregate.Min(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
+            else:
+                return min(args)
+        elif self._pyD_name in ('_max', 'max_'):
+            if isinstance(args[0], Term):
+                return Aggregate.Max(args[0], order_by=kwargs.get('order_by',kwargs.get('key', [])),)
+            else:
+                return max(args)
+        elif self._pyD_name in ('rank', 'rank_'):
+            return Aggregate.Rank(None, group_by=kwargs.get('group_by', []), order_by=kwargs.get('order_by', []))
+        elif self._pyD_name in ('running_sum', 'running_sum_'):
+            return Aggregate.Running_sum(args[0], group_by=kwargs.get('group_by', []), order_by=kwargs.get('order_by', []))
+        elif self._pyD_name == 'tuple_':
+            return Aggregate.Tuple(args[0], order_by=kwargs.get('order_by', []))
+        elif self._pyD_name in ('_len', 'len_'):
+            if isinstance(args[0], Term):
+                return Aggregate.Len(args[0])
+            else: 
+                return len(args[0]) 
+        elif self._pyD_name == 'range_':
+            return Operation(None, '..', args[0])
+        elif self._pyD_name == 'format_':
+            return Operation(args[0], '%', args[1:])
+        elif '.' in self._pyD_name: #call
+            pre_term = (Term.make_for_prefix(self._pyD_name), ) #prefixed
+            if pyEngine.Pred.is_known('%s/%i' % (self._pyD_name, len(args)+1)):
+                return Literal.make(self._pyD_name, pre_term + tuple(args), kwargs)
+            return Call(self._pyD_name, pre_term + tuple(args), kwargs)
+        else: # create a literal
+            literal = Literal.make(self._pyD_name, tuple(args), kwargs)
+            return literal
+
+    def __str__(self):
+        if self._pyD_name in Thread_storage.variables: #prefixed
+            return LazyList.__str__(self)
+        return util.cast_to_str(self._pyD_name)
+    
+    def __unicode__(self):
+        if self._pyD_name in Thread_storage.variables: #prefixed
+            return LazyList.__unicode__(self)
+        return util.unicode_type(self._pyD_name)
+    
+
+def pre_calculations(args):
+    """ collects the pre_calculations of all args"""
+    pre_calculations = Body()
+    for arg in args:
+        if isinstance(arg, Expression):
+            pre_calculations = pre_calculations & arg._pyD_precalculations
+    return pre_calculations
+
         
 class Function(Expression):
     """ represents predicate[a, b]"""
@@ -406,7 +406,7 @@ class Function(Expression):
         self._pyD_name = "%s[%i]" % (name, len(self._pyD_keys))
         self._argument_precalculations = pre_calculations(self._pyD_keys)
                 
-        self._pyD_symbol = Symbol('_pyD_X%i' % Function.counter.next())
+        self._pyD_symbol = Term('_pyD_X%i' % Function.counter.next())
         self._pyD_lua = self._pyD_symbol._pyD_lua
         self._pyD_precalculations = self._argument_precalculations & (self == self._pyD_symbol)
     
@@ -466,7 +466,7 @@ class Literal(object):
         
         cls_name = self.predicate_name.split('.')[0].replace('~','') if 1< len(self.predicate_name.split('.')) else ''
         if pyEngine.Class_dict.get(cls_name, None):
-            if 2<=len(self.args) and not isinstance(self.args[1], VarSymbol) and cls_name not in [c.__name__ for c in self.args[1].__class__.__mro__]:
+            if 2<=len(self.args) and not isinstance(self.args[1], Term) and cls_name not in [c.__name__ for c in self.args[1].__class__.__mro__]:
                 raise TypeError("Object is incompatible with the class that is queried.") #prefixed
 
         self.terms = [] # the list of args converted to Expression
@@ -475,7 +475,7 @@ class Literal(object):
                 raise util.DatalogError("Syntax error: Literals cannot have a literal as argument : %s%s" % (self.predicate_name, self.terms), None, None)
             elif isinstance(arg, Aggregate):
                 raise util.DatalogError("Syntax error: Incorrect use of aggregation.", None, None)
-            if isinstance(arg, Variable):
+            if isinstance(arg, Term) and arg.is_variable():
                 arg.todo = self
                 arg._data = [] # reset the variable. For use in in-line queries
             self.terms.append(Expression._pyD_for(arg))
@@ -510,12 +510,12 @@ class Literal(object):
                 return other.make_literal_for(self, operator)
             #TODO perf : do not add pre-term for non prefixed #prefixed
             name, prearity = self._pyD_name + operator, 1+len(self._pyD_keys)
-            terms = [VarSymbol.make_for_prefix(self._pyD_name)] + list(self._pyD_keys) + [other]  #prefixed
+            terms = [Term.make_for_prefix(self._pyD_name)] + list(self._pyD_keys) + [other]  #prefixed
             literal = Query(name, terms, {}, prearity)
             return self._argument_precalculations & other._pyD_precalculations & literal
         else:
             if not isinstance(other, Expression):
-                raise util.DatalogError("Syntax error: Symbol or Expression expected", None, None)
+                raise util.DatalogError("Syntax error: Term or Expression expected", None, None)
             literal = Query(operator, [self] + [other])
             return self._pyD_precalculations & other._pyD_precalculations & literal
 
@@ -679,12 +679,11 @@ class Body(LazyListOfList):
         # update the variables
         transposed = list(zip(*(self._data))) if isinstance(self._data, list) else None # transpose result
         for i, arg in enumerate(self._variables().values()):
-            if isinstance(arg, Variable):
-                if self._data is True:
-                    arg._data = True
-                elif self._data:
-                    arg._data.extend(transposed[i])
-                arg.todo = None
+            if self._data is True:
+                arg._data = True
+            elif self._data:
+                arg._data.extend(transposed[i])
+            arg.todo = None
         return self._data
 
 def add_clause(head,body):
@@ -705,7 +704,7 @@ def add_clause(head,body):
 def add_symbols(names, variables):
     """ add the names to the variables dictionary"""
     for name in names:
-        variables[name] = Symbol(name)            
+        variables[name] = Term(name)            
     
 class _transform_ast(ast.NodeTransformer):
     """ does some transformation of the Abstract Syntax Tree of the datalog program """

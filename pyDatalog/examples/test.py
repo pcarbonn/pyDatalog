@@ -183,6 +183,17 @@ def test():
         assert ask((Y==5) & (X==format_('5 is {}', Y))) == set([(5, '5 is 5')])
         assert ask(X==format_('5 is {} {}', 5, 'test'))  == set([('5 is 5 test',)])
         
+
+    @pyDatalog.program()
+    def slices(): 
+        assert ((X==(1,2)) & (Y==X[1:2])) == [((1, 2), (2,))]
+        assert ((X==(1,2)) & (Y==X[1])) == [((1, 2), 2)]
+        assert ((X==(1,2)) & (Y==X[-1])) == [((1, 2), 2)]
+        assert ((X==(1,2)) & (X1==1) & (Y==X[X1])) == [((1, 2), 1, 2)]
+        assert ((X==(1,2)) & (X1==1) & (Y==X[X1:])) == [((1, 2), 1, (2,))]
+        assert ((X==(1,2)) & (X1==1) & (Y==X[X1:X1+1])) == [((1, 2), 1, (2,))]
+
+    
     """ Conjunctive queries                                             """
 
     @pyDatalog.program()

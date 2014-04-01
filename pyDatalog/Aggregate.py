@@ -35,7 +35,7 @@ from itertools import groupby
 
 from . import util
 from . import pyEngine
-from .pyParser import Expression, Literal, VarSymbol, Operation, add_clause
+from .pyParser import Expression, Literal, Term, Operation, add_clause
 
 class Aggregate(object):
     """ 
@@ -57,7 +57,7 @@ class Aggregate(object):
         self.for_each = tuple([e.__dict__.get('_pyD_variable', e) for e in self.for_each]) 
         self.order_by = tuple([e.__dict__.get('_pyD_variable', e) for e in self.order_by])
         
-        if not all([isinstance(e, VarSymbol) for e in self.group_by + self.for_each + self.order_by]):
+        if not all([isinstance(e, Term) and e.is_variable() for e in self.group_by + self.for_each + self.order_by]):
             raise util.DatalogError("Arguments of aggregate must be variable(s).", None, None)
         
         if sep and not isinstance(sep, util.string_types):
@@ -87,7 +87,7 @@ class Aggregate(object):
         name = function._pyD_name + operator
         result = function._pyD_symbol
         #TODO perf : do not add pre-term for non prefixed #prefixed
-        terms = [VarSymbol.make_for_prefix(function._pyD_name)] + list(function._pyD_keys) + [result]  #prefixed
+        terms = [Term.make_for_prefix(function._pyD_name)] + list(function._pyD_keys) + [result]  #prefixed
         self.index_first_arg = len(terms)-1 # position of the value to add
         
         # 1 create literal that can be queried
@@ -100,7 +100,7 @@ class Aggregate(object):
         # determine list of variables, without duplication
         variables, new_terms = {}, [] 
         for variable in terms:
-            if isinstance(variable, VarSymbol) and variable._pyD_name not in variables:
+            if isinstance(variable, Term) and variable._pyD_name not in variables:
                 variables[variable._pyD_name] = len(new_terms)
                 new_terms.append(variable)
                 
@@ -116,9 +116,9 @@ class Aggregate(object):
             self.slice_group_by = [variables[variable._pyD_name] for variable in self.group_by]
         else:
             self.slice_group_by = [variables[Expression._pyD_for(variable)._pyD_name] 
-                                   for variable in function._pyD_keys if isinstance(variable, VarSymbol)]
+                                   for variable in function._pyD_keys if isinstance(variable, Term)]
         self.slice_to_variabilize = [variables[variable._pyD_name] for variable in function._pyD_keys 
-                                     if isinstance(variable, VarSymbol) 
+                                     if isinstance(variable, Term) 
                                      and variables[variable._pyD_name] not in self.slice_group_by]
         
         # return a literal without the result
