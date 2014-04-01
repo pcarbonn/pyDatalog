@@ -192,10 +192,7 @@ def create_terms(*args):
             else:
                 if len(words)==2: # e.g. kkecxivarenx.len
                     raise util.DatalogError("Unknown variable : %s" % words[0], None, None)
-                if arg[0] not in string.ascii_uppercase: # e.g. queen
-                    locals_[arg] = pyParser.Symbol(arg)
-                else: # e.g. X
-                    locals_[arg] = pyParser.Variable(arg)
+                locals_[arg] = pyParser.Term(arg)
     finally:
         del stack
 
@@ -203,9 +200,9 @@ create_atoms = create_terms # for backward compatibility
 
 def variables(n):
     """ create variables for in-line clauses and queries """
-    return [pyParser.Variable() for i in range(n)]
+    return [pyParser.Term('??') for i in range(n)]
 
-Variable = pyParser.Variable
+Variable = pyParser.Term
 Answer = pyParser.Answer
 
 
@@ -226,7 +223,7 @@ class metaMixin(type):
             """ responds to instance.method by asking datalog engine """
             if not attribute == '__iter__' and not attribute.startswith('_sa_'):
                 predicate_name = "%s.%s[1]==" % (self.__class__.__name__, attribute)
-                terms = (pyParser.VarSymbol('_pyD_class', forced_type='constant'), self, pyParser.Symbol("X")) #prefixed
+                terms = (pyParser.Term('_pyD_class', forced_type='constant'), self, pyParser.Term("X")) #prefixed
                 literal = pyParser.Literal.make(predicate_name, terms) #TODO predicate_name[:-2]
                 result = literal.lua.ask()
                 return result[0][-1] if result else None                    
@@ -241,7 +238,7 @@ class metaMixin(type):
         if cls in ('Mixin', 'metaMixin') or method in (
                 '__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__', 
                 '_sa_instance_state', '_sa_decl_prepare', '__table_cls__', '_pyD_query'):
-            raise AttributeError        return pyParser.Symbol("%s.%s" % (cls.__name__, method))
+            raise AttributeError        return pyParser.Term("%s.%s" % (cls.__name__, method))
 
     def pyDatalog_search(cls, literal):
         """Called by pyEngine to resolve a prefixed literal for a subclass of Mixin."""
