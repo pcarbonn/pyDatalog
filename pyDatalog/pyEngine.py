@@ -21,10 +21,7 @@ USA
 
 """
 This file contains the port of the datalog engine of J. D. Ramsdell, 
-from lua to python, with some enhancements:
-* indexing of facts,
-* support for lambda
-* evaluation of arithmetic expression and comparison.
+from lua to python, with many enhancements.
 
 See also doc.py for additional source code documentation.
 
