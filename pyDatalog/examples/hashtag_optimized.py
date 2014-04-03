@@ -13,7 +13,7 @@ Below is a solution based on pyDatalog
 from pyDatalog import pyDatalog, pyEngine
 import time
 
-pyDatalog.create_terms('solution,move,X,Y,Z,N,N1,N2')
+pyDatalog.create_terms('solution,move,X,Y,Z, Path,Path2, Steps,Steps1,Steps2')
 
 # valid moves are exchange of 1<->2, 1<->4, ... 
 @pyDatalog.predicate()
@@ -27,12 +27,15 @@ def move3(X,N,Y):
 
 # a solution to go from X to Y is a direct move, 
 # or a solution from X to Z, followed by a direct move from Z to Y
-(solution[X,Y]==N) <= move(X, N, Y)
-(solution[X,Y]==N) <= (solution[X,Z]==N1) & move(Z,N2,Y) & (N==N1+N2)
+(solution[X,Y]==(Steps,Path)) <= (  move(X,Steps1,Z) & (solution[Z,Y]==(Steps2,Path2)) 
+                                  & (X!=Y) & (X._not_in(Path2)) & (Y._not_in(Path2))
+                                  & (Path==[Z]+Path2) & (Steps==Steps1+Steps2)
+                                  )
+(solution[X,Y]==(Steps,Path)) <= move(X, Steps, Y) & (Path==[])
 
 start_time = time.time()
 
-print((solution['HAAHS*T*G', 'HASHTAG**']==N) >= N)
+print((solution['HAAHS*T*G', 'HASHTAG**']==(Steps,Path)) >= Steps)
 # prints 5-6,2-5,2-3,3-6,5-6,7-8,5-8,8-9,7-8,
 print("Computed in %f seconds" % (time.time() - start_time))
 
