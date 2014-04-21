@@ -71,7 +71,7 @@ class Interned(object):
         if isinstance(atom, (Interned, Fresh_var, Operation)):
             return atom
         elif isinstance(atom, (list, tuple, util.xrange)):
-            return VarTuple(tuple([Interned.of(element) for element in atom]))
+            return VarTuple(tuple(Interned.of(element) for element in atom))
         else:
             return Const(atom)
     notFound = object()
@@ -87,12 +87,14 @@ class Interned(object):
 
 class Fresh_var(object): 
     """ a variable created by the search algorithm """
-    __slots__ = ['id', 'key']
+    __slots__ = ['id']
     counter = util.Counter()  
     def __init__(self):
         self.id = ('f', Fresh_var.counter.next()) #id
-        self.key = self.id #id
     
+    @property
+    def key(self):
+        return self.id
     def is_const(self):
         return False
     is_constant = False
@@ -127,7 +129,7 @@ class Fresh_var(object):
 
 class Var(Fresh_var, Interned):
     """ A variable in a clause or query """
-    __slots__ = ['id', 'key']
+    __slots__ = ['id']
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
@@ -136,8 +138,7 @@ class Var(Fresh_var, Interned):
             o = cls.registry.get(_id, Interned.notFound)
             if o is Interned.notFound:
                 o = object.__new__(cls) # o is the ref that keeps it alive
-                o.id = _id #id
-                o.key = ('v' , Var.counter.next()) #id
+                o.id = ('v' , Var.counter.next()) #id
                 cls.registry[_id] = o
         return o
     def __init__(self, name):
@@ -201,7 +202,7 @@ class VarTuple(Interned):
                 o = object.__new__(cls) # o is the ref that keeps it alive
                 o._id = _id #id
                 o.key = tuple(e.key for e in _id) #id
-                o.id = tuple([element.id for element in _id])
+                o.id = tuple(element.id for element in _id)
                 o.is_constant = all(element.is_constant for element in _id)
                 cls.registry[_id] = o
         return o
@@ -212,12 +213,12 @@ class VarTuple(Interned):
     def get_tag(self, env): #id
         if self.is_constant: # can use lazy property only for constants
             return self.key
-        return tuple(t.get_tag(env) for t in self._id)#TODO
+        return tuple(t.get_tag(env) for t in self._id) #id
     
     def subst(self, env): #unify
         if self.is_constant: # can use lazy property only for constants
             return self
-        return VarTuple(tuple([element.subst(env) for element in self._id]))
+        return VarTuple(tuple(element.subst(env) for element in self._id))
     def shuffle(self, env): #shuffle
         if not self.is_constant:
             for element in self._id:
@@ -225,7 +226,7 @@ class VarTuple(Interned):
     def chase(self, env): #unify
         if self.is_constant:
             return self
-        return VarTuple(tuple([element.chase(env) for element in self._id]))
+        return VarTuple(tuple(element.chase(env) for element in self._id))
     
     def unify(self, term, env): #unify
         return term.unify_tuple(self, env)
@@ -906,7 +907,7 @@ def _(literal):
     invoke(subgoal)
     if subgoal.facts is True:
         return True
-    return [ tuple([term.id for term in literal.terms]) for literal in list(subgoal.facts.values())]    
+    return [ tuple(term.id for term in literal.terms) for literal in list(subgoal.facts.values())]    
 Literal.ask = _
 
 # PRIMITIVES   ##################################################
