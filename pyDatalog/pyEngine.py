@@ -72,8 +72,10 @@ class Interned(object):
             return atom
         elif isinstance(atom, (list, tuple, util.xrange)):
             return VarTuple(tuple(Interned.of(element) for element in atom))
-        else:
+        elif isinstance(atom, (util.string_types, int, float, Decimal, bool)):
             return Const(atom)
+        else:
+            return Pointer(atom)
     notFound = object()
     def __eq__(self, other):
         return self is other
@@ -87,14 +89,14 @@ class Interned(object):
 
 class Fresh_var(object): 
     """ a variable created by the search algorithm """
-    __slots__ = ['id']
+    __slots__ = ['key']
     counter = util.Counter()  
     def __init__(self):
-        self.id = ('f', Fresh_var.counter.next()) #id
+        self.key = ('f', Fresh_var.counter.next()) #id
     
     @property
-    def key(self):
-        return self.id
+    def id(self):
+        return self.key
     def is_const(self):
         return False
     is_constant = False
@@ -129,7 +131,7 @@ class Fresh_var(object):
 
 class Var(Fresh_var, Interned):
     """ A variable in a clause or query """
-    __slots__ = ['id']
+    __slots__ = ['key']
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
@@ -138,7 +140,7 @@ class Var(Fresh_var, Interned):
             o = cls.registry.get(_id, Interned.notFound)
             if o is Interned.notFound:
                 o = object.__new__(cls) # o is the ref that keeps it alive
-                o.id = ('v' , Var.counter.next()) #id
+                o.key = ('v' , Var.counter.next()) #id
                 cls.registry[_id] = o
         return o
     def __init__(self, name):
@@ -149,20 +151,24 @@ class Var(Fresh_var, Interned):
 
 class Const(Interned):
     """ a constant """
-    __slots__ = ['id', 'key']
+    __slots__ = ['key']
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
     def __new__(cls,  _id):
-        r = repr(_id) if isinstance(_id, (util.string_types, float, Decimal, bool)) else _id
+        r = None if _id is None else repr(_id)
         with Const.lock:
             o = cls.registry.get(r, Interned.notFound)
             if o is Interned.notFound: 
                 o = object.__new__(cls) # o is the ref that keeps it alive
-                o.id = _id #id
-                o.key = ('c' , Const.counter.next())
+                o.key = _id #id
                 cls.registry[r] = o
         return o
+
+    @property
+    def id(self):
+        return self.key
+
     is_constant = True
     def get_tag(self, env): #id
         return self.key
@@ -189,6 +195,18 @@ class Const(Interned):
         if self == term:          # Both terms are constant and equal.
             literal = Literal("==", (self, self))
             return fact(subgoal, literal)
+
+class Pointer(Const):
+    __slots__ = ['id', 'key']
+    def __new__(cls,  _id):
+        with Const.lock:
+            o = cls.registry.get(_id, Interned.notFound)
+            if o is Interned.notFound: 
+                o = object.__new__(cls) # o is the ref that keeps it alive
+                o.id = _id #id
+                o.key = ('c' , id(o))
+                cls.registry[_id] = o
+        return o
 
 class VarTuple(Interned):
     """ a tuple / list of variables, constants or tuples """
