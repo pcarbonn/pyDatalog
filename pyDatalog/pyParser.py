@@ -242,13 +242,13 @@ class Term(threading.local, Expression, LazyList):
             self._pyD_type = 'tuple'
             self._pyD_lua = pyEngine.Interned.of([e._pyD_lua for e in self._pyD_value])
             self._pyD_precalculations = pre_calculations(self._pyD_value)
-        elif forced_type=="constant" or isinstance(name, (int, float)) \
-        or name in (True, False, None) \
-        or (isinstance(name, util.string_types) and name[0] not in string.ascii_uppercase + '_' and not '.' in name):
+        elif forced_type=="constant" or isinstance(name, (int, float, bool)) \
+        or name is None \
+        or ((isinstance(name, util.string_types) and name[0] not in string.ascii_uppercase + '_' and not '.' in name)):
             self._pyD_value = name
             self._pyD_name = util.unicode_type(name)
             self._pyD_type = 'constant'
-            self._pyD_lua = pyEngine.Const(name)
+            self._pyD_lua = pyEngine.Interned.of(name)
         else:
             self._pyD_value = name
             self._pyD_name = name
