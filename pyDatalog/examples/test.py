@@ -26,6 +26,7 @@ from decimal import Decimal
 import math
 import re
 import sys
+import time
 import datetime
 
 import sys
@@ -1088,6 +1089,7 @@ def test():
     """
     
 if __name__ == "__main__":
+    start_time = time.time()
     test()
     #cProfile.runctx('test()', globals(), locals())
     
@@ -1304,4 +1306,4 @@ if __name__ == "__main__":
     
     print("Test completed successfully.")
 
-    
+    print(time.time() - start_time)
