@@ -153,7 +153,7 @@ class Aggregate(object):
             result.sort(key=lambda literal, i=i, self=self: literal[i].id,
                 reverse = self.reverse_order[i])
         # then sort per group_by
-        result.sort(key=lambda literal, self=self: [id(literal[i]) for i in self.slice_group_by]) # faster than .id; ok for group_by
+        result.sort(key=lambda literal, self=self: [literal[i].id for i in self.slice_group_by])
         pass
     
     def key(self, result):

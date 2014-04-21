@@ -68,7 +68,7 @@ class Interned(object):
     @classmethod
     def of(cls, atom):
         """ factory function for interned objects """
-        if isinstance(atom, (Interned, Fresh_var, Operation)):
+        if isinstance(atom, (Interned, Const, Fresh_var, Operation)):
             return atom
         elif isinstance(atom, (list, tuple, util.xrange)):
             return VarTuple(tuple(Interned.of(element) for element in atom))
@@ -131,7 +131,7 @@ class Fresh_var(object):
 
 class Var(Fresh_var, Interned):
     """ A variable in a clause or query """
-    __slots__ = ['key']
+    __slots__ = ['key', '_remove'] # _remove for weakref ?
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
@@ -149,22 +149,25 @@ class Var(Fresh_var, Interned):
         return self.id 
 
 
-class Const(Interned):
+class Const(object):
     """ a constant """
     __slots__ = ['key']
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
-    def __new__(cls,  _id):
-        r = None if _id is None else repr(_id)
-        with Const.lock:
-            o = cls.registry.get(r, Interned.notFound)
-            if o is Interned.notFound: 
-                o = object.__new__(cls) # o is the ref that keeps it alive
-                o.key = _id #id
-                cls.registry[r] = o
-        return o
 
+    def __init__(self, _id):
+        self.key = _id
+   
+    
+    def __hash__(self):
+        return hash(self.key)
+    def __eq__(self, other):
+        return self.key == other.key
+    def __ne__(self, other):
+        return self.key != other.key
+    def is_const(self): # for backward compatibility with custom resolvers
+        return True
     @property
     def id(self):
         return self.key
@@ -196,8 +199,8 @@ class Const(Interned):
             literal = Literal("==", (self, self))
             return fact(subgoal, literal)
 
-class Pointer(Const):
-    __slots__ = ['id', 'key']
+class Pointer(Interned, Const):
+    __slots__ = ['id', 'key', '_remove'] # _remove for weakref ?
     def __new__(cls,  _id):
         with Const.lock:
             o = cls.registry.get(_id, Interned.notFound)
@@ -210,7 +213,7 @@ class Pointer(Const):
 
 class VarTuple(Interned):
     """ a tuple / list of variables, constants or tuples """
-    __slots__ = ['id', 'key', 'is_constant']
+    __slots__ = ['id', 'key', 'is_constant', '_remove'] # _remove for weakref ?
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
@@ -550,7 +553,7 @@ def assert_(clause):
         pred.db[id_] = clause
         if not clause.body: # if it is a fact, update indexes
             for i, term in enumerate(clause.head.terms):
-                clauses = pred.index[i].setdefault(term, set()) # create a set if needed
+                clauses = pred.index[i].setdefault(term.key, set()) # create a set if needed
                 clauses.add(clause)
         else:
             pred.clauses[id_] = clause
@@ -566,7 +569,7 @@ def retract(clause):
         if not clause.body: # if it is a fact, update indexes
             clause = pred.db[id_] # make sure it is identical to the one in the index
             for i, term in enumerate(clause.head.terms):
-                pred.index[i][term].remove(clause)
+                pred.index[i][term.key].remove(clause)
                 # TODO del pred.index[i][term] if the set is empty
         else:
             del pred.clauses[id_]
@@ -581,7 +584,7 @@ def relevant_clauses(literal):
     result = None
     for i, term in enumerate(literal.terms):
         if term.is_constant:
-            facts = literal.pred.index[i].get(term, set()) # default : a set
+            facts = literal.pred.index[i].get(term.key, set()) # default : a set
             result = facts if result == None else result.intersection(facts)
     if result == None: # no constants found
         return list(literal.pred.db.values())
