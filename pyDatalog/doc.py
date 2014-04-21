@@ -42,15 +42,16 @@ applied to one literal, the result is a literal that is the same as
 the other one, when compared using structural equality.  The
 variant tag is used as a key by the subgoal table.
 
-Element        id            key            tag
--------        --            ---            ---
-variable_1     variable_1    f1             v1
-X              X             v2             v2
-1              1             c2             c3
-1.0            1.0           c4             c4
-'a'            'a'           c5             c5
-('a', X)       ('a', X)      (c5v2)         (c5v1)
-X+1            (X+1)         (v2+c1)        (v2+c1)
+Element        id            key               tag
+-------        --            ---               ---
+variable_1     variable_1    (f,1)             (v,1)
+X              X             (v,2)             (v,2)
+1              1             (c,2)             (c,3)
+1.0            1.0           (c,4)             (c,4)
+'a'            'a'           (c,5)             (c,5)
+('a', X)       ('a', X)      ((c,5),(v,2))     ((c,5),(v,1))
+X+1            (X+1)         ((v,2),+,(c,1))   ((v,2),+,(c,1))
+
 lambda X:..    (c1l1v2)      (c1l1v2)       (c1l1v2)
 X[0]           (X[0)         (v2[c2)        (v2[c2)
 range_(N)      (c1..v2)      (c1..v2)       (c1..v1)

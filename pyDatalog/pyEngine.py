@@ -90,7 +90,7 @@ class Fresh_var(object):
     __slots__ = ['id', 'key']
     counter = util.Counter()  
     def __init__(self):
-        self.id = 'f' + str(Fresh_var.counter.next()) #id
+        self.id = ('f', Fresh_var.counter.next()) #id
         self.key = self.id #id
     
     def is_const(self):
@@ -127,7 +127,7 @@ class Fresh_var(object):
 
 class Var(Fresh_var, Interned):
     """ A variable in a clause or query """
-    __slots__ = ['id', 'key', '_remove']
+    __slots__ = ['id', 'key']
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
@@ -137,7 +137,7 @@ class Var(Fresh_var, Interned):
             if o is Interned.notFound:
                 o = object.__new__(cls) # o is the ref that keeps it alive
                 o.id = _id #id
-                o.key = 'v' + str(Var.counter.next()) #id
+                o.key = ('v' , Var.counter.next()) #id
                 cls.registry[_id] = o
         return o
     def __init__(self, name):
@@ -148,7 +148,7 @@ class Var(Fresh_var, Interned):
 
 class Const(Interned):
     """ a constant """
-    __slots__ = ['id', 'key', '_remove']
+    __slots__ = ['id', 'key']
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     counter = util.Counter()
@@ -159,7 +159,7 @@ class Const(Interned):
             if o is Interned.notFound: 
                 o = object.__new__(cls) # o is the ref that keeps it alive
                 o.id = _id #id
-                o.key = 'c' + str(Const.counter.next())
+                o.key = ('c' , Const.counter.next())
                 cls.registry[r] = o
         return o
     is_constant = True
@@ -191,7 +191,7 @@ class Const(Interned):
 
 class VarTuple(Interned):
     """ a tuple / list of variables, constants or tuples """
-    __slots__ = ['id', 'key', 'is_constant', '_remove']
+    __slots__ = ['id', 'key', 'is_constant']
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
@@ -200,7 +200,7 @@ class VarTuple(Interned):
             if o is Interned.notFound: 
                 o = object.__new__(cls) # o is the ref that keeps it alive
                 o._id = _id #id
-                o.key = '('+ ''.join([e.key for e in _id]) + ')' #id
+                o.key = tuple(e.key for e in _id) #id
                 o.id = tuple([element.id for element in _id])
                 o.is_constant = all(element.is_constant for element in _id)
                 cls.registry[_id] = o
@@ -212,7 +212,7 @@ class VarTuple(Interned):
     def get_tag(self, env): #id
         if self.is_constant: # can use lazy property only for constants
             return self.key
-        return repr([t.get_tag(env) for t in self._id])#TODO
+        return tuple(t.get_tag(env) for t in self._id)#TODO
     
     def subst(self, env): #unify
         if self.is_constant: # can use lazy property only for constants
@@ -259,11 +259,11 @@ class Operation(object):
         self.lhs = lhs
         self.rhs = rhs
         self.is_constant = False
-        self.id = "(%s%s%s)" % (self.lhs.id, self.operator_id, self.rhs.id) #id
-        self.key = "(%s%s%s)" % (self.lhs.key, self.operator_id, self.rhs.key) #id
+        self.id = (self.lhs.id, self.operator_id, self.rhs.id) #id
+        self.key = (self.lhs.key, self.operator_id, self.rhs.key) #id
     
     def get_tag(self, env): #id
-        return "(%s%s%s)" % (self.lhs.get_tag(env), self.operator_id, self.rhs.get_tag(env))
+        return (self.lhs.get_tag(env), self.operator_id, self.rhs.get_tag(env))
     
     def subst(self, env): #unify
         lhs = self.lhs.subst(env)
@@ -429,9 +429,9 @@ def get_key(literal): #id
     if not hasattr(literal, 'key'): # cached
         terms = literal.terms
         if len(terms) == literal.pred.prearity:
-            literal.key = literal.pred.id + ''.join([term.key for term in literal.terms])
+            literal.key = (literal.pred.id,) + tuple(term.key for term in literal.terms)
         else:
-            literal.key = literal.pred.id + ''.join([terms[i].key for i in range(literal.pred.prearity)])
+            literal.key = (literal.pred.id,) + tuple(terms[i].key for i in range(literal.pred.prearity))
     return literal.key
     
 
@@ -439,7 +439,7 @@ def get_tag(literal): #id
     """ the tag is used as a key by the subgoal table """
     if not hasattr(literal, 'tag'): # cached
         env = {}
-        literal.tag = literal.pred.id + ''.join([term.get_tag(env) for term in literal.terms])
+        literal.tag = (literal.pred.id,) + tuple(term.get_tag(env) for term in literal.terms)
     return literal.tag
      
 
@@ -488,7 +488,7 @@ def get_clause_id(clause): #id
         if they have the same id.  A clause's id is used as a key into the
         clause database. """
     if not hasattr(clause, 'id'): # cached
-        clause.id = get_key(clause.head) + '<=' + '&'.join([get_key(bodi) for bodi in clause.body])
+        clause.id = (get_key(clause.head),) + tuple(get_key(bodi) for bodi in clause.body)
     return clause.id
     
 def subst_in_clause(clause, env, parent_class=None):
