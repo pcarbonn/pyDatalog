@@ -72,10 +72,8 @@ class Interned(object):
             return atom
         elif isinstance(atom, (list, tuple, util.xrange)):
             return VarTuple(tuple(Interned.of(element) for element in atom))
-        elif isinstance(atom, (util.string_types, int, float, Decimal, bool)):
-            return Const(atom)
         else:
-            return Pointer(atom)
+            return Const(atom)
     notFound = object()
     def __eq__(self, other):
         return self is other
@@ -94,6 +92,13 @@ class Fresh_var(object):
     def __init__(self):
         self.key = ('f', Fresh_var.counter.next()) #id
     
+    def __hash__(self):
+        return hash(self.key)
+    def __eq__(self, other):
+        return self.key == other.key
+    def __ne__(self, other):
+        return self.key != other.key
+
     @property
     def id(self):
         return self.key
@@ -129,32 +134,18 @@ class Fresh_var(object):
         return None
 
 
-class Var(Fresh_var, Interned):
+class Var(Fresh_var):
     """ A variable in a clause or query """
     __slots__ = ['key', '_remove'] # _remove for weakref ?
-    lock = threading.RLock()
-    registry = weakref.WeakValueDictionary()
-    counter = util.Counter()
-    def __new__(cls,  _id):
-        with Var.lock:
-            o = cls.registry.get(_id, Interned.notFound)
-            if o is Interned.notFound:
-                o = object.__new__(cls) # o is the ref that keeps it alive
-                o.key = ('v' , Var.counter.next()) #id
-                cls.registry[_id] = o
-        return o
     def __init__(self, name):
-        pass
+        self.key = ('f', name) #id
     def __str__(self): 
-        return self.id 
+        return self.key[1]
 
 
 class Const(object):
     """ a constant """
     __slots__ = ['key']
-    lock = threading.RLock()
-    registry = weakref.WeakValueDictionary()
-    counter = util.Counter()
 
     def __init__(self, _id):
         self.key = _id
@@ -199,21 +190,10 @@ class Const(object):
             literal = Literal("==", (self, self))
             return fact(subgoal, literal)
 
-class Pointer(Interned, Const):
-    __slots__ = ['id', 'key', '_remove'] # _remove for weakref ?
-    def __new__(cls,  _id):
-        with Const.lock:
-            o = cls.registry.get(_id, Interned.notFound)
-            if o is Interned.notFound: 
-                o = object.__new__(cls) # o is the ref that keeps it alive
-                o.id = _id #id
-                o.key = ('c' , id(o))
-                cls.registry[_id] = o
-        return o
 
 class VarTuple(Interned):
     """ a tuple / list of variables, constants or tuples """
-    __slots__ = ['id', 'key', 'is_constant', '_remove'] # _remove for weakref ?
+    __slots__ = ['_id', 'key', 'is_constant', '_remove'] # _remove for weakref ?
     lock = threading.RLock()
     registry = weakref.WeakValueDictionary()
     def __new__(cls,  _id):
@@ -223,11 +203,13 @@ class VarTuple(Interned):
                 o = object.__new__(cls) # o is the ref that keeps it alive
                 o._id = _id #id
                 o.key = tuple(e.key for e in _id) #id
-                o.id = tuple(element.id for element in _id)
                 o.is_constant = all(element.is_constant for element in _id)
                 cls.registry[_id] = o
         return o
     
+    @property
+    def id(self):
+        return tuple(element.id for element in self._id)
     def __len__(self):
         return len(self._id)        
     
