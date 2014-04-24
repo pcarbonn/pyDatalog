@@ -68,7 +68,7 @@ class Interned(object):
     @classmethod
     def of(cls, atom):
         """ factory function for interned objects """
-        if isinstance(atom, (Interned, Const, Fresh_var, Operation)):
+        if isinstance(atom, (Term, Operation)):
             return atom
         elif isinstance(atom, (list, tuple, util.xrange)):
             return VarTuple(tuple(Interned.of(element) for element in atom))
@@ -81,30 +81,30 @@ class Interned(object):
         return id(self)
     def __ne__(self, other):
         return not self is other
-    def is_const(self): # for backward compatibility with custom resolvers
-        return self.is_constant
 
-
-class Fresh_var(object): 
-    """ a variable created by the search algorithm """
-    __slots__ = ['key']
-    counter = util.Counter()  
-    def __init__(self):
-        self.key = ('f', Fresh_var.counter.next()) #id
-    
+class Term(object):
     def __hash__(self):
         return hash(self.key)
     def __eq__(self, other):
         return self.key == other.key
     def __ne__(self, other):
         return self.key != other.key
-
     @property
     def id(self):
         return self.key
+    def is_const(self): # for backward compatibility with custom resolvers
+        return self.is_constant
+        
+class Fresh_var(Term): 
+    """ a variable created by the search algorithm """
+    __slots__ = ['key']
+    counter = util.Counter()
+    is_constant = False
+    def __init__(self):
+        self.key = ('f', Fresh_var.counter.next()) #id
+    
     def is_const(self):
         return False
-    is_constant = False
     def get_tag(self, env): #id
         return env.setdefault(self, 'v%i' % len(env))
 
@@ -143,27 +143,17 @@ class Var(Fresh_var):
         return self.key[1]
 
 
-class Const(object):
+class Const(Term):
     """ a constant """
     __slots__ = ['key']
+    is_constant = True
 
     def __init__(self, _id):
         self.key = _id
-   
     
-    def __hash__(self):
-        return hash(self.key)
-    def __eq__(self, other):
-        return self.key == other.key
-    def __ne__(self, other):
-        return self.key != other.key
     def is_const(self): # for backward compatibility with custom resolvers
         return True
-    @property
-    def id(self):
-        return self.key
 
-    is_constant = True
     def get_tag(self, env): #id
         return self.key
     
@@ -191,21 +181,14 @@ class Const(object):
             return fact(subgoal, literal)
 
 
-class VarTuple(Interned):
+class VarTuple(Term):
     """ a tuple / list of variables, constants or tuples """
-    __slots__ = ['_id', 'key', 'is_constant', '_remove'] # _remove for weakref ?
-    lock = threading.RLock()
-    registry = weakref.WeakValueDictionary()
-    def __new__(cls,  _id):
-        with VarTuple.lock:
-            o = cls.registry.get(_id, Interned.notFound)
-            if o is Interned.notFound: 
-                o = object.__new__(cls) # o is the ref that keeps it alive
-                o._id = _id #id
-                o.key = tuple(e.key for e in _id) #id
-                o.is_constant = all(element.is_constant for element in _id)
-                cls.registry[_id] = o
-        return o
+    __slots__ = ['_id', 'key', 'is_constant']
+    
+    def __init__(self, _id):
+        self._id = _id
+        self.key =  tuple(e.key for e in _id) #id
+        self.is_constant = all(element.is_constant for element in _id)
     
     @property
     def id(self):
@@ -880,17 +863,17 @@ def search(subgoal):
             return
         except AttributeError:
             pass
-    elif literal.pred.comparison and len(terms)==3 and terms[0].is_const() \
-    and terms[0].id != '_pyD_class' and terms[1].is_const(): # X.a[1]==Y
+    elif literal.pred.comparison and len(terms)==3 and terms[0].is_constant \
+    and terms[0].id != '_pyD_class' and terms[1].is_constant: # X.a[1]==Y
         # do not use pyDatalog_search as the variable may not be in a pyDatalog class
         v = getattr(terms[0].id, literal.pred.suffix)
         if isinstance(terms[1], VarTuple): # a slice
             v = v.__getitem__(slice(*terms[1].id))
         else:
             v = v.__getitem__(terms[1].id)
-        if terms[2].is_const() and compare(v, literal.pred.comparison, terms[2].id):
+        if terms[2].is_constant and compare(v, literal.pred.comparison, terms[2].id):
             fact_candidate(subgoal, class0, (terms[0], terms[1], terms[2]))
-        elif literal.pred.comparison == "==" and not terms[2].is_const():
+        elif literal.pred.comparison == "==" and not terms[2].is_constant:
             fact_candidate(subgoal, class0, (terms[0], terms[1], v))
         else:
             raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
