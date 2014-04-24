@@ -137,6 +137,7 @@ def test():
 
         +tuple12( (1,(2,(3,))))
         +tuple12( (1,(2,(4,))))
+        assert ask(tuple12((X,(2,(3,))))) == set([(1,)])
         assert ask(tuple12((1,(2,(X,))))) == set([(3,), (4,)])
         
         +q(b=b, a=a)
