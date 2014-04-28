@@ -240,7 +240,7 @@ class Term(threading.local, Expression, LazyList):
             self._pyD_value = list(map(Expression._pyD_for, name))
             self._pyD_name = util.unicode_type([element._pyD_name for element in self._pyD_value])
             self._pyD_type = 'tuple'
-            self._pyD_lua = pyEngine.Interned.of([e._pyD_lua for e in self._pyD_value])
+            self._pyD_lua = pyEngine.Term.of([e._pyD_lua for e in self._pyD_value])
             self._pyD_precalculations = pre_calculations(self._pyD_value)
         elif forced_type=="constant" or isinstance(name, (int, float, bool)) \
         or name is None \
@@ -248,7 +248,7 @@ class Term(threading.local, Expression, LazyList):
             self._pyD_value = name
             self._pyD_name = util.unicode_type(name)
             self._pyD_type = 'constant'
-            self._pyD_lua = pyEngine.Interned.of(name)
+            self._pyD_lua = pyEngine.Term.of(name)
         else:
             self._pyD_value = name
             self._pyD_name = name
