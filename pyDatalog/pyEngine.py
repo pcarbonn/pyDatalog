@@ -90,6 +90,9 @@ class Fresh_var(Term):
     def __init__(self):
         self.key = ('f', Fresh_var.counter.next()) #id
     
+    def __hash__(self): # needed for Python 3
+        return id(self.key) # id() is fastest
+
     def is_const(self):
         return False
     def get_tag(self, env): #id

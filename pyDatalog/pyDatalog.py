@@ -229,6 +229,10 @@ class metaMixin(type):
                 return result[0][-1] if result else None                    
             raise AttributeError
         cls.__getattr__ = _getattr   
+
+        def __lt__(self, other): # needed for sorting in aggregate functions using Python 3
+            return id(self) < id(other)
+        cls.__lt__ = __lt__    
     
     def __getattr__(cls, method):
         """
