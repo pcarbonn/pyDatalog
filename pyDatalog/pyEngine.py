@@ -186,7 +186,7 @@ class VarTuple(Term):
         self.id =  tuple(e.id for e in _id) #id
         self.is_constant = all(element.is_constant for element in _id)
     
-    def __hash__(self):
+    def __hash__(self): # no gain by caching it
         return hash(self.id)
 
     def __len__(self):
@@ -375,7 +375,7 @@ class Literal(object):
     """ A literal is a predicate and a sequence of terms, 
         the number of which must match the predicate's arity.
     """
-    __slots__ = ['terms', 'pred', 'key', 'tag', 'aggregate']
+    __slots__ = ['terms', 'pred', 'id', 'tag', 'aggregate']
     def __init__(self, pred, terms, prearity=None, aggregate=None):
         self.terms = terms
         self.aggregate = aggregate
@@ -414,17 +414,17 @@ class Literal(object):
         return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
 
 
-def get_key(literal): #id
+def get_id(literal): #id
     """ The id's encoding ensures that two literals are structurally the
         same (up to prearity terms) if they have the same id. 
         Prearity is used to ensure unicity of results of functions like "pred[k]=v" """
-    if not hasattr(literal, 'key'): # cached
+    if not hasattr(literal, 'id'): # cached
         terms = literal.terms
         if len(terms) == literal.pred.prearity:
-            literal.key = (literal.pred.id,) + tuple(term.id for term in literal.terms)
+            literal.id = (literal.pred.id,) + tuple(term.id for term in literal.terms)
         else:
-            literal.key = (literal.pred.id,) + tuple(terms[i].id for i in range(literal.pred.prearity))
-    return literal.key
+            literal.id = (literal.pred.id,) + tuple(terms[i].id for i in range(literal.pred.prearity))
+    return literal.id
     
 
 def get_tag(literal): #id
@@ -480,7 +480,7 @@ def get_clause_id(clause): #id
         if they have the same id.  A clause's id is used as a key into the
         clause database. """
     if not hasattr(clause, 'id'): # cached
-        clause.id = (get_key(clause.head),) + tuple(get_key(bodi) for bodi in clause.body)
+        clause.id = (get_id(clause.head),) + tuple(get_id(bodi) for bodi in clause.body)
     return clause.id
     
 def subst_in_clause(clause, env, parent_class=None):
@@ -678,9 +678,9 @@ def fact(subgoal, literal):
         for waiter in subgoal.waiters:
             resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
             schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
-    elif subgoal.facts is not True and not subgoal.facts.get(get_key(literal)):
+    elif subgoal.facts is not True and not subgoal.facts.get(get_id(literal)):
         if Logging: logging.info("New fact : %s" % str(literal))
-        subgoal.facts[get_key(literal)] = literal
+        subgoal.facts[get_id(literal)] = literal
         for waiter in subgoal.waiters:
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
