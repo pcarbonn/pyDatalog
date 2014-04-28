@@ -83,8 +83,6 @@ class Interned(object):
         return not self is other
 
 class Term(object):
-    def __hash__(self):
-        return hash(self.key)
     def __eq__(self, other):
         return self.key == other.key
     def __ne__(self, other):
@@ -139,6 +137,10 @@ class Var(Fresh_var):
     __slots__ = ['key', '_remove'] # _remove for weakref ?
     def __init__(self, name):
         self.key = ('f', name) #id
+
+    def __hash__(self):
+        return hash(self.key)
+
     def __str__(self): 
         return self.key[1]
 
@@ -151,6 +153,9 @@ class Const(Term):
     def __init__(self, _id):
         self.key = _id
     
+    def __hash__(self):
+        return hash(self.key)
+
     def is_const(self): # for backward compatibility with custom resolvers
         return True
 
@@ -190,6 +195,9 @@ class VarTuple(Term):
         self.key =  tuple(e.key for e in _id) #id
         self.is_constant = all(element.is_constant for element in _id)
     
+    def __hash__(self):
+        return hash(self.key)
+
     @property
     def id(self):
         return tuple(element.id for element in self._id)
