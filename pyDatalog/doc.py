@@ -36,32 +36,26 @@ The id's encoding ensures that two literals are structurally the
 same (up to prearity terms) if they have the same id. 
 Prearity is used to ensure unicity of results of functions like "pred[k]=v"
         
-Two literal's variant tags are the same if there is a one-to-one
+Two literal's tags are the same if there is a one-to-one
 mapping of variables to variables, such that when the mapping is
 applied to one literal, the result is a literal that is the same as
 the other one, when compared using structural equality.  The
-variant tag is used as a key by the subgoal table.
+tag is used as a key by the subgoal table.
 
-Element        id            key               tag
--------        --            ---               ---
-variable_1     variable_1    (f,1)             (v,1)
-X              X             (v,2)             (v,2)
-1              1             (c,2)             (c,3)
-1.0            1.0           (c,4)             (c,4)
-'a'            'a'           (c,5)             (c,5)
-('a', X)       ('a', X)      ((c,5),(v,2))     ((c,5),(v,1))
-X+1            (X+1)         ((v,2),+,(c,1))   ((v,2),+,(c,1))
+Term           id            tag
+-------        --            ---
+variable_1     (f,1)         (v,1)
+X              (f,X)         (v,2)
+1              1             1
+1.0            1.0           1.0
+'a'            'a'           'a'
+('a', X)       ('a', (f,X))  ('a',(v,2))
 
-lambda X:..    (c1l1v2)      (c1l1v2)       (c1l1v2)
-X[0]           (X[0)         (v2[c2)        (v2[c2)
-range_(N)      (c1..v2)      (c1..v2)       (c1..v1)
-len_(X)        (c1#v2)       (c1#v2)        (c1#v1)
-p              p/2
-p(X,1)         p/2v2c3       p/2v2c3        p/2v1c3
-p[X]==1        p/2v2c3       p/2v2c3        p/2v1
-X.b            (X.c1)        (X.c1)         (X.c1)
-X.m(Y)         ((X.c1)(Y)    ((v1.c1)(v2)   ((v1.c1)(v2)
-A.p[X]==1     see #comparison
+X+1            ((f,X),+,1)   ((v,2),+,1)
+lambda X:..    (None,<l>,(f,X))    (None,<l>,(v,2))
+X[0]           (X,[,0)       ((v,2),[,0)
+range_(N)      (None,..,(f,N))    (None,..,(v,2))
+len_(X)        (None,#,(f,X))    (None,#,(v,2))
 
 
 
