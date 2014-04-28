@@ -86,23 +86,25 @@ class Fresh_var(Term):
     """ a variable created by the search algorithm """
     __slots__ = ['key']
     counter = util.Counter()
-    is_constant = False
+    is_constant = False # it's faster than is_const()
     def __init__(self):
         self.key = ('f', Fresh_var.counter.next()) #id
     
-    def __hash__(self): # needed for Python 3
-        return id(self.key) # id() is fastest
+    if not util.PY2: # do not slow down python 2
+        def __hash__(self): # needed for Python 3
+            return id(self.key) # id() is fastest
 
     def is_const(self):
         return False
     def get_tag(self, env): #id
-        return env.setdefault(self, 'v%i' % len(env))
+        return env.setdefault(self, ('v', len(env)))
 
     def subst(self, env): #unify
         return env.get(self, self)
     def shuffle(self, env): #shuffle
         env.setdefault(self, Fresh_var())
     def chase(self, env): #unify
+        # try ... except is not faster
         return env[self].chase(env) if self in env else self
     
     def unify(self, term, env): #unify
@@ -118,7 +120,7 @@ class Fresh_var(Term):
         return env
     
     def __str__(self): 
-        return "variable_%s" % self.id
+        return "variable_%s" % self.key[1]
     def equals_primitive(self, term, subgoal):
         """ by default, self==term fails """
         return None
@@ -126,7 +128,7 @@ class Fresh_var(Term):
 
 class Var(Fresh_var):
     """ A variable in a clause or query """
-    __slots__ = ['key', '_remove'] # _remove for weakref ?
+    __slots__ = ['key']
     def __init__(self, name):
         self.key = ('f', name) #id
 
