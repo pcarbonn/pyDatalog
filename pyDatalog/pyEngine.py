@@ -33,6 +33,7 @@ Some notable differences between python and lua:
 * variable bindings in a closure.  See http://tiny.cc/7837cw, http://tiny.cc/rq47cw
 """
 from collections import OrderedDict
+from decimal import Decimal
 import gc
 import logging
 import re
@@ -62,16 +63,26 @@ Class_dict = {}
 # For example, after internalization, there is one constant for each
 # string used to name a constant.
 
-class Term(object):
+class Interned(object):
+    """ Abstract class for objects having only one instance in memory """
     @classmethod
     def of(cls, atom):
-        """ factory function for Term """
+        """ factory function for interned objects """
         if isinstance(atom, (Term, Operation)):
             return atom
         elif isinstance(atom, (list, tuple, util.xrange)):
-            return VarTuple(tuple(Term.of(element) for element in atom))
+            return VarTuple(tuple(Interned.of(element) for element in atom))
         else:
             return Const(atom)
+    notFound = object()
+    def __eq__(self, other):
+        return self is other
+    def __hash__(self): 
+        return id(self)
+    def __ne__(self, other):
+        return not self is other
+
+class Term(object):
     def __eq__(self, other):
         return self.key == other.key
     def __ne__(self, other):
@@ -255,37 +266,37 @@ class Operation(object):
         if self.operator == '[' and isinstance(lhs, (VarTuple, Const)) and rhs.is_constant:
             v = lhs._id if isinstance(lhs, VarTuple) else lhs.id
             if isinstance(rhs, VarTuple): # a slice
-                return Term.of(v.__getitem__(slice(*rhs.id)))
-            return Term.of(v.__getitem__(rhs.id))
+                return Interned.of(v.__getitem__(slice(*rhs.id)))
+            return Interned.of(v.__getitem__(rhs.id))
         if self.operator == '#' and isinstance(rhs, VarTuple):
-            return Term.of(len(rhs))
+            return Interned.of(len(rhs))
         if self.operator == '..' and rhs.is_constant:
-            return Term.of(range(rhs.id))
+            return Interned.of(range(rhs.id))
         if lhs.is_constant and rhs.is_constant:
             # calculate expression of constants
             if self.operator == '+':
-                return Term.of(lhs.id + rhs.id)
+                return Interned.of(lhs.id + rhs.id)
             elif self.operator == '-':
-                return Term.of(lhs.id - rhs.id)
+                return Interned.of(lhs.id - rhs.id)
             elif self.operator == '*':
-                return Term.of(lhs.id * rhs.id)
+                return Interned.of(lhs.id * rhs.id)
             elif self.operator == '/':
-                return Term.of(lhs.id / rhs.id)
+                return Interned.of(lhs.id / rhs.id)
             elif self.operator == '//':
-                return Term.of(lhs.id // rhs.id)
+                return Interned.of(lhs.id // rhs.id)
             elif self.operator == '**':
-                return Term.of(lhs.id ** rhs.id)
+                return Interned.of(lhs.id ** rhs.id)
             elif self.operator == '%':
-                return Term.of(lhs.id.format(*(rhs.id)))
+                return Interned.of(lhs.id.format(*(rhs.id)))
             elif isinstance(self.operator, type(lambda: None)):
-                return Term.of(self.operator(*(rhs.id)))
+                return Interned.of(self.operator(*(rhs.id)))
             elif self.operator == '.':
                 v = lhs.id
                 for attribute in rhs.id.split(".") :
                     v = getattr(v, attribute)
-                return Term.of(v)
+                return Interned.of(v)
             elif self.operator == '(':
-                return Term.of(lhs.id.__call__(*(rhs.id)))
+                return Interned.of(lhs.id.__call__(*(rhs.id)))
             assert False # dead code
         return Operation(lhs, self.operator, rhs)
             
@@ -306,16 +317,6 @@ class Operation(object):
 
     def __str__(self): 
         return "(%s%s%s)" % (str(self.lhs), str(self.operator), str(self.rhs))
-
-class Interned(object):
-    """ Abstract class for objects having only one instance in memory """
-    notFound = object()
-    def __eq__(self, other):
-        return self is other
-    def __hash__(self): 
-        return id(self)
-    def __ne__(self, other):
-        return not self is other
 
 class Pred(Interned):
     """ A predicate symbol has a name, an arity, and a database table.  
@@ -736,7 +737,7 @@ def fact_candidate(subgoal, class0, result):
     """ add result as a candidate fact of class0 for subgoal"""
     if result is True:
         return fact(subgoal, True)
-    result = [Term.of(r) for r in result]
+    result = [Interned.of(r) for r in result]
     if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
         return
     result = Literal(subgoal.literal.pred.name, result)
@@ -977,7 +978,7 @@ def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
             if terms is True:
                 fact(subgoal, True)
             elif len(terms) == len(literal.terms):
-                new = Literal(pred, [Term.of(term) for term in terms])
+                new = Literal(pred, [Interned.of(term) for term in terms])
                 if match(literal, new) != None:
                     fact(subgoal, new)
     pred.prim = prim
