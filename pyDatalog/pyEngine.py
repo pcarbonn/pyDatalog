@@ -73,26 +73,23 @@ class Term(object):
         else:
             return Const(atom)
     def __eq__(self, other):
-        return self.key == other.key
+        return self.id == other.id
     def __ne__(self, other):
-        return self.key != other.key
-    @property
-    def id(self):
-        return self.key
+        return self.id != other.id
     def is_const(self): # for backward compatibility with custom resolvers
         return self.is_constant
         
 class Fresh_var(Term): 
     """ a variable created by the search algorithm """
-    __slots__ = ['key']
+    __slots__ = ['id']
     counter = util.Counter()
     is_constant = False # it's faster than is_const()
     def __init__(self):
-        self.key = ('f', Fresh_var.counter.next()) #id
+        self.id = ('f', Fresh_var.counter.next()) #id
     
     if not util.PY2: # do not slow down python 2
         def __hash__(self): # needed for Python 3
-            return id(self.key) # id() is fastest
+            return id(self.id) # id() is fastest
 
     def is_const(self):
         return False
@@ -120,7 +117,7 @@ class Fresh_var(Term):
         return env
     
     def __str__(self): 
-        return "variable_%s" % self.key[1]
+        return "variable_%s" % self.id[1]
     def equals_primitive(self, term, subgoal):
         """ by default, self==term fails """
         return None
@@ -128,33 +125,33 @@ class Fresh_var(Term):
 
 class Var(Fresh_var):
     """ A variable in a clause or query """
-    __slots__ = ['key']
+    __slots__ = ['id']
     def __init__(self, name):
-        self.key = ('f', name) #id
+        self.id = ('f', name) #id
 
     def __hash__(self):
-        return hash(self.key)
+        return hash(self.id)
 
     def __str__(self): 
-        return self.key[1]
+        return self.id[1]
 
 
 class Const(Term):
     """ a constant """
-    __slots__ = ['key']
+    __slots__ = ['id']
     is_constant = True
 
     def __init__(self, _id):
-        self.key = _id
+        self.id = _id
     
     def __hash__(self):
-        return hash(self.key)
+        return hash(self.id)
 
     def is_const(self): # for backward compatibility with custom resolvers
         return True
 
     def get_tag(self, env): #id
-        return self.key
+        return self.id
     
     def subst(self, env): #unify
         return self
@@ -182,25 +179,22 @@ class Const(Term):
 
 class VarTuple(Term):
     """ a tuple / list of variables, constants or tuples """
-    __slots__ = ['_id', 'key', 'is_constant']
+    __slots__ = ['_id', 'id', 'is_constant']
     
     def __init__(self, _id):
         self._id = _id
-        self.key =  tuple(e.key for e in _id) #id
+        self.id =  tuple(e.id for e in _id) #id
         self.is_constant = all(element.is_constant for element in _id)
     
     def __hash__(self):
-        return hash(self.key)
+        return hash(self.id)
 
-    @property
-    def id(self):
-        return tuple(element.id for element in self._id)
     def __len__(self):
         return len(self._id)        
     
     def get_tag(self, env): #id
         if self.is_constant: # can use lazy property only for constants
-            return self.key
+            return self.id
         return tuple(t.get_tag(env) for t in self._id) #id
     
     def subst(self, env): #unify
@@ -249,7 +243,6 @@ class Operation(object):
         self.rhs = rhs
         self.is_constant = False
         self.id = (self.lhs.id, self.operator_id, self.rhs.id) #id
-        self.key = (self.lhs.key, self.operator_id, self.rhs.key) #id
     
     def get_tag(self, env): #id
         return (self.lhs.get_tag(env), self.operator_id, self.rhs.get_tag(env))
@@ -382,7 +375,7 @@ class Literal(object):
     """ A literal is a predicate and a sequence of terms, 
         the number of which must match the predicate's arity.
     """
-    __slots__ = ['terms', 'pred', 'id', 'key', 'tag', 'aggregate']
+    __slots__ = ['terms', 'pred', 'key', 'tag', 'aggregate']
     def __init__(self, pred, terms, prearity=None, aggregate=None):
         self.terms = terms
         self.aggregate = aggregate
@@ -428,9 +421,9 @@ def get_key(literal): #id
     if not hasattr(literal, 'key'): # cached
         terms = literal.terms
         if len(terms) == literal.pred.prearity:
-            literal.key = (literal.pred.id,) + tuple(term.key for term in literal.terms)
+            literal.key = (literal.pred.id,) + tuple(term.id for term in literal.terms)
         else:
-            literal.key = (literal.pred.id,) + tuple(terms[i].key for i in range(literal.pred.prearity))
+            literal.key = (literal.pred.id,) + tuple(terms[i].id for i in range(literal.pred.prearity))
     return literal.key
     
 
@@ -530,7 +523,7 @@ def assert_(clause):
         pred.db[id_] = clause
         if not clause.body: # if it is a fact, update indexes
             for i, term in enumerate(clause.head.terms):
-                clauses = pred.index[i].setdefault(term.key, set()) # create a set if needed
+                clauses = pred.index[i].setdefault(term.id, set()) # create a set if needed
                 clauses.add(clause)
         else:
             pred.clauses[id_] = clause
@@ -546,7 +539,7 @@ def retract(clause):
         if not clause.body: # if it is a fact, update indexes
             clause = pred.db[id_] # make sure it is identical to the one in the index
             for i, term in enumerate(clause.head.terms):
-                pred.index[i][term.key].remove(clause)
+                pred.index[i][term.id].remove(clause)
                 # TODO del pred.index[i][term] if the set is empty
         else:
             del pred.clauses[id_]
@@ -561,7 +554,7 @@ def relevant_clauses(literal):
     result = None
     for i, term in enumerate(literal.terms):
         if term.is_constant:
-            facts = literal.pred.index[i].get(term.key, set()) # default : a set
+            facts = literal.pred.index[i].get(term.id, set()) # default : a set
             result = facts if result == None else result.intersection(facts)
     if result == None: # no constants found
         return list(literal.pred.db.values())
