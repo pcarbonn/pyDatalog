@@ -53,15 +53,6 @@ Class_dict = {}
 
 #       DATA TYPES          #####################################
 
-# Internalize objects based on an identifier.
-
-# To make comparisons between items of the same type efficient, each
-# item is internalized so there is at most one of them associated
-# with an identifier.
-
-# For example, after internalization, there is one constant for each
-# string used to name a constant.
-
 class Term(object):
     @classmethod
     def of(cls, atom):
@@ -105,15 +96,15 @@ class Fresh_var(Term):
         return env[self].chase(env) if self in env else self
     
     def unify(self, term, env): #unify
-        return term.unify_var(self, env)
-    def unify_const(self, const, env): #unify
+        return term.unify_with_var(self, env)
+    def unify_with_const(self, const, env): #unify
         env[self] = const
         return env
-    def unify_var(self, var, env): #unify
+    def unify_with_var(self, var, env): #unify
         env[var] = self
         return env
-    def unify_tuple(self, tuple, env): #unify
-        env[self] = tuple
+    def unify_with_tuple(self, a_tuple, env): #unify
+        env[self] = a_tuple
         return env
     
     def __str__(self): 
@@ -161,12 +152,12 @@ class Const(Term):
         return self
     
     def unify(self, term, env): #unify
-        return term.unify_const(self, env)
-    def unify_const(self, const, env): #unify
+        return term.unify_with_const(self, env)
+    def unify_with_const(self, const, env): #unify
         return None
-    def unify_var(self, var, env): #unify
-        return var.unify_const(self, env)
-    def unify_tuple(self, tuple, env): #unify
+    def unify_with_var(self, var, env): #unify
+        return var.unify_with_const(self, env)
+    def unify_with_tuple(self, a_tuple, env): #unify
         return None
     
     def __str__(self): 
@@ -211,15 +202,15 @@ class VarTuple(Term):
         return VarTuple(tuple(element.chase(env) for element in self._id))
     
     def unify(self, term, env): #unify
-        return term.unify_tuple(self, env)
-    def unify_const(self, const, env): #unify
+        return term.unify_with_tuple(self, env)
+    def unify_with_const(self, const, env): #unify
         return None
-    def unify_var(self, var, env): #unify
-        return var.unify_tuple(self, env)
-    def unify_tuple(self, tuple, env): #unify
-        if len(self) != len(tuple):
+    def unify_with_var(self, var, env): #unify
+        return var.unify_with_tuple(self, env)
+    def unify_with_tuple(self, a_tuple, env): #unify
+        if len(self) != len(a_tuple):
             return None
-        for e1, e2 in zip(self._id, tuple._id):
+        for e1, e2 in zip(self._id, a_tuple._id):
             if e1 != e2:
                 env = e1.unify(e2, env)
                 if env == None: return env
@@ -295,11 +286,11 @@ class Operation(object):
     
     def unify(self, term, env): #unify
         return None
-    def unify_const(self, const, env): #unify
+    def unify_with_const(self, const, env): #unify
         return None
-    def unify_var(self, var, env): #unify
+    def unify_with_var(self, var, env): #unify
         return None
-    def unify_tuple(self, tuple, env): #unify
+    def unify_with_tuple(self, a_tuple, env): #unify
         return None
 
     def __str__(self): 
