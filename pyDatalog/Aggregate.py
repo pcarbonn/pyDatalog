@@ -154,7 +154,6 @@ class Aggregate(object):
                 reverse = self.reverse_order[i])
         # then sort per group_by
         result.sort(key=lambda literal, self=self: [literal[i].id for i in self.slice_group_by])
-        pass
     
     def key(self, result):
         """ return the grouping key of a result """
