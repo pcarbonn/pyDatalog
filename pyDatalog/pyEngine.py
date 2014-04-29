@@ -107,6 +107,15 @@ class Fresh_var(Term):
         env[self] = a_tuple
         return env
     
+    def match(self, const, env):
+        if self not in env:
+            env[self] = const
+            return env
+        elif env[self] == const: # dead code ?
+            return env
+        else: # dead code ?
+            return None
+    
     def __str__(self): 
         return "variable_%s" % self.id[1]
     def equals_primitive(self, term, subgoal):
@@ -158,6 +167,9 @@ class Const(Term):
     def unify_with_var(self, var, env): #unify
         return var.unify_with_const(self, env)
     def unify_with_tuple(self, a_tuple, env): #unify
+        return None
+    
+    def match(self, const, env):
         return None
     
     def __str__(self): 
@@ -942,17 +954,6 @@ def match(literal, fact):
             env = term.match(factterm, env)
             if env == None: return env
     return env
-Const.match = lambda self, const, env : None
-def _(self, const, env):
-    if self not in env:
-        env[self] = const
-        return env
-    elif env[self] == const: # dead code ?
-        return env
-    else: # dead code ?
-        return None
-Var.match = _
-Fresh_var.match = _
 
 # Add a primitives that is defined by an iterator.  When given a
 # literal, the iterator generates a sequences of answers.  Each
