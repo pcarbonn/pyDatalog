@@ -293,6 +293,7 @@ class Operation(object):
     def shuffle(self, env): #shuffle
         self.lhs.shuffle(env)
         self.rhs.shuffle(env)
+
     def chase(self, env): #unify
         return Operation(self.lhs.chase(env), self.operator, self.rhs.chase(env))
     
@@ -416,52 +417,57 @@ class Literal(object):
     def __str__(self): 
         return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
 
+    def get_id(self): #id
+        """ The id's encoding ensures that two literals are structurally the
+            same (up to prearity terms) if they have the same id. 
+            Prearity is used to ensure unicity of results of functions like "pred[k]=v" """
+        if not hasattr(self, 'id'): # cached
+            terms = self.terms
+            if len(terms) == self.pred.prearity:
+                self.id = (self.pred.id,) + tuple(term.id for term in self.terms)
+            else:
+                self.id = (self.pred.id,) + tuple(terms[i].id for i in range(self.pred.prearity))
+        return self.id        
 
-def get_id(literal): #id
-    """ The id's encoding ensures that two literals are structurally the
-        same (up to prearity terms) if they have the same id. 
-        Prearity is used to ensure unicity of results of functions like "pred[k]=v" """
-    if not hasattr(literal, 'id'): # cached
-        terms = literal.terms
-        if len(terms) == literal.pred.prearity:
-            literal.id = (literal.pred.id,) + tuple(term.id for term in literal.terms)
-        else:
-            literal.id = (literal.pred.id,) + tuple(terms[i].id for i in range(literal.pred.prearity))
-    return literal.id
-    
+    def get_tag(self): #id
+        """ the tag is used as a key by the subgoal table """
+        if not hasattr(self, 'tag'): # cached
+            env = {}
+            self.tag = (self.pred.id,) + tuple(term.get_tag(env) for term in self.terms)
+        return self.tag       
 
-def get_tag(literal): #id
-    """ the tag is used as a key by the subgoal table """
-    if not hasattr(literal, 'tag'): # cached
+    def subst(self, env): #unify
+        if not env: return self
+        return Literal(self.pred, [term.subst(env) for term in self.terms], aggregate=self.aggregate)
+
+    def shuffle(self, env): #shuffle
+        for term in self.terms:
+            term.shuffle(env)
+
+    def rename(self): #shuffle
+        env={}
+        self.shuffle(env)
+        return self.subst(env)
+
+    def unify(self, other): #unify
+        if self.pred != other.pred: return None
         env = {}
-        literal.tag = (literal.pred.id,) + tuple(term.get_tag(env) for term in literal.terms)
-    return literal.tag
-     
+        for term, otherterm in zip(self.terms, other.terms):
+            literal_i = term.chase(env)
+            other_i = otherterm.chase(env)
+            if literal_i != other_i:
+                env = literal_i.unify(other_i, env)
+                if env == None: return env
+        return env
 
-def subst(literal, env): #unify
-    if not env: return literal
-    return Literal(literal.pred, [term.subst(env) for term in literal.terms], aggregate=literal.aggregate)
-
-
-def shuffle(literal, env): #shuffle
-    for term in literal.terms:
-        term.shuffle(env)
-
-def rename(literal): #shuffle
-    env={}
-    shuffle(literal, env)
-    return subst(literal, env)
-
-def unify(literal, other): #unify
-    if literal.pred != other.pred: return None
-    env = {}
-    for term, otherterm in zip(literal.terms, other.terms):
-        literal_i = term.chase(env)
-        other_i = otherterm.chase(env)
-        if literal_i != other_i:
-            env = literal_i.unify(other_i, env)
-            if env == None: return env
-    return env
+    def match(self, fact):
+        """ Does a self unify with a fact known to contain only constant terms? """
+        env = {}
+        for term, factterm in zip(self.terms, fact.terms):
+            if term != factterm:
+                env = term.match(factterm, env)
+                if env == None: return env
+        return env
 
 
 class Clause(object):
@@ -477,31 +483,30 @@ class Clause(object):
         """retract clause"""
         retract(self) 
 
-
-def get_clause_id(clause): #id
-    """ The id's encoding ensures that two clauses are structurally equal
-        if they have the same id.  A clause's id is used as a key into the
-        clause database. """
-    if not hasattr(clause, 'id'): # cached
-        clause.id = (get_id(clause.head),) + tuple(get_id(bodi) for bodi in clause.body)
-    return clause.id
+    def get_id(self): #id
+        """ The id's encoding ensures that two clauses are structurally equal
+            if they have the same id.  A clause's id is used as a key into the
+            clause database. """
+        if not hasattr(self, 'id'): # cached
+            self.id = (self.head.get_id(),) + tuple(bodi.get_id() for bodi in self.body)
+        return self.id
     
-def subst_in_clause(clause, env, parent_class=None):
-    """ apply the env mapping and rebase to parent_class, if any """
-    if not env and not parent_class: return clause
-    if not parent_class:
-        return Clause(subst(clause.head, env),
-                       [subst(bodi, env) for bodi in clause.body])
-    return Clause(subst(clause.head, env).rebased(parent_class),
-                    [subst(bodi, env).rebased(parent_class) for bodi in clause.body])
+    def subst(self, env, parent_class=None):
+        """ apply the env mapping and rebase to parent_class, if any """
+        if not env and not parent_class: return self
+        if not parent_class:
+            return Clause(self.head.subst(env),
+                           [bodi.subst(env) for bodi in self.body])
+        return Clause(self.head.subst(env).rebased(parent_class),
+                        [bodi.subst(env).rebased(parent_class) for bodi in self.body])
     
-def rename_clause(clause):
-    """ returns the clause with fresh variables """
-    env = {}
-    shuffle(clause.head, env)
-    for bodi in clause.body:
-        shuffle(bodi, env)
-    return subst_in_clause(clause, env)
+    def rename(self):
+        """ returns the clause with fresh variables """
+        env = {}
+        self.head.shuffle(env)
+        for bodi in self.body:
+            bodi.shuffle(env)
+        return self.subst(env)
 
 # DATABASE  #####################################################
 
@@ -519,7 +524,7 @@ def remove(pred):
 def assert_(clause):
     """ Add a safe clause to the database """
     pred = clause.head.pred
-    id_ = get_clause_id(clause)
+    id_ = clause.get_id()
 
     if not pred.prim:                   # Ignore assertions for primitives.
         retract(clause) # to ensure unicity of functions
@@ -536,7 +541,7 @@ def assert_(clause):
 def retract(clause):
     """ retract a clause from the database"""
     pred = clause.head.pred
-    id_ = get_clause_id(clause)
+    id_ = clause.get_id()
     
     if id_ in pred.db: 
         if not clause.body: # if it is a fact, update indexes
@@ -582,11 +587,11 @@ supported.
 # literal to a subgoal.
 
 def find(literal):
-    tag = get_tag(literal)
+    tag = literal.get_tag()
     return Logic.tl.logic.Subgoals.get(tag)
 
 def merge(subgoal):
-    Logic.tl.logic.Subgoals[get_tag(subgoal.literal)] = subgoal
+    Logic.tl.logic.Subgoals[subgoal.literal.get_tag()] = subgoal
 
 
 class Subgoal(object):
@@ -610,8 +615,8 @@ def resolve(clause, literal):
     two literals unify, a new clause is generated that has a body with
     one less literal.
     """
-    env = unify(clause.body[0], rename(literal))
-    return Clause(subst(clause.head, env), [subst(bodi, env) for bodi in clause.body[1:] ])
+    env = clause.body[0].unify(literal.rename())
+    return Clause(clause.head.subst(env), [bodi.subst(env) for bodi in clause.body[1:] ])
  
 ################# Task management ###############################
 
@@ -681,9 +686,9 @@ def fact(subgoal, literal):
         for waiter in subgoal.waiters:
             resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
             schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
-    elif subgoal.facts is not True and not subgoal.facts.get(get_id(literal)):
+    elif subgoal.facts is not True and not subgoal.facts.get(literal.get_id()):
         if Logging: logging.info("New fact : %s" % str(literal))
-        subgoal.facts[get_id(literal)] = literal
+        subgoal.facts[literal.get_id()] = literal
         for waiter in subgoal.waiters:
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
@@ -741,7 +746,7 @@ def fact_candidate(subgoal, class0, result):
     if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
         return
     result = Literal(subgoal.literal.pred.name, result)
-    env = unify(subgoal.literal, result)
+    env = subgoal.literal.unify(result)
     if env != None:
         fact(subgoal, result)
 
@@ -839,10 +844,10 @@ def search(subgoal):
             return
         elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
             for clause in relevant_clauses(literal):
-                renamed = rename_clause(clause)
-                env = unify(literal, renamed.head)
+                renamed = clause.rename()
+                env = literal.unify(renamed.head)
                 if env != None:
-                    clause = subst_in_clause(renamed, env, class0)
+                    clause = renamed.subst(env, class0)
                     if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
                     schedule((ADD_CLAUSE, (subgoal, clause)))
             return
@@ -853,10 +858,10 @@ def search(subgoal):
                 literal1.terms[-1] = Y1
                 literal2 = Literal(literal.pred.comparison, (Y1, terms[-1]))
                 clause = Clause(literal, (literal1, literal2))
-                renamed = rename_clause(clause)
-                env = unify(literal, renamed.head)
+                renamed = clause.rename()
+                env = literal.unify(renamed.head)
                 if env != None:
-                    renamed = subst_in_clause(renamed, env, class0)
+                    renamed = renamed.subst(env, class0)
                     if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
                     schedule((ADD_CLAUSE, (subgoal, renamed)))
                 return
@@ -944,17 +949,6 @@ def equals_primitive(literal, subgoal):
     #unbound: can't raise error if both are still unbound, because split(a,b,c) would fail (see test.py)
     return x.equals_primitive(y, subgoal)
 
-# Does a literal unify with an fact known to contain only constant
-# terms?
-
-def match(literal, fact):
-    env = {}
-    for term, factterm in zip(literal.terms, fact.terms):
-        if term != factterm:
-            env = term.match(factterm, env)
-            if env == None: return env
-    return env
-
 # Add a primitives that is defined by an iterator.  When given a
 # literal, the iterator generates a sequences of answers.  Each
 # answer is an array.  Each element in the array is either a number
@@ -968,7 +962,7 @@ def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
                 fact(subgoal, True)
             elif len(terms) == len(literal.terms):
                 new = Literal(pred, [Term.of(term) for term in terms])
-                if match(literal, new) != None:
+                if literal.match(new) != None:
                     fact(subgoal, new)
     pred.prim = prim
     
