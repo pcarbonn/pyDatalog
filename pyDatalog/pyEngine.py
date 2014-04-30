@@ -746,8 +746,7 @@ def fact_candidate(subgoal, class0, result):
     if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
         return
     result = Literal(subgoal.literal.pred.name, result)
-    env = subgoal.literal.unify(result)
-    if env != None:
+    if subgoal.literal.match(result) != None:
         fact(subgoal, result)
 
 ###############     SEARCH     ##################################
