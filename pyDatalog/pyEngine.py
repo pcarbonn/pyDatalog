@@ -724,6 +724,8 @@ def fact_candidate(subgoal, class0, result):
     if result is True:
         return fact(subgoal, True)
     result = [Term.of(r) for r in result]
+    if len(result) != len(subgoal.literal.terms):
+        return
     if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
         return
     result = Literal(subgoal.literal.pred.name, result)
@@ -949,19 +951,13 @@ def equals_primitive(literal, subgoal):
 
 # Add a primitives that is defined by an iterator.  When given a
 # literal, the iterator generates a sequences of answers.  Each
-# answer is an array.  Each element in the array is either a number
-# or a string.  The length of the array is equal to the arity of the
+# answer is an array.  The length of the array is equal to the arity of the
 # predicate.
 
 def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
-    def prim(literal, subgoal, pred=pred, iter=iter): # TODO consider merging with fact_candidate
+    def prim(literal, subgoal, pred=pred, iter=iter):
         for terms in iter(literal):
-            if terms is True:
-                fact(subgoal, True)
-            elif len(terms) == len(literal.terms):
-                new = Literal(pred, [Term.of(term) for term in terms])
-                if literal.match(new) != None:
-                    fact(subgoal, new)
+            fact_candidate(subgoal, None, terms)
     pred.prim = prim
     
 def compare_primitive(literal):
