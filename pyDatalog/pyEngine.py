@@ -428,15 +428,15 @@ class Literal(object):
 
     def get_id(self): #id
         """ The id's encoding ensures that two literals are structurally the
-            same (up to prearity terms) if they have the same id. 
-            Prearity is used to ensure unicity of results of functions like "pred[k]=v" """
+            same if they have the same id.  """
         if not hasattr(self, 'id'): # cached
-            terms = self.terms
-            if len(terms) == self.pred.prearity:
-                self.id = (self.pred.id,) + tuple(term.id for term in self.terms)
-            else:
-                self.id = (self.pred.id,) + tuple(terms[i].id for i in range(self.pred.prearity))
+            self.id = (self.pred.id,) + tuple(term.id for term in self.terms)
         return self.id        
+
+    def get_fact_id(self): #id
+        """ The id of a known fact is limited by its prearity
+            Prearity is used to ensure unicity of results of functions like pred[2]==1 """
+        return self.get_id()[:1+self.pred.prearity]
 
     def get_tag(self): #id
         """ the tag is used as a key by the subgoal table """
@@ -497,7 +497,10 @@ class Clause(object):
             if they have the same id.  A clause's id is used as a key into the
             clause database. """
         if not hasattr(self, 'id'): # cached
-            self.id = (self.head.get_id(),) + tuple(bodi.get_id() for bodi in self.body)
+            if not self.body: #if it is a fact
+                self.id = (self.head.get_fact_id(),)
+            else:
+                self.id = (self.head.get_id(),) + tuple(bodi.get_id() for bodi in self.body)
         return self.id
     
     def subst(self, env, parent_class=None):
@@ -545,9 +548,9 @@ def remove(pred):
 def assert_(clause):
     """ Add a safe clause to the database """
     pred = clause.head.pred
-    id_ = clause.get_id()
 
     if not pred.prim:                   # Ignore assertions for primitives.
+        id_ = clause.get_id()
         retract(clause) # to ensure unicity of functions
         pred.db[id_] = clause
         if not clause.body: # if it is a fact, update indexes
@@ -707,9 +710,9 @@ def fact(subgoal, literal):
         for waiter in subgoal.waiters:
             resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
             schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
-    elif subgoal.facts is not True and not subgoal.facts.get(literal.get_id()):
+    elif subgoal.facts is not True and not subgoal.facts.get(literal.get_fact_id()):
         if Logging: logging.info("New fact : %s" % str(literal))
-        subgoal.facts[literal.get_id()] = literal
+        subgoal.facts[literal.get_fact_id()] = literal
         for waiter in subgoal.waiters:
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
