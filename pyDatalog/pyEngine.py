@@ -949,18 +949,7 @@ def equals_primitive(literal, subgoal):
     #unbound: can't raise error if both are still unbound, because split(a,b,c) would fail (see test.py)
     return x.equals_primitive(y, subgoal)
 
-# Add a primitives that is defined by an iterator.  When given a
-# literal, the iterator generates a sequences of answers.  Each
-# answer is an array.  The length of the array is equal to the arity of the
-# predicate.
-
-def add_iter_prim_to_predicate(pred, iter): # separate function to allow re-use
-    def prim(literal, subgoal, pred=pred, iter=iter):
-        for terms in iter(literal):
-            fact_candidate(subgoal, None, terms)
-    pred.prim = prim
-    
-def compare_primitive(literal):
+def compare_primitive(literal, subgoal):
     x = literal.terms[0]
     y = literal.terms[1]
     if not x.is_constant:
@@ -968,13 +957,14 @@ def compare_primitive(literal):
             if not y.is_const:
                 raise util.DatalogError("Error: right hand side must be bound: %s" % literal, None, None)
             for v in y.id:
-                yield [v, y]
+                literal = Literal(literal.pred.name, (Term.of(v), y))
+                fact(subgoal, literal)
         else:
             raise util.DatalogError("Error: left hand side of comparison must be bound: %s" 
                                     % literal.pred.id, None, None)
     elif y.is_constant:
         if compare(x.id, literal.pred.name, y.id):
-            yield True
+            fact(subgoal, True)
     else:
         raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
                                 % literal.pred.id, None, None)
@@ -996,10 +986,10 @@ def clear():
     Logic.tl.logic.Goal = None       
 
     insert(Pred("==", 2)).prim = equals_primitive
-    add_iter_prim_to_predicate(insert(Pred("<" , 2)), compare_primitive)
-    add_iter_prim_to_predicate(insert(Pred("<=", 2)), compare_primitive)
-    add_iter_prim_to_predicate(insert(Pred("!=", 2)), compare_primitive)
-    add_iter_prim_to_predicate(insert(Pred(">=", 2)), compare_primitive)
-    add_iter_prim_to_predicate(insert(Pred(">" , 2)), compare_primitive)
-    add_iter_prim_to_predicate(insert(Pred("_pyD_in", 2)), compare_primitive)
-    add_iter_prim_to_predicate(insert(Pred("_pyD_not_in", 2)), compare_primitive)
+    insert(Pred("<" , 2)).prim = compare_primitive
+    insert(Pred("<=", 2)).prim = compare_primitive
+    insert(Pred("!=", 2)).prim = compare_primitive
+    insert(Pred(">=", 2)).prim = compare_primitive
+    insert(Pred(">" , 2)).prim = compare_primitive
+    insert(Pred("_pyD_in", 2)).prim = compare_primitive
+    insert(Pred("_pyD_not_in", 2)).prim = compare_primitive
