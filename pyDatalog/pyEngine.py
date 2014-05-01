@@ -366,6 +366,15 @@ class Pred(Interned):
             self._cls = Class_dict.get(self.prefix, '') if self.prefix else None
         return self._cls
     
+    def parent_classes(self):
+        " iterator of the parent classes that have pyDatalog capabilities"
+        if self._class():
+            for cls in self._cls.__mro__:
+                if cls.__name__ in Class_dict and cls.__name__ not in ('Mixin', 'object'):
+                    yield cls
+        else:
+            yield None
+    
     def reset_clauses(self):
         """ clears the database of clauses for the predicate """
         for clause in self.clauses.values():
@@ -461,7 +470,7 @@ class Literal(object):
         return env
 
     def match(self, fact):
-        """ Does a self unify with a fact known to contain only constant terms? """
+        """ Does a fact unify with a fact known to contain only constant terms? """
         env = {}
         for term, factterm in zip(self.terms, fact.terms):
             if term != factterm:
@@ -507,6 +516,18 @@ class Clause(object):
         for bodi in self.body:
             bodi.shuffle(env)
         return self.subst(env)
+
+def add_class(cls, name):
+    """ Update the list of pyDatalog-capable classes, and update clauses accordingly"""
+    Class_dict[name] = cls
+    #prefixed replace the first term of each functional comparison literal for that class..
+    env = {Var(name): Const('_pyD_class')}
+    for pred in Logic.tl.logic.Db.values():
+        for clause in pred.db.values():
+            clause.head.subst_first(env)
+            for literal in clause.body:
+                literal.subst_first(env)
+
 
 # DATABASE  #####################################################
 
@@ -698,6 +719,16 @@ def fact(subgoal, literal):
                 for i in range(subgoal.literal.pred.prearity)):
             subgoal.is_done = True # one fact for a function of constant
 
+def fact_candidate(subgoal, class0, result):
+    """ add result as a candidate fact of class0 for subgoal"""
+    if result is True:
+        return fact(subgoal, True)
+    result = [Term.of(r) for r in result]
+    if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
+        return
+    result = Literal(subgoal.literal.pred.name, result)
+    if subgoal.literal.match(result) != None:
+        fact(subgoal, result)
 
 class Waiter(object):
     def __init__(self, subgoal, clause):
@@ -738,39 +769,7 @@ def add_clause(subgoal, clause):
     else:
         return rule(subgoal, clause, clause.body[0])
     
-def fact_candidate(subgoal, class0, result):
-    """ add result as a candidate fact of class0 for subgoal"""
-    if result is True:
-        return fact(subgoal, True)
-    result = [Term.of(r) for r in result]
-    if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
-        return
-    result = Literal(subgoal.literal.pred.name, result)
-    if subgoal.literal.match(result) != None:
-        fact(subgoal, result)
-
 ###############     SEARCH     ##################################
-
-def add_class(cls, name):
-    """ Update the list of pyDatalog-capable classes"""
-    Class_dict[name] = cls
-    #prefixed replace the first term of each functional comparison literal for that class..
-    env = {Var(name): Const('_pyD_class')}
-    for pred in Logic.tl.logic.Db.values():
-        for clause in pred.db.values():
-            clause.head.subst_first(env)
-            for literal in clause.body:
-                literal.subst_first(env)
-
-def _(self):
-    " iterator of the parent classes that have pyDatalog capabilities"
-    if self._class():
-        for cls in self._cls.__mro__:
-            if cls.__name__ in Class_dict and cls.__name__ not in ('Mixin', 'object'):
-                yield cls
-    else:
-        yield None
-Pred.parent_classes = _
 
 def search(subgoal):
     """ 
