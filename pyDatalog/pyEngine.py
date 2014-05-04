@@ -227,6 +227,8 @@ class VarTuple(Term):
                 env = e1.unify(e2, env)
                 if env == None: return env
         return env
+    
+    # def match is not needed here
 
     def __str__(self): 
         return "'%s'" % str([str(e) for e in self.id])
@@ -614,9 +616,6 @@ def find(literal):
     tag = literal.get_tag()
     return Logic.tl.logic.Subgoals.get(tag)
 
-def merge(subgoal):
-    Logic.tl.logic.Subgoals[subgoal.literal.get_tag()] = subgoal
-
 
 class Subgoal(object):
     """
@@ -650,7 +649,6 @@ def resolve(clause, literal):
 # op codes
 SEARCH = 1
 ADD_CLAUSE = 2
-MERGE = 3
 
 # Schedule a task for later invocation
 
@@ -661,6 +659,8 @@ class Thunk(object):
         self.thunk()
         
 def schedule(task):
+    if not isinstance(task, Thunk) and task[0] is SEARCH:
+        Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
     return Logic.tl.logic.Tasks.append(task)
 
 def complete(subgoal, post_thunk):
@@ -668,7 +668,7 @@ def complete(subgoal, post_thunk):
     Ts = Logic.tl.logic
     Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
     Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, list(), subgoal
-    schedule((MERGE, subgoal))
+    schedule((SEARCH, subgoal))
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
     if Logging: logging.debug('push')
@@ -677,7 +677,8 @@ def complete(subgoal, post_thunk):
 def invoke(subgoal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
     Ts = Logic.tl.logic
-    Ts.Tasks, Ts.Subgoals, Ts.Goal = list([(SEARCH, subgoal),]), {}, subgoal
+    Ts.Tasks, Ts.Subgoals, Ts.Goal = list(), {}, subgoal
+    schedule((SEARCH, subgoal))
     while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
         while Ts.Tasks and not Ts.Goal.is_done:
             todo = Ts.Tasks.pop()
@@ -687,9 +688,6 @@ def invoke(subgoal):
                 search(todo[1])
             elif todo[0] is ADD_CLAUSE:
                 add_clause(*(todo[1]))
-            elif todo[0] is MERGE:
-                merge(todo[1])
-                search(todo[1])
         if Ts.Stack: 
             Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
             if Logging: logging.debug('pop')
@@ -762,7 +760,6 @@ def rule(subgoal, clause, selected):
     else:
         sg = Subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
-        merge(sg)
         return schedule((SEARCH, sg))
     
 def add_clause(subgoal, clause):
@@ -833,7 +830,8 @@ def search(subgoal):
                 pass
         if literal.pred.prim: # X==Y, X < Y+Z
             if Logging : logging.debug("pyDatalog uses comparison primitive for %s" % literal)
-            return literal.pred.prim(literal, subgoal)
+            literal.pred.prim(literal, subgoal)
+            return
         elif literal.aggregate:
             if Logging : logging.debug("pyDatalog uses aggregate primitive for %s" % literal)
             base_terms = list(terms[:-1])
@@ -905,7 +903,6 @@ def search(subgoal):
 
 def _(literal):
     subgoal = Subgoal(literal)
-    merge(subgoal)
     invoke(subgoal)
     if subgoal.facts is True:
         return True
@@ -938,9 +935,6 @@ defined by an iterator which when given a literal, generates a
 sequence of answers, each answer being an array of strings or numbers.
 
 """
-
-# Other parts of the Datalog system depend on the equality primitive,
-# so carefully consider any modifications to it.
 
 def equals_primitive(literal, subgoal):
     x = literal.terms[0]
