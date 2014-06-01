@@ -621,6 +621,7 @@ class Subgoal(object):
     """
     A subgoal has a literal, a set of facts, and an array of waiters.
     A waiter is a pair containing a subgoal and a clause.
+    Waiters will use the facts of the subgoal.
     """
     def __init__(self, literal):
         self.literal = literal
@@ -629,6 +630,24 @@ class Subgoal(object):
         # subgoal is done when a partial literal is true 
         # or when one fact is found for a function of constants
         self.is_done = False
+        # subgoal is done when the search is completed and 
+        # there are no more resolvents in the queue, and no more child subgoals
+        self.search_completed = False
+        self.tasks_in_queue = 0
+        self.child_subgoals = 0
+    
+    def propagate(self):    
+        if self.search_completed and self.tasks_in_queue <= 0 and self.child_subgoals <= 0: # completed !
+            todo = list(waiter for waiter in self.waiters) # i.e. make a copy
+            while todo: # do not process recursively, to avoid stack overflow
+                subgoal = todo.pop().subgoal
+                subgoal.child_subgoals -= 1
+                if subgoal.search_completed and subgoal.tasks_in_queue <= 0 and subgoal.child_subgoals <= 0: # completed !
+                    todo.extend(subgoal.waiters)
+
+    def is_now_done(self):
+        self.is_done, self.search_completed, self.tasks_in_queue, self.child_subgoals = True, True, 0, 0
+        self.propagate()
     
 
 def resolve(clause, literal):
@@ -659,8 +678,13 @@ class Thunk(object):
         self.thunk()
         
 def schedule(task):
-    if not isinstance(task, Thunk) and task[0] is SEARCH:
-        Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
+    if not isinstance(task, Thunk):
+        if task[0] is SEARCH:
+            Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
+            task[1].tasks_in_queue += 1
+        else: # ADD_CLAUSE
+            task[1][0].tasks_in_queue += 1
+
     return Logic.tl.logic.Tasks.append(task)
 
 def complete(subgoal, post_thunk):
@@ -684,10 +708,17 @@ def invoke(subgoal):
             todo = Ts.Tasks.pop()
             if isinstance(todo, Thunk):
                 todo.do() # get the thunk and execute it
-            elif todo[0] is SEARCH:
-                search(todo[1])
-            elif todo[0] is ADD_CLAUSE:
-                add_clause(*(todo[1]))
+            else:
+                if todo[0] is SEARCH:
+                    search(todo[1])
+                    subgoal_done = todo[1]
+                    subgoal_done.search_completed = True
+                elif todo[0] is ADD_CLAUSE:
+                    add_clause(*(todo[1]))
+                    subgoal_done = todo[1][0]
+            subgoal_done.tasks_in_queue -= 1
+            subgoal_done.propagate()
+                
         if Ts.Stack: 
             Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
             if Logging: logging.debug('pop')
@@ -704,7 +735,8 @@ def fact(subgoal, literal):
         literal = True # a partial fact is True
     if literal is True:
         if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
-        subgoal.facts, subgoal.is_done = True, True
+        subgoal.facts = True
+        subgoal.is_now_done()
         for waiter in subgoal.waiters:
             resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
             schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
@@ -718,7 +750,7 @@ def fact(subgoal, literal):
         if len(subgoal.facts)==1 \
         and all(subgoal.literal.terms[i].is_constant 
                 for i in range(subgoal.literal.pred.prearity)):
-            subgoal.is_done = True # one fact for a function of constant
+            subgoal.is_now_done() # one fact for a function of constant
 
 def fact_candidate(subgoal, class0, result):
     """ add result as a candidate fact of class0 for subgoal"""
@@ -744,7 +776,7 @@ def rule(subgoal, clause, selected):
     SLG_POSITIVE in the reference article
     """
     sg = find(selected)
-    if sg != None:
+    if sg != None: # if the selected child subgoal has already been identified
         sg.waiters.append(Waiter(subgoal, clause))
         todo = []
         if sg.facts is True:
@@ -758,8 +790,9 @@ def rule(subgoal, clause, selected):
         for t in todo:
             schedule((ADD_CLAUSE, (subgoal, t)))
     else:
-        sg = Subgoal(selected)
+        sg = Subgoal(selected) # create the child subgoal
         sg.waiters.append(Waiter(subgoal, clause))
+        subgoal.child_subgoals +=1
         return schedule((SEARCH, sg))
     
 def add_clause(subgoal, clause):
