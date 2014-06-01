@@ -681,9 +681,7 @@ def schedule(task):
     if not isinstance(task, Thunk):
         if task[0] is SEARCH:
             Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
-            task[1].tasks_in_queue += 1
-        else: # ADD_CLAUSE
-            task[1][0].tasks_in_queue += 1
+        task[1].tasks_in_queue += 1
 
     return Logic.tl.logic.Tasks.append(task)
 
@@ -709,15 +707,14 @@ def invoke(subgoal):
             if isinstance(todo, Thunk):
                 todo.do() # get the thunk and execute it
             else:
+                subgoal = todo[1]
                 if todo[0] is SEARCH:
-                    search(todo[1])
-                    subgoal_done = todo[1]
-                    subgoal_done.search_completed = True
+                    search(subgoal)
+                    subgoal.search_completed = True
                 elif todo[0] is ADD_CLAUSE:
-                    add_clause(*(todo[1]))
-                    subgoal_done = todo[1][0]
-            subgoal_done.tasks_in_queue -= 1
-            subgoal_done.propagate()
+                    add_clause(todo[1], todo[2])
+                subgoal.tasks_in_queue -= 1
+                subgoal.propagate()
                 
         if Ts.Stack: 
             Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
@@ -739,14 +736,14 @@ def fact(subgoal, literal):
         subgoal.is_now_done()
         for waiter in subgoal.waiters:
             resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
-            schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
+            schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
     elif subgoal.facts is not True and not subgoal.facts.get(literal.get_fact_id()):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[literal.get_fact_id()] = literal
         for waiter in subgoal.waiters:
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
-                schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
+                schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
         if len(subgoal.facts)==1 \
         and all(subgoal.literal.terms[i].is_constant 
                 for i in range(subgoal.literal.pred.prearity)):
@@ -788,7 +785,7 @@ def rule(subgoal, clause, selected):
                 if resolvent != None: 
                     todo.append(resolvent)
         for t in todo:
-            schedule((ADD_CLAUSE, (subgoal, t)))
+            schedule((ADD_CLAUSE, subgoal, t))
     else:
         sg = Subgoal(selected) # create the child subgoal
         sg.waiters.append(Waiter(subgoal, clause))
@@ -883,7 +880,7 @@ def search(subgoal):
                 if env != None:
                     clause = renamed.subst(env, class0)
                     if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
-                    schedule((ADD_CLAUSE, (subgoal, clause)))
+                    schedule((ADD_CLAUSE, subgoal, clause))
             return
         elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
             literal1 = literal.equalized()
@@ -897,7 +894,7 @@ def search(subgoal):
                 if env != None:
                     renamed = renamed.subst(env, class0)
                     if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
-                    schedule((ADD_CLAUSE, (subgoal, renamed)))
+                    schedule((ADD_CLAUSE, subgoal, renamed))
                 return
             
     if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
