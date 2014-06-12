@@ -635,19 +635,27 @@ class Subgoal(object):
         self.search_completed = False
         self.tasks_in_queue = 0
         self.child_subgoals = 0
+        self.on_complete = None # task to be done on completion of this subgoal
+        #TODO list of tasks to do
+        #TODO intern subgoals using TS.Tasks
     
     def propagate(self):    
         if self.search_completed and self.tasks_in_queue <= 0 and self.child_subgoals <= 0: # completed !
+            #TODO self.is_done = True
+            if self.on_complete:
+                Thunk(self.on_complete).do()
             todo = list(waiter for waiter in self.waiters) # i.e. make a copy
             while todo: # do not process recursively, to avoid stack overflow
                 subgoal = todo.pop().subgoal
                 subgoal.child_subgoals -= 1
                 if subgoal.search_completed and subgoal.tasks_in_queue <= 0 and subgoal.child_subgoals <= 0: # completed !
+                    #TODO self.is_done = True
+                    if subgoal.on_complete:
+                        Thunk(subgoal.on_complete).do()
                     todo.extend(subgoal.waiters)
 
     def is_now_done(self):
         self.is_done, self.search_completed, self.tasks_in_queue, self.child_subgoals = True, True, 0, 0
-        self.propagate()
     
 
 def resolve(clause, literal):
@@ -680,28 +688,24 @@ class Thunk(object):
 def schedule(task):
     if not isinstance(task, Thunk):
         if task[0] is SEARCH:
-            Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
+            Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1] #TODO use subgoal interning
+        assert task[1].tasks_in_queue >= 0
         task[1].tasks_in_queue += 1
 
     return Logic.tl.logic.Tasks.append(task)
 
 def complete(subgoal, post_thunk):
     """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
-    Ts = Logic.tl.logic
-    Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
-    Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, list(), subgoal
+    assert subgoal.on_complete is None #TODO
+    subgoal.on_complete = post_thunk
     schedule((SEARCH, subgoal))
-    # prepend post_thunk at one level lower in the Stack, 
-    # so that it is run immediately by invoke() after the search() thunk is complete
-    if Logging: logging.debug('push')
-    Ts.Stack[-1][1].append(Thunk(post_thunk)) 
 
 def invoke(subgoal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
     Ts = Logic.tl.logic
     Ts.Tasks, Ts.Subgoals, Ts.Goal = list(), {}, subgoal
     schedule((SEARCH, subgoal))
-    while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
+    while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done: #TODO drop Ts.Stack
         while Ts.Tasks and not Ts.Goal.is_done:
             todo = Ts.Tasks.pop()
             if isinstance(todo, Thunk):
@@ -712,8 +716,9 @@ def invoke(subgoal):
                     search(subgoal)
                     subgoal.search_completed = True
                 elif todo[0] is ADD_CLAUSE:
-                    add_clause(todo[1], todo[2])
+                    add_clause(subgoal, todo[2])
                 subgoal.tasks_in_queue -= 1
+                # logging.info("%s %s --> %s tasks, %s subgoals" %("search" if todo[0]==1 else "add_clause", subgoal.literal, subgoal.tasks_in_queue, subgoal.child_subgoals))
                 subgoal.propagate()
                 
         if Ts.Stack: 
@@ -731,12 +736,13 @@ def fact(subgoal, literal):
     if isinstance(literal, Literal) and not all(t.is_constant for t in literal.terms):
         literal = True # a partial fact is True
     if literal is True:
-        if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
-        subgoal.facts = True
-        subgoal.is_now_done()
-        for waiter in subgoal.waiters:
-            resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
-            schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
+        if subgoal.facts != True: # process new facts only
+            if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
+            subgoal.facts = True
+            for waiter in subgoal.waiters:
+                resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
+                schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
+            subgoal.is_now_done()
     elif subgoal.facts is not True and not subgoal.facts.get(literal.get_fact_id()):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[literal.get_fact_id()] = literal
@@ -774,7 +780,6 @@ def rule(subgoal, clause, selected):
     """
     sg = find(selected)
     if sg != None: # if the selected child subgoal has already been identified
-        sg.waiters.append(Waiter(subgoal, clause))
         todo = []
         if sg.facts is True:
             resolvent = Clause(clause.head, clause.body[1:])
@@ -788,9 +793,11 @@ def rule(subgoal, clause, selected):
             schedule((ADD_CLAUSE, subgoal, t))
     else:
         sg = Subgoal(selected) # create the child subgoal
+        schedule((SEARCH, sg))
+    if not (sg.search_completed and sg.tasks_in_queue <= 0 and sg.child_subgoals <= 0):
         sg.waiters.append(Waiter(subgoal, clause))
-        subgoal.child_subgoals +=1
-        return schedule((SEARCH, sg))
+        assert subgoal.child_subgoals >= 0
+        subgoal.child_subgoals +=1 # will be decremented when sg completes
     
 def add_clause(subgoal, clause):
     """ SLG_NEWCLAUSE in the reference article """
@@ -816,18 +823,28 @@ def search(subgoal):
     if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
         if Logging: logging.debug("pyDatalog will search negation of %s" % literal0)
         base_literal = Literal(literal0.pred.base_pred, terms)
-        """ the rest of the processing essentially performs the following, 
-        but in its own environment, and with precautions to avoid stack overflow :
-            result = ask(base_literal)
-            if result is None or 0 == len(result.answers):
-                return fact(subgoal, literal)
-        """
-        #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
-        # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-        base_subgoal = Subgoal(base_literal)
-        complete(base_subgoal,
-                lambda base_subgoal=base_subgoal, subgoal=subgoal:
-                    fact(subgoal, True) if not base_subgoal.facts else None)
+        base_subgoal = find(base_literal)
+        if base_subgoal is None:
+            base_subgoal = Subgoal(base_literal)
+        subgoal.child_subgoals +=1
+        
+        def negate_subgoal(base_subgoal=base_subgoal, subgoal=subgoal):
+            """ processing to be performed when resolution of base_subgoal is complete """
+            if not base_subgoal.facts:
+                fact(subgoal, True)
+                if Logging: logging.debug("%s is complete and false" % base_literal)
+            else:
+                if Logging: logging.debug("%s is complete and true" % base_literal)
+            subgoal.child_subgoals -=1 # needed because it's not in the list of waiters
+            subgoal.propagate()
+            
+        if base_subgoal.search_completed and base_subgoal.tasks_in_queue <= 0 and base_subgoal.child_subgoals <= 0:
+            if Logging: logging.debug("subgoal %s is already defined" % base_literal)
+            negate_subgoal()
+        else:
+            #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
+            # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
+            complete(base_subgoal, negate_subgoal) #TODO expand complete to reduce code here
         return
     
     for _class in literal0.pred.parent_classes():
@@ -868,11 +885,27 @@ def search(subgoal):
             for i in literal.aggregate.slice_to_variabilize:
                 base_terms[i] = Fresh_var()
             base_literal = Literal(literal.pred.name, base_terms) # without aggregate to avoid infinite loop
-            base_subgoal = Subgoal(base_literal)
-            complete(base_subgoal,
-                    lambda base_subgoal=base_subgoal, subgoal=subgoal, aggregate=literal.aggregate:
-                        aggregate.complete(base_subgoal, subgoal))
+            base_subgoal = find(base_literal)
+            if base_subgoal is None:
+                base_subgoal = Subgoal(base_literal)
+            subgoal.child_subgoals +=1
+            
+            def aggregate_subgoal(base_subgoal=base_subgoal, subgoal=subgoal, aggregate=literal.aggregate):
+                """ processing to be performed when resolution of base_subgoal is complete """
+                aggregate.complete(base_subgoal, subgoal)
+                subgoal.child_subgoals -=1 # needed because it's not in the list of waiters
+                subgoal.propagate()
+
+            if base_subgoal.search_completed and base_subgoal.tasks_in_queue <= 0 and base_subgoal.child_subgoals <= 0:
+                #TODO write automated test case to test this code
+                if Logging: logging.debug("subgoal %s is already defined" % base_literal)
+                aggregate_subgoal()
+            else:
+                #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
+                # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
+                complete(base_subgoal, aggregate_subgoal) #TODO expand complete to reduce code here
             return
+
         elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
             for clause in relevant_clauses(literal):
                 renamed = clause.rename()
