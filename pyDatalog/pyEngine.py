@@ -596,7 +596,7 @@ def relevant_clauses(literal):
         return list(literal.pred.clauses.values()) + list(result)
     
 """
-The remaining functions in this file implement the tabled logic
+The remaining functions in this file is based on the tabled logic
 programming algorithm described in "Efficient Top-Down Computation of
 Queries under the Well-Founded Semantics", Chen, W., Swift, T., and
 Warren, D. S., J. Logic Prog. Vol. 24, No. 3, pp. 161-199.  Another
@@ -604,23 +604,11 @@ important reference is "Tabled Evaluation with Delaying for General
 Logic Programs", Chen, W., and Warren, D. S., J. ACM, Vol. 43, No. 1,
 Jan. 1996, pp. 20-74.
 
-It should be noted that a simplified version of the algorithm of 
-"Efficient top-down computation" is implemented : negations are not 
-supported. 
 """
-
-# The subgoal table is a map from the tag of a subgoal's
-# literal to a subgoal.
-
-def find(literal):
-    tag = literal.get_tag()
-    return Logic.tl.logic.Subgoals.get(tag)
-
 
 # op codes
 NEGATE = 1
 AGGREGATE = 2
-
 
 class Subgoal(object):
     """
@@ -628,7 +616,15 @@ class Subgoal(object):
     A waiter is a pair containing a subgoal and a clause.
     Waiters will use the facts of the subgoal.
     """
-    def __init__(self, literal):
+    def __new__(cls, literal):
+        tag = literal.get_tag()
+        subgoal = Logic.tl.logic.Subgoals.get(tag)
+        if subgoal is not None:
+            return subgoal
+
+        self = super(Subgoal, cls).__new__(cls)
+        Logic.tl.logic.Subgoals[tag] = self
+        
         self.literal = literal
         self.facts = {}
         self.waiters = []
@@ -645,8 +641,9 @@ class Subgoal(object):
         # format : (op-code, parent-subgoal, aggregate)
         self.to_dos = []
         
-        #TODO intern subgoals using TS.Tasks
-    
+        schedule((SEARCH, self))
+        return self
+            
     def do_to_dos(self):
         """ execute the tasks in self.to_dos """
         for to_do in self.to_dos:
@@ -703,62 +700,45 @@ ADD_CLAUSE = 2
 
 # Schedule a task for later invocation
 
-class Thunk(object):
-    def __init__(self, thunk):
-        self.thunk = thunk
-    def do(self):
-        self.thunk()
-        
 def schedule(task):
-    if not isinstance(task, Thunk):
-        if task[0] is SEARCH:
-            Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1] #TODO use subgoal interning
-        assert task[1].tasks_in_queue >= 0
-        task[1].tasks_in_queue += 1
+    assert task[1].tasks_in_queue >= 0
+    task[1].tasks_in_queue += 1
 
     return Logic.tl.logic.Tasks.append(task)
 
 def complete(base_literal, when_done):
     """makes sure that base_literal is resolved before executing the when_done task"""
 
-    base_subgoal = find(base_literal)
-    if base_subgoal is None:
-        base_subgoal = Subgoal(base_literal)
+    base_subgoal = Subgoal(base_literal)
 
     base_subgoal.to_dos.append(when_done)
     if base_subgoal.search_completed and base_subgoal.tasks_in_queue <= 0 and base_subgoal.child_subgoals <= 0:
         if Logging: logging.debug("subgoal %s is already resolved" % base_subgoal.literal)
         base_subgoal.do_to_dos()
-    else:
-        #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
-        # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-        schedule((SEARCH, base_subgoal))
 
-def invoke(subgoal):
+def ask(literal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
     Ts = Logic.tl.logic
-    Ts.Tasks, Ts.Subgoals, Ts.Goal = list(), {}, subgoal
-    schedule((SEARCH, subgoal))
-    while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done: #TODO drop Ts.Stack
-        while Ts.Tasks and not Ts.Goal.is_done:
-            todo = Ts.Tasks.pop()
-            if isinstance(todo, Thunk):
-                todo.do() # get the thunk and execute it
-            else:
-                subgoal = todo[1]
-                if todo[0] is SEARCH:
-                    search(subgoal)
-                    subgoal.search_completed = True
-                elif todo[0] is ADD_CLAUSE:
-                    add_clause(subgoal, todo[2])
-                subgoal.tasks_in_queue -= 1
-                # logging.info("%s %s --> %s tasks, %s subgoals" %("search" if todo[0]==1 else "add_clause", subgoal.literal, subgoal.tasks_in_queue, subgoal.child_subgoals))
-                subgoal.propagate()
+    Ts.Tasks, Ts.Subgoals = list(), {}
+    Ts.Goal = Subgoal(literal)
+    while Ts.Tasks and not Ts.Goal.is_done:
+        todo = Ts.Tasks.pop()
+        subgoal = todo[1]
+        if todo[0] is SEARCH:
+            search(subgoal)
+            subgoal.search_completed = True
+        elif todo[0] is ADD_CLAUSE:
+            add_clause(subgoal, todo[2])
+        subgoal.tasks_in_queue -= 1
+        # logging.info("%s %s --> %s tasks, %s subgoals" %("search" if todo[0]==1 else "add_clause", subgoal.literal, subgoal.tasks_in_queue, subgoal.child_subgoals))
+        subgoal.propagate()
                 
-        if Ts.Stack: 
-            Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
-            if Logging: logging.debug('pop')
-    Ts.Tasks, Ts.Subgoals, Ts.Goal = None, {}, None
+    Ts.Tasks, Ts.Subgoals = None, {}
+    if Ts.Goal.facts is True:
+        return True
+    return [ tuple(term.id for term in literal.terms) for literal in list(Ts.Goal.facts.values())]    
+Literal.ask = ask
+
 
 ################## add derived facts and use rules ##############
 
@@ -812,22 +792,16 @@ def rule(subgoal, clause, selected):
     Use a newly derived rule. 
     SLG_POSITIVE in the reference article
     """
-    sg = find(selected)
-    if sg != None: # if the selected child subgoal has already been identified
-        todo = []
+    sg = Subgoal(selected)
+    if sg.facts: # if the selected child subgoal has already been identified
         if sg.facts is True:
             resolvent = Clause(clause.head, clause.body[1:])
-            todo.append(resolvent)
+            schedule((ADD_CLAUSE, subgoal, resolvent))
         else:
             for fact in sg.facts.values():
                 resolvent = resolve(clause, fact)
                 if resolvent != None: 
-                    todo.append(resolvent)
-        for t in todo:
-            schedule((ADD_CLAUSE, subgoal, t))
-    else:
-        sg = Subgoal(selected) # create the child subgoal
-        schedule((SEARCH, sg))
+                    schedule((ADD_CLAUSE, subgoal, resolvent))
     if not (sg.search_completed and sg.tasks_in_queue <= 0 and sg.child_subgoals <= 0):
         sg.waiters.append(Waiter(subgoal, clause))
         assert subgoal.child_subgoals >= 0
@@ -958,18 +932,6 @@ def search(subgoal):
 
     raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
             
-# Sets up and calls the subgoal search procedure, and then extracts
-# the answers into an easily used table.  The table has the name of
-# the predicate, the predicate's arity, and an array of constant
-# terms for each answer.  If there are no answers, nil is returned.
-
-def _(literal):
-    subgoal = Subgoal(literal)
-    invoke(subgoal)
-    if subgoal.facts is True:
-        return True
-    return [ tuple(term.id for term in literal.terms) for literal in list(subgoal.facts.values())]    
-Literal.ask = _
 
 # PRIMITIVES   ##################################################
 
@@ -1041,7 +1003,6 @@ def clear():
     Logic.tl.logic.Pred_registry = weakref.WeakValueDictionary()
     Logic.tl.logic.Subgoals = {}
     Logic.tl.logic.Tasks = None
-    Logic.tl.logic.Stack = []
     Logic.tl.logic.Goal = None       
 
     insert(Pred("==", 2)).prim = equals_primitive
