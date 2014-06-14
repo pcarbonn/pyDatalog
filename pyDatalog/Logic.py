@@ -39,7 +39,6 @@ class Logic(object):
             Logic.tl.logic = copy.copy(logic) 
             Logic.tl.logic.Subgoals = {}
             Logic.tl.logic.Tasks = None
-            Logic.tl.logic.Stack = []
             Logic.tl.logic.Goal = None       
         elif not (logic) or not hasattr(Logic.tl, 'logic'):
             Logic.tl.logic = object.__new__(cls)
