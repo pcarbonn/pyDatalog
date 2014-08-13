@@ -255,42 +255,45 @@ class Operation(object):
     def subst(self, env): #unify
         lhs = self.lhs.subst(env)
         rhs = self.rhs.subst(env)
-        if self.operator == '[' and isinstance(lhs, (VarTuple, Const)) and rhs.is_constant:
-            v = lhs._id if isinstance(lhs, VarTuple) else lhs.id
-            if isinstance(rhs, VarTuple): # a slice
-                return Term.of(v.__getitem__(slice(*rhs.id)))
-            return Term.of(v.__getitem__(rhs.id))
-        if self.operator == '#' and isinstance(rhs, VarTuple):
-            return Term.of(len(rhs))
-        if self.operator == '..' and rhs.is_constant:
-            return Term.of(range(rhs.id))
-        if lhs.is_constant and rhs.is_constant:
-            # calculate expression of constants
-            if self.operator == '+':
-                return Term.of(lhs.id + rhs.id)
-            elif self.operator == '-':
-                return Term.of(lhs.id - rhs.id)
-            elif self.operator == '*':
-                return Term.of(lhs.id * rhs.id)
-            elif self.operator == '/':
-                return Term.of(lhs.id / rhs.id)
-            elif self.operator == '//':
-                return Term.of(lhs.id // rhs.id)
-            elif self.operator == '**':
-                return Term.of(lhs.id ** rhs.id)
-            elif self.operator == '%':
-                return Term.of(lhs.id.format(*(rhs.id)))
-            elif isinstance(self.operator, type(lambda: None)):
-                return Term.of(self.operator(*(rhs.id)))
-            elif self.operator == '.':
-                v = lhs.id
-                for attribute in rhs.id.split(".") :
-                    v = getattr(v, attribute)
-                return Term.of(v)
-            elif self.operator == '(':
-                return Term.of(lhs.id.__call__(*(rhs.id)))
-            assert False # dead code
-        return Operation(lhs, self.operator, rhs)
+        try:
+            if self.operator == '[' and isinstance(lhs, (VarTuple, Const)) and rhs.is_constant:
+                v = lhs._id if isinstance(lhs, VarTuple) else lhs.id
+                if isinstance(rhs, VarTuple): # a slice
+                    return Term.of(v.__getitem__(slice(*rhs.id)))
+                return Term.of(v.__getitem__(rhs.id))
+            if self.operator == '#' and isinstance(rhs, VarTuple):
+                return Term.of(len(rhs))
+            if self.operator == '..' and rhs.is_constant:
+                return Term.of(range(rhs.id))
+            if lhs.is_constant and rhs.is_constant:
+                # calculate expression of constants
+                if self.operator == '+':
+                    return Term.of(lhs.id + rhs.id)
+                elif self.operator == '-':
+                    return Term.of(lhs.id - rhs.id)
+                elif self.operator == '*':
+                    return Term.of(lhs.id * rhs.id)
+                elif self.operator == '/':
+                    return Term.of(lhs.id / rhs.id)
+                elif self.operator == '//':
+                    return Term.of(lhs.id // rhs.id)
+                elif self.operator == '**':
+                    return Term.of(lhs.id ** rhs.id)
+                elif self.operator == '%':
+                    return Term.of(lhs.id.format(*(rhs.id)))
+                elif isinstance(self.operator, type(lambda: None)):
+                    return Term.of(self.operator(*(rhs.id)))
+                elif self.operator == '.':
+                    v = lhs.id
+                    for attribute in rhs.id.split(".") :
+                        v = getattr(v, attribute)
+                    return Term.of(v)
+                elif self.operator == '(':
+                    return Term.of(lhs.id.__call__(*(rhs.id)))
+                assert False # dead code
+            return Operation(lhs, self.operator, rhs)
+        except Exception as e:
+            return Term.of(e)
             
     def shuffle(self, env): #shuffle
         self.lhs.shuffle(env)

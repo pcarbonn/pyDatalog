@@ -290,7 +290,8 @@ def test():
         unsafe2(X) <= lower(3,2)
         assert ask(unsafe2(3)) == None
         assert ask(unsafe2(X)) == None
-
+        
+    
     """ in                                                         """
     
     pyDatalog.assert_fact('is_list', (1,2))
@@ -703,6 +704,14 @@ def test():
     assert ((X==1) & (X!=2) >= X) == 1
     assert set(X.in_((1,2))) == set([(1,),(2,)])
     assert ((X==1) & (X.in_ ((1,2)))) == [(1,)]
+    
+    """ error handling                                                """
+    # issue #6
+    Y = pyDatalog.Variable()
+    try:
+        assert (((X==0) & (Y==1/X)) >= X )== 0
+    except Exception as e:
+        assert False
 
     """ interface with python classes                                        """
 
