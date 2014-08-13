@@ -290,8 +290,7 @@ def test():
         unsafe2(X) <= lower(3,2)
         assert ask(unsafe2(3)) == None
         assert ask(unsafe2(X)) == None
-        
-    
+
     """ in                                                         """
     
     pyDatalog.assert_fact('is_list', (1,2))
@@ -348,6 +347,18 @@ def test():
         assert ask(even(5)) == None
         assert ask((X==3) & odd(X+2)) == set([(3,)])
         
+    pyDatalog.clear()
+    @pyDatalog.program()
+    def completion(): 
+        b(X) <= a(X)
+        e(X, Y) <= (Y == 1) & c(X)
+        e(X, Y) <= (Y == 2) & b(X)
+        +a(1)
+        +b(2)
+        +c(3)
+        
+        assert (e(2, X)) == [(2,)]        
+    
     # Factorial
     pyDatalog.clear()
     @pyDatalog.program()
