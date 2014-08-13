@@ -669,7 +669,7 @@ class Subgoal(object):
             todo = list(waiter for waiter in self.waiters) # i.e. make a copy
             while todo: # do not process recursively, to avoid stack overflow
                 subgoal = todo.pop().subgoal
-                subgoal.child_subgoals -= 1
+                subgoal.child_subgoals = max(0, subgoal.child_subgoals - 1) #issue#5
                 if subgoal.search_completed and subgoal.tasks_in_queue <= 0 and subgoal.child_subgoals <= 0: # completed !
                     #TODO self.is_done = True
                     subgoal.do_to_dos()
@@ -677,6 +677,7 @@ class Subgoal(object):
 
     def is_now_done(self):
         self.is_done, self.search_completed, self.tasks_in_queue, self.child_subgoals = True, True, 0, 0
+        #issue#5 in theory, we should also remove self from the list of waiters of its child subgoals
     
 
 def resolve(clause, literal):
@@ -725,9 +726,11 @@ def ask(literal):
         todo = Ts.Tasks.pop()
         subgoal = todo[1]
         if todo[0] is SEARCH:
+            #print("searching %s" % subgoal.literal)
             search(subgoal)
             subgoal.search_completed = True
         elif todo[0] is ADD_CLAUSE:
+            #print("adding clause %s to %s" % (todo[2], subgoal.literal))
             add_clause(subgoal, todo[2])
         subgoal.tasks_in_queue -= 1
         # logging.info("%s %s --> %s tasks, %s subgoals" %("search" if todo[0]==1 else "add_clause", subgoal.literal, subgoal.tasks_in_queue, subgoal.child_subgoals))
