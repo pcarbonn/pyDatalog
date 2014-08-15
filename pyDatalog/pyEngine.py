@@ -735,7 +735,7 @@ def ask(literal):
         elif todo[0] is ADD_CLAUSE:
             #print("adding clause %s to %s" % (todo[2], subgoal.literal))
             add_clause(subgoal, todo[2])
-        subgoal.tasks_in_queue -= 1
+        subgoal.tasks_in_queue = max(0, subgoal.tasks_in_queue - 1)
         # logging.info("%s %s --> %s tasks, %s subgoals" %("search" if todo[0]==1 else "add_clause", subgoal.literal, subgoal.tasks_in_queue, subgoal.child_subgoals))
         subgoal.propagate()
                 
