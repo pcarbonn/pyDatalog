@@ -255,42 +255,45 @@ class Operation(object):
     def subst(self, env): #unify
         lhs = self.lhs.subst(env)
         rhs = self.rhs.subst(env)
-        if self.operator == '[' and isinstance(lhs, (VarTuple, Const)) and rhs.is_constant:
-            v = lhs._id if isinstance(lhs, VarTuple) else lhs.id
-            if isinstance(rhs, VarTuple): # a slice
-                return Term.of(v.__getitem__(slice(*rhs.id)))
-            return Term.of(v.__getitem__(rhs.id))
-        if self.operator == '#' and isinstance(rhs, VarTuple):
-            return Term.of(len(rhs))
-        if self.operator == '..' and rhs.is_constant:
-            return Term.of(range(rhs.id))
-        if lhs.is_constant and rhs.is_constant:
-            # calculate expression of constants
-            if self.operator == '+':
-                return Term.of(lhs.id + rhs.id)
-            elif self.operator == '-':
-                return Term.of(lhs.id - rhs.id)
-            elif self.operator == '*':
-                return Term.of(lhs.id * rhs.id)
-            elif self.operator == '/':
-                return Term.of(lhs.id / rhs.id)
-            elif self.operator == '//':
-                return Term.of(lhs.id // rhs.id)
-            elif self.operator == '**':
-                return Term.of(lhs.id ** rhs.id)
-            elif self.operator == '%':
-                return Term.of(lhs.id.format(*(rhs.id)))
-            elif isinstance(self.operator, type(lambda: None)):
-                return Term.of(self.operator(*(rhs.id)))
-            elif self.operator == '.':
-                v = lhs.id
-                for attribute in rhs.id.split(".") :
-                    v = getattr(v, attribute)
-                return Term.of(v)
-            elif self.operator == '(':
-                return Term.of(lhs.id.__call__(*(rhs.id)))
-            assert False # dead code
-        return Operation(lhs, self.operator, rhs)
+        try:
+            if self.operator == '[' and isinstance(lhs, (VarTuple, Const)) and rhs.is_constant:
+                v = lhs._id if isinstance(lhs, VarTuple) else lhs.id
+                if isinstance(rhs, VarTuple): # a slice
+                    return Term.of(v.__getitem__(slice(*rhs.id)))
+                return Term.of(v.__getitem__(rhs.id))
+            if self.operator == '#' and isinstance(rhs, VarTuple):
+                return Term.of(len(rhs))
+            if self.operator == '..' and rhs.is_constant:
+                return Term.of(range(rhs.id))
+            if lhs.is_constant and rhs.is_constant:
+                # calculate expression of constants
+                if self.operator == '+':
+                    return Term.of(lhs.id + rhs.id)
+                elif self.operator == '-':
+                    return Term.of(lhs.id - rhs.id)
+                elif self.operator == '*':
+                    return Term.of(lhs.id * rhs.id)
+                elif self.operator == '/':
+                    return Term.of(lhs.id / rhs.id)
+                elif self.operator == '//':
+                    return Term.of(lhs.id // rhs.id)
+                elif self.operator == '**':
+                    return Term.of(lhs.id ** rhs.id)
+                elif self.operator == '%':
+                    return Term.of(lhs.id.format(*(rhs.id)))
+                elif isinstance(self.operator, type(lambda: None)):
+                    return Term.of(self.operator(*(rhs.id)))
+                elif self.operator == '.':
+                    v = lhs.id
+                    for attribute in rhs.id.split(".") :
+                        v = getattr(v, attribute)
+                    return Term.of(v)
+                elif self.operator == '(':
+                    return Term.of(lhs.id.__call__(*(rhs.id)))
+                assert False # dead code
+            return Operation(lhs, self.operator, rhs)
+        except Exception as e:
+            return Term.of(e)
             
     def shuffle(self, env): #shuffle
         self.lhs.shuffle(env)
@@ -596,7 +599,7 @@ def relevant_clauses(literal):
         return list(literal.pred.clauses.values()) + list(result)
     
 """
-The remaining functions in this file implement the tabled logic
+The remaining functions in this file is based on the tabled logic
 programming algorithm described in "Efficient Top-Down Computation of
 Queries under the Well-Founded Semantics", Chen, W., Swift, T., and
 Warren, D. S., J. Logic Prog. Vol. 24, No. 3, pp. 161-199.  Another
@@ -605,8 +608,8 @@ Logic Programs", Chen, W., and Warren, D. S., J. ACM, Vol. 43, No. 1,
 Jan. 1996, pp. 20-74.
 
 It should be noted that a simplified version of the algorithm of 
-"Efficient top-down computation" is implemented : negations are not 
-supported. 
+"Efficient top-down computation" is implemented : negations are  
+supported with another algorithm. 
 """
 
 # The subgoal table is a map from the tag of a subgoal's
@@ -674,11 +677,11 @@ def complete(subgoal, post_thunk):
     if Logging: logging.debug('push')
     Ts.Stack[-1][1].append(Thunk(post_thunk)) 
 
-def invoke(subgoal):
+def ask(literal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
     Ts = Logic.tl.logic
-    Ts.Tasks, Ts.Subgoals, Ts.Goal = list(), {}, subgoal
-    schedule((SEARCH, subgoal))
+    Ts.Tasks, Ts.Subgoals, Ts.Goal = list(), {}, Subgoal(literal)
+    schedule((SEARCH, Ts.Goal))
     while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
         while Ts.Tasks and not Ts.Goal.is_done:
             todo = Ts.Tasks.pop()
@@ -687,11 +690,16 @@ def invoke(subgoal):
             elif todo[0] is SEARCH:
                 search(todo[1])
             elif todo[0] is ADD_CLAUSE:
-                add_clause(*(todo[1]))
+                add_clause(todo[1], todo[2])
         if Ts.Stack: 
             Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
             if Logging: logging.debug('pop')
-    Ts.Tasks, Ts.Subgoals, Ts.Goal = None, {}, None
+
+    Ts.Tasks, Ts.Subgoals = None, {}
+    if Ts.Goal.facts is True:
+        return True
+    return [ tuple(term.id for term in literal.terms) for literal in list(Ts.Goal.facts.values())]    
+Literal.ask = ask
 
 ################## add derived facts and use rules ##############
 
@@ -703,18 +711,19 @@ def fact(subgoal, literal):
     if isinstance(literal, Literal) and not all(t.is_constant for t in literal.terms):
         literal = True # a partial fact is True
     if literal is True:
-        if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
-        subgoal.facts, subgoal.is_done = True, True
-        for waiter in subgoal.waiters:
-            resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
-            schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
+        if subgoal.facts != True: # if already True, do not advise its waiters again
+            if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
+            subgoal.facts, subgoal.is_done = True, True
+            for waiter in subgoal.waiters:
+                resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
+                schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
     elif subgoal.facts is not True and not subgoal.facts.get(literal.get_fact_id()):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[literal.get_fact_id()] = literal
         for waiter in subgoal.waiters:
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
-                schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
+                schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
         if len(subgoal.facts)==1 \
         and all(subgoal.literal.terms[i].is_constant 
                 for i in range(subgoal.literal.pred.prearity)):
@@ -749,14 +758,12 @@ def rule(subgoal, clause, selected):
         todo = []
         if sg.facts is True:
             resolvent = Clause(clause.head, clause.body[1:])
-            todo.append(resolvent)
+            schedule((ADD_CLAUSE, subgoal, resolvent))
         else:
             for fact in sg.facts.values():
                 resolvent = resolve(clause, fact)
                 if resolvent != None: 
-                    todo.append(resolvent)
-        for t in todo:
-            schedule((ADD_CLAUSE, (subgoal, t)))
+                    schedule((ADD_CLAUSE, subgoal, resolvent))
     else:
         sg = Subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
@@ -850,7 +857,7 @@ def search(subgoal):
                 if env != None:
                     clause = renamed.subst(env, class0)
                     if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
-                    schedule((ADD_CLAUSE, (subgoal, clause)))
+                    schedule((ADD_CLAUSE, subgoal, clause))
             return
         elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
             literal1 = literal.equalized()
@@ -864,7 +871,7 @@ def search(subgoal):
                 if env != None:
                     renamed = renamed.subst(env, class0)
                     if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
-                    schedule((ADD_CLAUSE, (subgoal, renamed)))
+                    schedule((ADD_CLAUSE, subgoal, renamed))
                 return
             
     if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
@@ -896,18 +903,6 @@ def search(subgoal):
 
     raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
             
-# Sets up and calls the subgoal search procedure, and then extracts
-# the answers into an easily used table.  The table has the name of
-# the predicate, the predicate's arity, and an array of constant
-# terms for each answer.  If there are no answers, nil is returned.
-
-def _(literal):
-    subgoal = Subgoal(literal)
-    invoke(subgoal)
-    if subgoal.facts is True:
-        return True
-    return [ tuple(term.id for term in literal.terms) for literal in list(subgoal.facts.values())]    
-Literal.ask = _
 
 # PRIMITIVES   ##################################################
 

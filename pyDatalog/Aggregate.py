@@ -52,9 +52,7 @@ class Aggregate(object):
         self.for_each = (for_each,) if isinstance(for_each, Expression) else tuple(for_each)
         self.order_by = (order_by,) if isinstance(order_by, Expression) else tuple(order_by)
         
-        # try to recast expressions to variables
-        self.group_by = tuple([e.__dict__.get('_pyD_variable', e) for e in self.group_by]) 
-        self.for_each = tuple([e.__dict__.get('_pyD_variable', e) for e in self.for_each]) 
+        # recover the negated variable in order_by
         self.order_by = tuple([e.__dict__.get('_pyD_variable', e) for e in self.order_by])
         
         if not all([isinstance(e, Term) and e.is_variable() for e in self.group_by + self.for_each + self.order_by]):
@@ -220,14 +218,15 @@ class Min(Aggregate):
         self._value = None
         
     def add(self, row):
+        # take the value of the first row
         self._value = row[self.index_value].id if self._value is None else self._value
 
 class Max(Min):
     """ represents max_(Y, order_by=(Z,T))"""
-    def __init__(self, *args, **kwargs):
-        Min.__init__(self, *args, **kwargs)
-        for a in self.order_by:
-            a._pyD_negated = not(a._pyD_negated)
+
+    def add(self, row):
+        # take the value of the last row
+        self._value = row[self.index_value].id
 
 class Rank(Aggregate):
     """ represents rank_(group_by=Z, order_by=T)"""
