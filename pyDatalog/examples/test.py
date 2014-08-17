@@ -616,6 +616,11 @@ def test():
         
         (a_maxD[X] == max(Y, order_by=Z)) <= q(X, Y, Z)
         assert ask(a_maxD[a]==X) == set([('b',)])
+        
+        #issue#4
+        (prev_zero[X, Y] == max_(Z, order_by=Z)) <= Z.in_(range_(len(X))) & (Z < Y) & (X[Z]==0)
+        (next_one[X, Y] == min_(Z, order_by=Z)) <= Z.in_(range_(len(X))) & (Z > Y) & (X[Z]==1)
+        assert ask(next_one[(0,0,1,1,1), 0] == X) == set([(2,)])
 
     @pyDatalog.program()
     def rank(): 
@@ -692,6 +697,14 @@ def test():
     assert ((X==1) & (X!=2) >= X) == 1
     assert set(X.in_((1,2))) == set([(1,),(2,)])
     assert ((X==1) & (X.in_ ((1,2)))) == [(1,)]
+    
+    """ error handling                                                """
+    # issue #6
+    Y = pyDatalog.Variable()
+    try:
+        assert (((X==0) & (Y==1/X)) >= X )== 0
+    except Exception as e:
+        assert False
 
     """ interface with python classes                                        """
 

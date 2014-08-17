@@ -290,7 +290,7 @@ class Term(threading.local, Expression, LazyList):
     def __neg__(self):
         """ called when evaluating -X. Used in aggregate arguments """
         neg = Term(self._pyD_value)
-        neg._pyD_negated = True
+        neg._pyD_negated = not(self._pyD_negated)
 
         expr = 0 - self
         expr._pyD_variable = neg
