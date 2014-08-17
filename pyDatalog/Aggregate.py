@@ -133,7 +133,7 @@ class Aggregate(object):
         """ calculate the aggregate after base facts have been found """
         #TODO avoid intermediate result
         
-        result = [ tuple(l.terms) for l in list(base_subgoal.facts.values())]
+        result = [ tuple(l.terms) for l in base_subgoal.facts.values()]
         if result:
             self.sort_result(result)
             for _, v in groupby(result, self.key):
