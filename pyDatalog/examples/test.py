@@ -181,6 +181,7 @@ def test():
         assert ask((X==2) & (Y==2/X)) == set([(2,1)])
         assert ask((X==2) & (Y==2//X)) == set([(2,1)])
         assert ask((X==2) & (Y==3**X)) == set([(2,9)])
+        assert ask((X==1) & (Y==(1, X+1))) == set([(1, (1, 2))])
         
         assert ask((Y==5) & (X==format_('5 is {}', Y))) == set([(5, '5 is 5')])
         assert ask(X==format_('5 is {} {}', 5, 'test'))  == set([('5 is 5 test',)])
