@@ -229,13 +229,15 @@ class Term(threading.local, Expression, LazyList):
     """
     
     def __init__(self, name='??', forced_type=None):
-        name = 'X%i' % id(self) if name =='??' else name
         LazyList.__init__(self)
         
         self._pyD_negated = False # for aggregate with sort in descending order
         self._pyD_precalculations = Body() # no precalculations
         self._pyD_atomized = True
-        name = True if name=='True' else False if name =='False' else name
+        
+        if (isinstance(name, util.string_types)):
+            name = 'X%i' % id(self) if name =='??' else name
+            name = True if name=='True' else False if name =='False' else name
         if isinstance(name, (list, tuple, util.xrange)):
             self._pyD_value = list(map(Expression._pyD_for, name))
             self._pyD_name = util.unicode_type([element._pyD_name for element in self._pyD_value])
