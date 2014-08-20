@@ -680,6 +680,7 @@ def complete(subgoal, post_thunk):
 def ask(literal):
     """ Invoke the tasks. Each task may append new tasks on the schedule."""
     Ts = Logic.tl.logic
+    saved_environment = Ts.Tasks, Ts.Subgoals, Ts.Goal
     Ts.Tasks, Ts.Subgoals, Ts.Goal = list(), {}, Subgoal(literal)
     schedule((SEARCH, Ts.Goal))
     while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
@@ -695,10 +696,11 @@ def ask(literal):
             Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
             if Logging: logging.debug('pop')
 
-    Ts.Tasks, Ts.Subgoals = None, {}
     if Ts.Goal.facts is True:
         return True
-    return [ tuple(term.id for term in literal.terms) for literal in list(Ts.Goal.facts.values())]    
+    result = [ tuple(term.id for term in literal.terms) for literal in list(Ts.Goal.facts.values())]
+    Ts.Tasks, Ts.Subgoals, Ts.Goal = saved_environment
+    return result    
 Literal.ask = ask
 
 ################## add derived facts and use rules ##############
