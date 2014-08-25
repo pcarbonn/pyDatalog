@@ -570,6 +570,19 @@ def test():
         assert ask((a_tuple[2]== Y)) == set([((0,1),)])
     
     @pyDatalog.program()
+    def mean_():
+        (mean[None] == mean_(Y, for_each=Y)) <= (Y.in_((1,2,3)))
+        assert ask(mean[None]==Y) == set([(2.0,)])
+    
+    @pyDatalog.program()
+    def linear_regression():
+        (linear[None] == linear_regression_(Y, for_each=X)) <= linear(X,Y)
+        + linear(0, 1)
+        + linear(1, 3)
+        + linear(2, 5)
+        assert ask(linear[None]==Y) == set([((2.0, 1.0),)])
+    
+    @pyDatalog.program()
     def concat(): 
         + q(a, c, 1)
         + q(a, b, 2)

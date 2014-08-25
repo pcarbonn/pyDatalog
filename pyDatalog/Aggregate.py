@@ -215,6 +215,31 @@ class Mean(Tuple):
     @property
     def value(self):
         return mean(self._value)
+
+class Linear_regression(Aggregate):
+    """ represents mean_(Y, for_each=(X,)"""
+    required_kw = ('Y', 'for_each')
+    
+    def reset(self):
+        self.X = []
+        self.Y = []
+        
+    def add(self, row):
+        self.X.append(row[self.slice_for_each[0]].id)
+        self.Y.append(row[self.index_value].id)
+        
+    @property
+    def value(self):
+        length = len(self.X)
+        sum_x = sum(self.X)
+        sum_y = sum(self.Y)
+    
+        sum_x_squared = sum(map(lambda a: a * a, self.X))
+        covariance = sum(self.X[i] * self.Y[i] for i in range(length))
+    
+        a = (covariance - (sum_x * sum_y) / length) / (sum_x_squared - ((sum_x ** 2) / length))
+        b = (sum_y - a * sum_x) / length
+        return (a, b)    
     
 class Concat(Tuple):
     """ represents concat_(Y, order_by=(Z1,Z2), sep=sep)"""
