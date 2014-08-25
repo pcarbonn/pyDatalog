@@ -361,6 +361,8 @@ class Term(threading.local, Expression, LazyList):
             return Aggregate.Running_sum(args[0], group_by=kwargs.get('group_by', []), order_by=kwargs.get('order_by', []))
         elif self._pyD_name == 'tuple_':
             return Aggregate.Tuple(args[0], order_by=kwargs.get('order_by', []))
+        elif self._pyD_name == 'mean_':
+            return Aggregate.Mean(args[0], for_each=kwargs.get('for_each', []))
         elif self._pyD_name in ('_len', 'len_'):
             if isinstance(args[0], Term):
                 return Aggregate.Len(args[0])

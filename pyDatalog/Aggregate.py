@@ -32,6 +32,12 @@ USA
 ##################################### Aggregation #####################################
     
 from itertools import groupby
+try:
+    import statistics
+    mean = statistics.mean
+except:
+    def mean(aList):
+        return sum(aList) / len(aList)
 
 from . import util
 from . import pyEngine
@@ -201,6 +207,14 @@ class Tuple(Aggregate):
     @property
     def value(self):
         return tuple(self._value)
+
+class Mean(Tuple):
+    """ represents mean_(X, for_each=(Y,)"""
+    required_kw = ('Y', 'for_each')
+    
+    @property
+    def value(self):
+        return mean(self._value)
     
 class Concat(Tuple):
     """ represents concat_(Y, order_by=(Z1,Z2), sep=sep)"""
