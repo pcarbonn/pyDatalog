@@ -624,6 +624,9 @@ class Call(Operation): #call
         if isinstance(other, (Literal, Body)):
             return self.as_literal <= other
         return other > self
+
+    def ask(self):
+        return Body(self.as_literal).ask()
         
 class Body(LazyListOfList):
     """ created by p(a,b) & q(c,d)  """
