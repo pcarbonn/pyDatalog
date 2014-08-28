@@ -164,7 +164,7 @@ def _pyD_decorator(arg):
     return atomized
 
 ATOMS = ['_sum','sum_','_min','min_','_max','max_', '_len','len_','concat','concat_','rank','rank_',
-         'running_sum','running_sum_','range_','tuple_', 'format_']
+         'running_sum','running_sum_','range_','tuple_', 'format_', 'mean_', 'linear_regression_']
 
 def create_terms(*args):
     """ create terms for in-line clauses and queries """
