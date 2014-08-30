@@ -97,8 +97,8 @@ class Fresh_var(Term):
     
     def unify(self, term, env): #unify
         return term.unify_with_var(self, env)
-    def unify_with_const(self, const, env): #unify
-        env[self] = const
+    def unify_with_const(self, constant, env): #unify
+        env[self] = constant
         return env
     def unify_with_var(self, var, env): #unify
         env[var] = self
@@ -107,11 +107,11 @@ class Fresh_var(Term):
         env[self] = a_tuple
         return env
     
-    def match(self, const, env):
+    def match(self, constant, env):
         if self not in env:
-            env[self] = const
+            env[self] = constant
             return env
-        elif env[self] == const: # dead code ?
+        elif env[self] == constant: # dead code ?
             return env
         else: # dead code ?
             return None
@@ -162,14 +162,14 @@ class Const(Term):
     
     def unify(self, term, env): #unify
         return term.unify_with_const(self, env)
-    def unify_with_const(self, const, env): #unify
+    def unify_with_const(self, constant, env): #unify
         return None
     def unify_with_var(self, var, env): #unify
         return var.unify_with_const(self, env)
     def unify_with_tuple(self, a_tuple, env): #unify
         return None
     
-    def match(self, const, env):
+    def match(self, constant, env):
         return None
     
     def __str__(self): 
@@ -215,7 +215,7 @@ class VarTuple(Term):
     
     def unify(self, term, env): #unify
         return term.unify_with_tuple(self, env)
-    def unify_with_const(self, const, env): #unify
+    def unify_with_const(self, constant, env): #unify
         return None
     def unify_with_var(self, var, env): #unify
         return var.unify_with_tuple(self, env)
@@ -238,7 +238,7 @@ class VarTuple(Term):
             return fact(subgoal, literal)
 
 
-class Operation(object):
+class Operation(Term):
     """ an arithmetic operation, a slice or a lambda """
     counter = util.Counter()
     def __init__(self, lhs, operator, rhs):
@@ -281,7 +281,7 @@ class Operation(object):
                     return Term.of(lhs.id ** rhs.id)
                 elif self.operator == '%':
                     return Term.of(lhs.id.format(*(rhs.id)))
-                elif isinstance(self.operator, type(lambda: None)):
+                elif isinstance(self.operator, type(util.LAMBDA)):
                     return Term.of(self.operator(*(rhs.id)))
                 elif self.operator == '.':
                     v = lhs.id
@@ -304,7 +304,7 @@ class Operation(object):
     
     def unify(self, term, env): #unify
         return None
-    def unify_with_const(self, const, env): #unify
+    def unify_with_const(self, constant, env): #unify
         return None
     def unify_with_var(self, var, env): #unify
         return None

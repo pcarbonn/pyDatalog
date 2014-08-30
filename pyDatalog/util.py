@@ -8,6 +8,8 @@ source :
 import sys
 import threading
 
+LAMBDA = lambda: None
+
 class DatalogError(Exception):
     def __init__(self, value, lineno, function):
         self.value = value
