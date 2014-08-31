@@ -63,9 +63,9 @@ def Term_of(atom):
         return Const(atom)
 
 class Term(object):
-    def __eq__(self, other):
+    def equals(self, other):
         return self.id == other.id
-    def __ne__(self, other):
+    def not_equals(self, other):
         return self.id != other.id
     def is_const(self): # for backward compatibility with custom resolvers
         return self.is_constant
@@ -78,40 +78,36 @@ class Fresh_var(Term):
     def __init__(self):
         self.id = ('f', Fresh_var.counter.next()) #id
     
-    if not util.PY2: # do not slow down python 2
-        def __hash__(self): # needed for Python 3
-            return id(self.id) # id() is fastest
-
     def is_const(self):
         return False
     def get_tag(self, env): #id
-        return env.setdefault(self, ('v', len(env)))
+        return env.setdefault(hash(self.id), ('v', len(env)))
 
     def subst(self, env): #unify
-        return env.get(self, self)
+        return env.get(hash(self.id), self)
     def shuffle(self, env): #shuffle
-        env.setdefault(self, Fresh_var())
+        env.setdefault(hash(self.id), Fresh_var())
     def chase(self, env): #unify
         # try ... except is not faster
-        return env[self].chase(env) if self in env else self
+        return env[hash(self.id)].chase(env) if hash(self.id) in env else self
     
     def unify(self, term, env): #unify
         return term.unify_with_var(self, env)
     def unify_with_const(self, constant, env): #unify
-        env[self] = constant
+        env[hash(self.id)] = constant
         return env
     def unify_with_var(self, var, env): #unify
-        env[var] = self
+        env[hash(var.id)] = self
         return env
     def unify_with_tuple(self, a_tuple, env): #unify
-        env[self] = a_tuple
+        env[hash(self.id)] = a_tuple
         return env
     
     def match(self, constant, env):
-        if self not in env:
-            env[self] = constant
+        if hash(self.id) not in env:
+            env[hash(self.id)] = constant
             return env
-        elif env[self] == constant: # dead code ?
+        elif env[hash(self.id)] == constant: # dead code ?
             return env
         else: # dead code ?
             return None
@@ -129,9 +125,6 @@ class Var(Fresh_var):
     def __init__(self, name):
         self.id = ('f', name) #id
 
-    def __hash__(self):
-        return hash(self.id)
-
     def __str__(self): 
         return self.id[1]
 
@@ -144,9 +137,6 @@ class Const(Term):
     def __init__(self, _id):
         self.id = _id
     
-    def __hash__(self):
-        return hash(self.id)
-
     def is_const(self): # for backward compatibility with custom resolvers
         return True
 
@@ -175,7 +165,7 @@ class Const(Term):
     def __str__(self): 
         return "'%s'" % self.id
     def equals_primitive(self, term, subgoal):
-        if self == term:          # Both terms are constant and equal.
+        if self.equals(term):          # Both terms are constant and equal.
             literal = Literal("==", (self, self))
             return fact(subgoal, literal)
 
@@ -189,9 +179,6 @@ class VarTuple(Term):
         self.id =  tuple(e.id for e in _id) #id
         self.is_constant = all(element.is_constant for element in _id)
     
-    def __hash__(self): # no gain by caching it
-        return hash(self.id)
-
     def __len__(self):
         return len(self._id)        
     
@@ -223,7 +210,7 @@ class VarTuple(Term):
         if len(self) != len(a_tuple):
             return None
         for e1, e2 in zip(self._id, a_tuple._id):
-            if e1 != e2:
+            if e1.not_equals(e2):
                 env = e1.unify(e2, env)
                 if env == None: return env
         return env
@@ -233,7 +220,7 @@ class VarTuple(Term):
     def __str__(self): 
         return "'%s'" % str([str(e) for e in self.id])
     def equals_primitive(self, term, subgoal):
-        if self == term:          # Both terms are constant and equal.
+        if self.equals(term):          # Both terms are constant and equal.
             literal = Literal("==", (self, self))
             return fact(subgoal, literal)
 
@@ -469,7 +456,7 @@ class Literal(object):
         for term, otherterm in zip(self.terms, other.terms):
             literal_i = term.chase(env)
             other_i = otherterm.chase(env)
-            if literal_i != other_i:
+            if literal_i.not_equals(other_i):
                 env = literal_i.unify(other_i, env)
                 if env == None: return env
         return env
@@ -478,7 +465,7 @@ class Literal(object):
         """ Does a fact unify with a fact known to contain only constant terms? """
         env = {}
         for term, factterm in zip(self.terms, fact.terms):
-            if term != factterm:
+            if term.not_equals(factterm):
                 env = term.match(factterm, env)
                 if env == None: return env
         return env
@@ -529,7 +516,7 @@ def add_class(cls, name):
     """ Update the list of pyDatalog-capable classes, and update clauses accordingly"""
     Class_dict[name] = cls
     #prefixed replace the first term of each functional comparison literal for that class..
-    env = {Var(name): Const('_pyD_class')}
+    env = {hash(Var(name).id): Const('_pyD_class')}
     for pred in Logic.tl.logic.Db.values():
         for clause in pred.db.values():
             clause.head.subst_first(env)

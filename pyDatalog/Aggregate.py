@@ -161,7 +161,7 @@ class Aggregate(object):
     
     def key(self, result):
         """ return the grouping key of a result """
-        return list(result[i] for i in self.slice_group_by)
+        return list(hash(result[i].id) for i in self.slice_group_by)
     
     def reset(self):
         """ by default, _value is 0 """
