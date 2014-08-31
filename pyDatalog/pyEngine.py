@@ -53,16 +53,16 @@ Class_dict = {}
 
 #       DATA TYPES          #####################################
 
+def Term_of(atom):
+    """ factory function for Term """
+    if isinstance(atom, (Term, Operation)):
+        return atom
+    elif isinstance(atom, (list, tuple, util.xrange)):
+        return VarTuple(tuple(Term_of(element) for element in atom))
+    else:
+        return Const(atom)
+
 class Term(object):
-    @classmethod
-    def of(cls, atom):
-        """ factory function for Term """
-        if isinstance(atom, (Term, Operation)):
-            return atom
-        elif isinstance(atom, (list, tuple, util.xrange)):
-            return VarTuple(tuple(Term.of(element) for element in atom))
-        else:
-            return Const(atom)
     def __eq__(self, other):
         return self.id == other.id
     def __ne__(self, other):
@@ -259,41 +259,41 @@ class Operation(Term):
             if self.operator == '[' and isinstance(lhs, (VarTuple, Const)) and rhs.is_constant:
                 v = lhs._id if isinstance(lhs, VarTuple) else lhs.id
                 if isinstance(rhs, VarTuple): # a slice
-                    return Term.of(v.__getitem__(slice(*rhs.id)))
-                return Term.of(v.__getitem__(rhs.id))
+                    return Term_of(v.__getitem__(slice(*rhs.id)))
+                return Term_of(v.__getitem__(rhs.id))
             if self.operator == '#' and isinstance(rhs, VarTuple):
-                return Term.of(len(rhs))
+                return Term_of(len(rhs))
             if self.operator == '..' and rhs.is_constant:
-                return Term.of(range(rhs.id))
+                return Term_of(range(rhs.id))
             if lhs.is_constant and rhs.is_constant:
                 # calculate expression of constants
                 if self.operator == '+':
-                    return Term.of(lhs.id + rhs.id)
+                    return Term_of(lhs.id + rhs.id)
                 elif self.operator == '-':
-                    return Term.of(lhs.id - rhs.id)
+                    return Term_of(lhs.id - rhs.id)
                 elif self.operator == '*':
-                    return Term.of(lhs.id * rhs.id)
+                    return Term_of(lhs.id * rhs.id)
                 elif self.operator == '/':
-                    return Term.of(lhs.id / rhs.id)
+                    return Term_of(lhs.id / rhs.id)
                 elif self.operator == '//':
-                    return Term.of(lhs.id // rhs.id)
+                    return Term_of(lhs.id // rhs.id)
                 elif self.operator == '**':
-                    return Term.of(lhs.id ** rhs.id)
+                    return Term_of(lhs.id ** rhs.id)
                 elif self.operator == '%':
-                    return Term.of(lhs.id.format(*(rhs.id)))
+                    return Term_of(lhs.id.format(*(rhs.id)))
                 elif isinstance(self.operator, type(util.LAMBDA)):
-                    return Term.of(self.operator(*(rhs.id)))
+                    return Term_of(self.operator(*(rhs.id)))
                 elif self.operator == '.':
                     v = lhs.id
                     for attribute in rhs.id.split(".") :
                         v = getattr(v, attribute)
-                    return Term.of(v)
+                    return Term_of(v)
                 elif self.operator == '(':
-                    return Term.of(lhs.id.__call__(*(rhs.id)))
+                    return Term_of(lhs.id.__call__(*(rhs.id)))
                 assert False # dead code
             return Operation(lhs, self.operator, rhs)
         except Exception as e:
-            return Term.of(e)
+            return Term_of(e)
             
     def shuffle(self, env): #shuffle
         self.lhs.shuffle(env)
@@ -735,7 +735,7 @@ def fact_candidate(subgoal, class0, result):
     """ add result as a candidate fact of class0 for subgoal"""
     if result is True:
         return fact(subgoal, True)
-    result = [Term.of(r) for r in result]
+    result = [Term_of(r) for r in result]
     if len(result) != len(subgoal.literal.terms):
         return
     if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
@@ -951,7 +951,7 @@ def compare_primitive(literal, subgoal):
             if not y.is_const:
                 raise util.DatalogError("Error: right hand side must be bound: %s" % literal, None, None)
             for v in y.id:
-                literal = Literal(literal.pred.name, (Term.of(v), y))
+                literal = Literal(literal.pred.name, (Term_of(v), y))
                 fact(subgoal, literal)
         else:
             raise util.DatalogError("Error: left hand side of comparison must be bound: %s" 
