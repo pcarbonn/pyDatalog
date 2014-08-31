@@ -81,33 +81,33 @@ class Fresh_var(Term):
     def is_const(self):
         return False
     def get_tag(self, env): #id
-        return env.setdefault(hash(self.id), ('v', len(env)))
+        return env.setdefault(self.id, ('v', len(env)))
 
     def subst(self, env): #unify
-        return env.get(hash(self.id), self)
+        return env.get(self.id, self)
     def shuffle(self, env): #shuffle
-        env.setdefault(hash(self.id), Fresh_var())
+        env.setdefault(self.id, Fresh_var())
     def chase(self, env): #unify
         # try ... except is not faster
-        return env[hash(self.id)].chase(env) if hash(self.id) in env else self
+        return env[self.id].chase(env) if self.id in env else self
     
     def unify(self, term, env): #unify
         return term.unify_with_var(self, env)
     def unify_with_const(self, constant, env): #unify
-        env[hash(self.id)] = constant
+        env[self.id] = constant
         return env
     def unify_with_var(self, var, env): #unify
-        env[hash(var.id)] = self
+        env[var.id] = self
         return env
     def unify_with_tuple(self, a_tuple, env): #unify
-        env[hash(self.id)] = a_tuple
+        env[self.id] = a_tuple
         return env
     
     def match(self, constant, env):
-        if hash(self.id) not in env:
-            env[hash(self.id)] = constant
+        if self.id not in env:
+            env[self.id] = constant
             return env
-        elif env[hash(self.id)] == constant: # dead code ?
+        elif env[self.id] == constant: # dead code ?
             return env
         else: # dead code ?
             return None
@@ -516,7 +516,7 @@ def add_class(cls, name):
     """ Update the list of pyDatalog-capable classes, and update clauses accordingly"""
     Class_dict[name] = cls
     #prefixed replace the first term of each functional comparison literal for that class..
-    env = {hash(Var(name).id): Const('_pyD_class')}
+    env = {Var(name).id: Const('_pyD_class')}
     for pred in Logic.tl.logic.Db.values():
         for clause in pred.db.values():
             clause.head.subst_first(env)
