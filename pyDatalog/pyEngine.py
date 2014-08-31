@@ -180,7 +180,7 @@ class Const(Term):
         return "'%s'" % self.id
     def equals_primitive(self, term, subgoal):
         if self.equals(term):          # Both terms are constant and equal.
-            literal = Literal("==", (self, self))
+            literal = Literal("==", [self, self])
             return fact(subgoal, literal)
 
 
@@ -220,7 +220,7 @@ class VarTuple(Term):
         return "'%s'" % str([str(e) for e in self.id])
     def equals_primitive(self, term, subgoal):
         if self.equals(term):          # Both terms are constant and equal.
-            literal = Literal("==", (self, self))
+            literal = Literal("==", [self, self])
             return fact(subgoal, literal)
 
 
@@ -374,6 +374,7 @@ class Literal(object):
     def __init__(self, pred, terms, prearity=None, aggregate=None):
         self.terms = terms
         self.aggregate = aggregate
+        self.id, self.tag = None, None
         if isinstance(pred, util.string_types):
             self.pred = Pred(pred, len(terms))
             self.pred.prearity = len(terms) if prearity is None else prearity
@@ -411,7 +412,7 @@ class Literal(object):
     def get_id(self): #id
         """ The id's encoding ensures that two literals are structurally the
             same if they have the same id.  """
-        if not hasattr(self, 'id'): # cached
+        if not self.id: # cached
             self.id = (self.pred.id,) + tuple(term.id for term in self.terms)
         return self.id        
 
@@ -422,7 +423,7 @@ class Literal(object):
 
     def get_tag(self): #id
         """ the tag is used as a key by the subgoal table """
-        if not hasattr(self, 'tag'): # cached
+        if not self.tag: # cached
             env = {}
             self.tag = (self.pred.id,) + tuple(term.get_tag(env) for term in self.terms)
         return self.tag       
@@ -459,6 +460,31 @@ class Literal(object):
                 env = term.match(factterm, env)
                 if env == None: return env
         return env
+
+    def ask(self):
+        """ Invoke the tasks. Each task may append new tasks on the schedule."""
+        Ts = Logic.tl.logic
+        saved_environment = Ts.Tasks, Ts.Subgoals, Ts.Goal
+        Ts.Tasks, Ts.Subgoals, Ts.Goal = list(), {}, Subgoal(self)
+        schedule((SEARCH, Ts.Goal))
+        while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
+            while Ts.Tasks and not Ts.Goal.is_done:
+                todo = Ts.Tasks.pop()
+                if isinstance(todo, Thunk):
+                    todo.do() # get the thunk and execute it
+                elif todo[0] is SEARCH:
+                    search(todo[1])
+                elif todo[0] is ADD_CLAUSE:
+                    add_clause(todo[1], todo[2])
+            if Ts.Stack: 
+                Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
+                if Logging: logging.debug('pop')
+    
+        if Ts.Goal.facts is True:
+            return True
+        result = [ tuple(term.id for term in literal.terms) for literal in list(Ts.Goal.facts.values())]
+        Ts.Tasks, Ts.Subgoals, Ts.Goal = saved_environment
+        return result    
 
 
 class Clause(object):
@@ -654,32 +680,6 @@ def complete(subgoal, post_thunk):
     if Logging: logging.debug('push')
     Ts.Stack[-1][1].append(Thunk(post_thunk)) 
 
-def ask(literal):
-    """ Invoke the tasks. Each task may append new tasks on the schedule."""
-    Ts = Logic.tl.logic
-    saved_environment = Ts.Tasks, Ts.Subgoals, Ts.Goal
-    Ts.Tasks, Ts.Subgoals, Ts.Goal = list(), {}, Subgoal(literal)
-    schedule((SEARCH, Ts.Goal))
-    while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
-        while Ts.Tasks and not Ts.Goal.is_done:
-            todo = Ts.Tasks.pop()
-            if isinstance(todo, Thunk):
-                todo.do() # get the thunk and execute it
-            elif todo[0] is SEARCH:
-                search(todo[1])
-            elif todo[0] is ADD_CLAUSE:
-                add_clause(todo[1], todo[2])
-        if Ts.Stack: 
-            Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
-            if Logging: logging.debug('pop')
-
-    if Ts.Goal.facts is True:
-        return True
-    result = [ tuple(term.id for term in literal.terms) for literal in list(Ts.Goal.facts.values())]
-    Ts.Tasks, Ts.Subgoals, Ts.Goal = saved_environment
-    return result    
-Literal.ask = ask
-
 ################## add derived facts and use rules ##############
 
 def fact(subgoal, literal):
@@ -843,7 +843,7 @@ def search(subgoal):
             if literal1.pred.id in Logic.tl.logic.Db: # equality has a datalog definition
                 Y1 = Fresh_var()
                 literal1.terms[-1] = Y1
-                literal2 = Literal(literal.pred.comparison, (Y1, terms[-1]))
+                literal2 = Literal(literal.pred.comparison, [Y1, terms[-1]])
                 clause = Clause(literal, (literal1, literal2))
                 renamed = clause.rename()
                 env = literal.unify(renamed.head)
@@ -928,7 +928,7 @@ def compare_primitive(literal, subgoal):
             if not y.is_const:
                 raise util.DatalogError("Error: right hand side must be bound: %s" % literal, None, None)
             for v in y.id:
-                literal = Literal(literal.pred.name, (Term_of(v), y))
+                literal = Literal(literal.pred.name, [Term_of(v), y])
                 fact(subgoal, literal)
         else:
             raise util.DatalogError("Error: left hand side of comparison must be bound: %s" 
