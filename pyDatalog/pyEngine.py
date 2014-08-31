@@ -69,8 +69,43 @@ class Term(object):
         return self.id != other.id
     def is_const(self): # for backward compatibility with custom resolvers
         return self.is_constant
+    
+    def unify(self, term, env):
+        if isinstance(self, Fresh_var):
+            if isinstance(term, Fresh_var):
+                env[term.id] = self
+                return env
+            if isinstance(term, (Const, VarTuple)):
+                env[self.id] = term
+                return env
+            if isinstance(term, Operation):
+                return None
+        if isinstance(self, Const):
+            if isinstance(term, Fresh_var):
+                env[term.id] = self
+                return env
+            if isinstance(term, (Const, VarTuple, Operation)):
+                return None
+        if isinstance(self, VarTuple):
+            if isinstance(term, Fresh_var):
+                env[term.id] = self
+                return env
+            if isinstance(term, Const):
+                return None
+            if isinstance(term, VarTuple):
+                if len(self) != len(term):
+                    return None
+                for e1, e2 in zip(term._id, self._id):
+                    if e1.not_equals(e2):
+                        env = e1.unify(e2, env)
+                        if env == None: return env
+                return env
+            if isinstance(term, Operation):
+                return None
+        if isinstance(self, Operation):
+            return None
         
-class Fresh_var(Term): 
+class Fresh_var(Term):
     """ a variable created by the search algorithm """
     __slots__ = ['id']
     counter = util.Counter()
@@ -90,18 +125,6 @@ class Fresh_var(Term):
     def chase(self, env): #unify
         # try ... except is not faster
         return env[self.id].chase(env) if self.id in env else self
-    
-    def unify(self, term, env): #unify
-        return term.unify_with_var(self, env)
-    def unify_with_const(self, constant, env): #unify
-        env[self.id] = constant
-        return env
-    def unify_with_var(self, var, env): #unify
-        env[var.id] = self
-        return env
-    def unify_with_tuple(self, a_tuple, env): #unify
-        env[self.id] = a_tuple
-        return env
     
     def match(self, constant, env):
         if self.id not in env:
@@ -150,15 +173,6 @@ class Const(Term):
     def chase(self, env): #unify
         return self
     
-    def unify(self, term, env): #unify
-        return term.unify_with_const(self, env)
-    def unify_with_const(self, constant, env): #unify
-        return None
-    def unify_with_var(self, var, env): #unify
-        return var.unify_with_const(self, env)
-    def unify_with_tuple(self, a_tuple, env): #unify
-        return None
-    
     def match(self, constant, env):
         return None
     
@@ -180,7 +194,7 @@ class VarTuple(Term):
         self.is_constant = all(element.is_constant for element in _id)
     
     def __len__(self):
-        return len(self._id)        
+        return len(self._id)
     
     def get_tag(self, env): #id
         if self.is_constant: # can use lazy property only for constants
@@ -199,21 +213,6 @@ class VarTuple(Term):
         if self.is_constant:
             return self
         return VarTuple(tuple(element.chase(env) for element in self._id))
-    
-    def unify(self, term, env): #unify
-        return term.unify_with_tuple(self, env)
-    def unify_with_const(self, constant, env): #unify
-        return None
-    def unify_with_var(self, var, env): #unify
-        return var.unify_with_tuple(self, env)
-    def unify_with_tuple(self, a_tuple, env): #unify
-        if len(self) != len(a_tuple):
-            return None
-        for e1, e2 in zip(self._id, a_tuple._id):
-            if e1.not_equals(e2):
-                env = e1.unify(e2, env)
-                if env == None: return env
-        return env
     
     # def match is not needed here
 
@@ -289,15 +288,6 @@ class Operation(Term):
     def chase(self, env): #unify
         return Operation(self.lhs.chase(env), self.operator, self.rhs.chase(env))
     
-    def unify(self, term, env): #unify
-        return None
-    def unify_with_const(self, constant, env): #unify
-        return None
-    def unify_with_var(self, var, env): #unify
-        return None
-    def unify_with_tuple(self, a_tuple, env): #unify
-        return None
-
     def __str__(self): 
         return "(%s%s%s)" % (str(self.lhs), str(self.operator), str(self.rhs))
 
