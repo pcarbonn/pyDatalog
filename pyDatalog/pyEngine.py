@@ -66,6 +66,18 @@ class Term(object):
     def is_const(self): # for backward compatibility with custom resolvers
         return self.is_constant
     
+    def get_tag(self, env): # for Cython
+        if isinstance(self, Fresh_var):
+            return Fresh_var.get_tag(self, env)
+        if isinstance(self, Var):
+            return Var.get_tag(self, env)
+        if isinstance(self, Const):
+            return Const.get_tag(self, env)
+        if isinstance(self, VarTuple):
+            return VarTuple.get_tag(self, env)
+        if isinstance(self, Operation):
+            return Operation.get_tag(self, env)
+
     def unify(self, term, env): # for Cython
         # not working :  type(self).unify(self, term, env)
         if isinstance(self, Fresh_var):
@@ -192,7 +204,11 @@ class VarTuple(Term):
     def get_tag(self, env): #id
         if self.is_constant: # can use lazy property only for constants
             return self.id
-        return tuple(t.get_tag(env) for t in self._id) #id
+        #Cython version for : return tuple(t.get_tag(env) for t in self._id) #id
+        result = []
+        for t in self._id:
+            result.append(t.get_tag(env))
+        return tuple(result)
     
     def subst(self, env): #unify
         if self.is_constant: # can use lazy property only for constants
@@ -419,7 +435,7 @@ class Literal(object):
         if self.pred.prefix:
             self.terms[0] = self.terms[0].subst(env)
                 
-    def __str__(self): 
+    def __str__(self):
         return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
 
     def get_id(self): #id
@@ -438,7 +454,11 @@ class Literal(object):
         """ the tag is used as a key by the subgoal table """
         if not self.tag: # cached
             env = {}
-            self.tag = (self.pred.id,) + tuple(term.get_tag(env) for term in self.terms)
+            #Cython equivalent for : self.tag = (self.pred.id,) + tuple(term.get_tag(env) for term in self.terms)
+            result = [self.pred.id,]
+            for term in self.terms:
+                result.append(term.get_tag(env))
+            self.tag = tuple(result)
         return self.tag       
 
     def subst(self, env): #unify
