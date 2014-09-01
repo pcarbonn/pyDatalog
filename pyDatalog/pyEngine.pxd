@@ -15,7 +15,7 @@ cdef class Fresh_var(Term):
     cpdef bool is_const(self)
     
     cdef public object get_tag(self, dict env)
-    cpdef public Term subst(self, dict env)
+    cdef public Term subst(self, dict env)
     cpdef public Term shuffle(self, dict env)
     cpdef public Term chase(self, dict env)
     cpdef public dict match(self, Term constant, dict env)
@@ -28,7 +28,7 @@ cdef class Const(Term):
     cpdef bool is_const(self)
 
     cdef public object get_tag(self, dict env)
-    cpdef public Term subst(self, dict env)
+    cdef public Term subst(self, dict env)
     cpdef public Term shuffle(self, dict env)
     cpdef public Term chase(self, dict env)
     cpdef public dict match(self, Term constant, dict env)
@@ -40,6 +40,7 @@ cdef class VarTuple(Term):
 
     cpdef bool is_const(self)
     cdef public object get_tag(self, dict env)
+    cdef public Term subst(self, dict env)
 
     cpdef public Term shuffle(self, dict env)
     cdef public dict unify(self, Term term, dict env)
@@ -53,8 +54,10 @@ cdef class Operation(Term):
 
     cpdef bool is_const(self)
  
+    @cython.locals(result=list)
     cdef public object get_tag(self, dict env)
-    cpdef public Term subst(self, dict env)
+    @cython.locals(result=list)
+    cdef public Term subst(self, dict env)
     cpdef public Term shuffle(self, dict env)
     cpdef public Term chase(self, dict env)
     cdef public dict unify(self, Term term, dict env)
@@ -68,6 +71,9 @@ cdef class Literal(object):
 
     @cython.locals(env=dict, result=list)
     cpdef public object get_tag(self)        
+
+    @cython.locals(result=list)
+    cpdef public object subst(self, dict env)        
 
     @cython.locals(literal_i=Term, other_i=Term)
     cpdef public dict unify(self, Literal other)        
