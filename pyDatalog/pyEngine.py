@@ -78,6 +78,18 @@ class Term(object):
         if isinstance(self, Operation):
             return Operation.get_tag(self, env)
 
+    def subst(self, env): # for Cython
+        if isinstance(self, Fresh_var):
+            return Fresh_var.subst(self, env)
+        if isinstance(self, Var):
+            return Var.subst(self, env)
+        if isinstance(self, Const):
+            return Const.subst(self, env)
+        if isinstance(self, VarTuple):
+            return VarTuple.subst(self, env)
+        if isinstance(self, Operation):
+            return Operation.subst(self, env)
+
     def unify(self, term, env): # for Cython
         # not working :  type(self).unify(self, term, env)
         if isinstance(self, Fresh_var):
@@ -213,7 +225,12 @@ class VarTuple(Term):
     def subst(self, env): #unify
         if self.is_constant: # can use lazy property only for constants
             return self
-        return VarTuple(tuple(element.subst(env) for element in self._id))
+        #Cython version for : return VarTuple(tuple(element.subst(env) for element in self._id))
+        result = []
+        for t in self._id:
+            result.append(t.subst(env))
+        return Term_of(result)
+
     def shuffle(self, env): #shuffle
         if not self.is_constant:
             for element in self._id:
@@ -463,7 +480,11 @@ class Literal(object):
 
     def subst(self, env): #unify
         if not env: return self
-        return Literal(self.pred, [term.subst(env) for term in self.terms], aggregate=self.aggregate)
+        #Cython equivalent for : return Literal(self.pred, [term.subst(env) for term in self.terms], aggregate=self.aggregate)
+        result = []
+        for term in self.terms:
+            result.append(term.subst(env))    
+        return Literal(self.pred, result, aggregate=self.aggregate)
 
     def shuffle(self, env): #shuffle
         for term in self.terms:
