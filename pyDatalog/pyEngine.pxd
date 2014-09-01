@@ -4,10 +4,8 @@ import cython
 from cpython cimport bool #TODO
 
 cdef class Term(object):
-    cpdef public object id
+    cdef public object id
     
-    cpdef bool equals(self, Term other)
-    cpdef bool not_equals(self, Term other)
     cpdef bool is_const(self)
 
 cdef class Fresh_var(Term):

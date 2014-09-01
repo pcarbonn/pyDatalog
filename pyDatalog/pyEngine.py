@@ -63,10 +63,6 @@ def Term_of(atom):
         return Const(atom)
 
 class Term(object):
-    def equals(self, other):
-        return self.id == other.id
-    def not_equals(self, other):
-        return self.id != other.id
     def is_const(self): # for backward compatibility with custom resolvers
         return self.is_constant
     
@@ -176,7 +172,7 @@ class Const(Term):
     def __str__(self): 
         return "'%s'" % self.id
     def equals_primitive(self, term, subgoal):
-        if self.equals(term):          # Both terms are constant and equal.
+        if self.id == term.id:          # Both terms are constant and equal.
             literal = Literal("==", [self, self])
             return fact(subgoal, literal)
 
@@ -223,7 +219,7 @@ class VarTuple(Term):
             if len(self._id) != len(term._id):
                 return None
             for e1, e2 in zip(term._id, self._id):
-                if e1.not_equals(e2):
+                if e1.id != e2.id:
                     env = e1.unify(e2, env)
                     if env == None: return env
             return env
@@ -233,7 +229,7 @@ class VarTuple(Term):
     def __str__(self): 
         return "'%s'" % str([str(e) for e in self.id])
     def equals_primitive(self, term, subgoal):
-        if self.equals(term):          # Both terms are constant and equal.
+        if self.id == term.id:          # Both terms are constant and equal.
             literal = Literal("==", [self, self])
             return fact(subgoal, literal)
 
@@ -464,7 +460,7 @@ class Literal(object):
         for term, otherterm in zip(self.terms, other.terms):
             literal_i = term.chase(env)
             other_i = otherterm.chase(env)
-            if literal_i.not_equals(other_i):
+            if literal_i.id != other_i.id:
                 env = literal_i.unify(other_i, env)
                 if env == None: return env
         return env
@@ -473,7 +469,7 @@ class Literal(object):
         """ Does a fact unify with a fact known to contain only constant terms? """
         env = {}
         for term, factterm in zip(self.terms, fact.terms):
-            if term.not_equals(factterm):
+            if term.id != factterm.id:
                 env = term.match(factterm, env)
                 if env == None: return env
         return env
