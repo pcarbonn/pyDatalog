@@ -70,41 +70,19 @@ class Term(object):
     def is_const(self): # for backward compatibility with custom resolvers
         return self.is_constant
     
-    def unify(self, term, env):
+    def unify(self, term, env): # for Cython
+        # not working :  type(self).unify(self, term, env)
         if isinstance(self, Fresh_var):
-            if isinstance(term, Fresh_var):
-                env[term.id] = self
-                return env
-            if isinstance(term, (Const, VarTuple)):
-                env[self.id] = term
-                return env
-            if isinstance(term, Operation):
-                return None
+            return Fresh_var.unify(self, term, env)
+        if isinstance(self, Var):
+            return Var.unify(self, term, env)
         if isinstance(self, Const):
-            if isinstance(term, Fresh_var):
-                env[term.id] = self
-                return env
-            if isinstance(term, (Const, VarTuple, Operation)):
-                return None
+            return Const.unify(self, term, env)
         if isinstance(self, VarTuple):
-            if isinstance(term, Fresh_var):
-                env[term.id] = self
-                return env
-            if isinstance(term, Const):
-                return None
-            if isinstance(term, VarTuple):
-                if len(self) != len(term):
-                    return None
-                for e1, e2 in zip(term._id, self._id):
-                    if e1.not_equals(e2):
-                        env = e1.unify(e2, env)
-                        if env == None: return env
-                return env
-            if isinstance(term, Operation):
-                return None
+            return VarTuple.unify(self, term, env)
         if isinstance(self, Operation):
-            return None
-        
+            return Operation.unify(self, term, env)
+
 class Fresh_var(Term):
     """ a variable created by the search algorithm """
     __slots__ = ['id']
@@ -135,6 +113,16 @@ class Fresh_var(Term):
         else: # dead code ?
             return None
     
+    def unify(self, term, env):
+        if isinstance(term, Fresh_var):
+            env[term.id] = self
+            return env
+        if isinstance(term, (Const, VarTuple)):
+            env[self.id] = term
+            return env
+        if isinstance(term, Operation):
+            return None
+
     def __str__(self): 
         return "variable_%s" % self.id[1]
     def equals_primitive(self, term, subgoal):
@@ -151,6 +139,8 @@ class Var(Fresh_var):
     def __str__(self): 
         return self.id[1]
 
+    def unify(self, term, env):
+        return Fresh_var.unify(self, term, env)
 
 class Const(Term):
     """ a constant """
@@ -176,6 +166,13 @@ class Const(Term):
     def match(self, constant, env):
         return None
     
+    def unify(self, term, env):
+        if isinstance(term, Fresh_var):
+            env[term.id] = self
+            return env
+        if isinstance(term, (Const, VarTuple, Operation)):
+            return None
+
     def __str__(self): 
         return "'%s'" % self.id
     def equals_primitive(self, term, subgoal):
@@ -215,6 +212,23 @@ class VarTuple(Term):
         return VarTuple(tuple(element.chase(env) for element in self._id))
     
     # def match is not needed here
+
+    def unify(self, term, env):
+        if isinstance(term, Fresh_var):
+            env[term.id] = self
+            return env
+        if isinstance(term, Const):
+            return None
+        if isinstance(term, VarTuple):
+            if len(self._id) != len(term._id):
+                return None
+            for e1, e2 in zip(term._id, self._id):
+                if e1.not_equals(e2):
+                    env = e1.unify(e2, env)
+                    if env == None: return env
+            return env
+        if isinstance(term, Operation):
+            return None
 
     def __str__(self): 
         return "'%s'" % str([str(e) for e in self.id])
@@ -288,6 +302,9 @@ class Operation(Term):
     def chase(self, env): #unify
         return Operation(self.lhs.chase(env), self.operator, self.rhs.chase(env))
     
+    def unify(self, term, env):
+        return None
+        
     def __str__(self): 
         return "(%s%s%s)" % (str(self.lhs), str(self.operator), str(self.rhs))
 
