@@ -204,12 +204,12 @@ class Const(Term):
 class VarTuple(Term):
     """ a tuple / list of variables, constants or tuples """
     __slots__ = ['_id', 'id', 'is_constant']
-    
+
     def __init__(self, _id):
         self._id = _id
         self.id =  tuple(e.id for e in _id) #id
         self.is_constant = all(element.is_constant for element in _id)
-    
+
     def __len__(self):
         return len(self._id)
     
@@ -229,7 +229,7 @@ class VarTuple(Term):
         result = []
         for t in self._id:
             result.append(t.subst(env))
-        return Term_of(result)
+        return VarTuple(result)
 
     def shuffle(self, env): #shuffle
         if not self.is_constant:

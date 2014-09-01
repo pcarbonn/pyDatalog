@@ -39,7 +39,9 @@ cdef class VarTuple(Term):
     cpdef public object is_constant
 
     cpdef bool is_const(self)
+    @cython.locals(result=list)
     cdef public object get_tag(self, dict env)
+    @cython.locals(result=list)
     cdef public Term subst(self, dict env)
 
     cpdef public Term shuffle(self, dict env)
@@ -54,9 +56,7 @@ cdef class Operation(Term):
 
     cpdef bool is_const(self)
  
-    @cython.locals(result=list)
     cdef public object get_tag(self, dict env)
-    @cython.locals(result=list)
     cdef public Term subst(self, dict env)
     cpdef public Term shuffle(self, dict env)
     cpdef public Term chase(self, dict env)
