@@ -202,7 +202,11 @@ class VarTuple(Term):
     def chase(self, env): #unify
         if self.is_constant:
             return self
-        return VarTuple(tuple(element.chase(env) for element in self._id))
+        #Cython version for : return VarTuple(tuple(element.chase(env) for element in self._id))
+        result = []
+        for t in self._id:
+            result.append(t.chase(env))
+        return VarTuple(result)
     
     # def match is not needed here
 

@@ -1,4 +1,3 @@
-#TODO cpdef --> cdef
 
 import cython
 from cpython cimport bool #TODO
@@ -39,8 +38,8 @@ cdef class VarTuple(Term):
     cpdef bool is_const(self)
     cpdef public object get_tag(self, dict env)
     cpdef public Term subst(self, dict env)
-
     cpdef public Term shuffle(self, dict env)
+    cpdef public Term chase(self, dict env)
     cpdef public dict unify(self, Term term, dict env)
 
 cdef class Operation(Term):
