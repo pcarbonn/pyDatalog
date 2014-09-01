@@ -66,42 +66,6 @@ class Term(object):
     def is_const(self): # for backward compatibility with custom resolvers
         return self.is_constant
     
-    def get_tag(self, env): # for Cython
-        if isinstance(self, Fresh_var):
-            return Fresh_var.get_tag(self, env)
-        if isinstance(self, Var):
-            return Var.get_tag(self, env)
-        if isinstance(self, Const):
-            return Const.get_tag(self, env)
-        if isinstance(self, VarTuple):
-            return VarTuple.get_tag(self, env)
-        if isinstance(self, Operation):
-            return Operation.get_tag(self, env)
-
-    def subst(self, env): # for Cython
-        if isinstance(self, Fresh_var):
-            return Fresh_var.subst(self, env)
-        if isinstance(self, Var):
-            return Var.subst(self, env)
-        if isinstance(self, Const):
-            return Const.subst(self, env)
-        if isinstance(self, VarTuple):
-            return VarTuple.subst(self, env)
-        if isinstance(self, Operation):
-            return Operation.subst(self, env)
-
-    def unify(self, term, env): # for Cython
-        # not working :  type(self).unify(self, term, env)
-        if isinstance(self, Fresh_var):
-            return Fresh_var.unify(self, term, env)
-        if isinstance(self, Var):
-            return Var.unify(self, term, env)
-        if isinstance(self, Const):
-            return Const.unify(self, term, env)
-        if isinstance(self, VarTuple):
-            return VarTuple.unify(self, term, env)
-        if isinstance(self, Operation):
-            return Operation.unify(self, term, env)
 
 class Fresh_var(Term):
     """ a variable created by the search algorithm """
