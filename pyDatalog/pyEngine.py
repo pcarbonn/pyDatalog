@@ -55,7 +55,7 @@ Class_dict = {}
 
 def Term_of(atom):
     """ factory function for Term """
-    if isinstance(atom, (Term, Operation)):
+    if isinstance(atom, Term):
         return atom
     elif isinstance(atom, (list, tuple, util.xrange)):
         return VarTuple(tuple(Term_of(element) for element in atom))
@@ -165,7 +165,7 @@ class VarTuple(Term):
     """ a tuple / list of variables, constants or tuples """
     __slots__ = ['_id', 'id', 'is_constant']
 
-    def __init__(self, _id):
+    def __init__(self, _id): # _id is a list of Term
         self._id = _id
         self.id =  tuple(e.id for e in _id) #id
         self.is_constant = all(element.is_const() for element in _id)
@@ -429,7 +429,11 @@ class Literal(object):
         """ The id's encoding ensures that two literals are structurally the
             same if they have the same id.  """
         if not self.id: # cached
-            self.id = (self.pred.id,) + tuple(term.id for term in self.terms)
+            #Cython for : self.id = (self.pred.id,) + tuple(term.id for term in self.terms)
+            result = [self.pred.id,]
+            for term in self.terms:
+                result.append(term.id)
+            self.id = tuple(result)
         return self.id        
 
     def get_fact_id(self): #id
@@ -519,7 +523,7 @@ class Clause(object):
         self.head = head
         self.body = body
     def __str__(self):  
-        return "%s <= %s" % (str(self.head), '&'.join([str(literal) for literal in self.body]))
+        return "%s <= %s" % (str(self.head), '&'.join(str(literal) for literal in self.body))
     def __neg__(self):
         """retract clause"""
         retract(self) 

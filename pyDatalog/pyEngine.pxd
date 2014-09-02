@@ -63,7 +63,23 @@ cdef class Literal(object):
     cpdef public tuple tag
     cpdef public object aggregate 
 
-    cpdef public object get_tag(self)        
-    cpdef public object subst(self, dict env)        
+    cpdef public tuple get_tag(self)        
+    cpdef public Literal subst(self, dict env)        
     cpdef public object shuffle(self, dict env)        
-    cpdef public dict unify(self, Literal other)        
+    cpdef public dict unify(self, Literal other)
+    
+    cpdef public tuple get_id(self)
+    cpdef public tuple get_fact_id(self)
+    cpdef public dict match(self, Literal fact)
+    
+cdef class Clause(object):
+    cpdef public Literal head
+    cpdef public list body
+    cpdef public tuple id
+
+cdef class Subgoal(object):
+    cpdef public Literal literal
+    cpdef public object facts
+    cpdef public list waiters
+    cpdef public bool is_done
+ 

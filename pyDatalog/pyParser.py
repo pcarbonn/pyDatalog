@@ -700,7 +700,7 @@ def add_clause(head,body):
     if isinstance(body, Body):
         tbl = [a.lua for a in body.literals]
     else: # body is a literal
-        tbl = (body.lua,)
+        tbl = [body.lua,]
     clause = pyEngine.Clause(head.lua, tbl)
     result = pyEngine.assert_(clause)
     if not result: 
