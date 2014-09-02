@@ -257,29 +257,29 @@ class metaMixin(type):
 
         if len(terms)==3: #prefixed
             X, Y = terms[1], terms[2]
-            if X.is_constant:
+            if X.is_const():
                 # try accessing the attribute of the first term in literal
                 check_attribute(X.id)
                 Y1 = getattr(X.id, attr_name)
-                if not Y.is_constant or not operator or pyEngine.compare(Y1,operator,Y.id):
-                    yield (terms[0], X.id, Y.id if Y.is_constant else Y1 if operator=='==' else None)
+                if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
+                    yield (terms[0], X.id, Y.id if Y.is_const() else Y1 if operator=='==' else None)
             elif cls.has_SQLAlchemy:
                 if cls.session:
                     q = cls.session.query(cls)
                     check_attribute(cls)
-                    if Y.is_constant:
+                    if Y.is_const():
                         q = q.filter(pyEngine.compare(getattr(cls, attr_name), operator, Y.id))
                     for r in q:
                         Y1 = getattr(r, attr_name)
-                        if not Y.is_constant or not operator or pyEngine.compare(Y1,operator,Y.id):
-                                yield (terms[0], r, Y.id if Y.is_constant else Y1 if operator=='==' else None)
+                        if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
+                                yield (terms[0], r, Y.id if Y.is_const() else Y1 if operator=='==' else None)
             else:
                 # python object with Mixin
                 for X in metaMixin.__refs__[cls]:
                     check_attribute(X)
                     Y1 = getattr(X, attr_name)
-                    if not Y.is_constant or not operator or pyEngine.compare(Y1,operator,Y.id):
-                        yield (terms[0], X, Y.id if Y.is_constant else Y1 if operator=='==' else None)
+                    if not Y.is_const() or not operator or pyEngine.compare(Y1,operator,Y.id):
+                        yield (terms[0], X, Y.id if Y.is_const() else Y1 if operator=='==' else None)
             return
         else:
             raise AttributeError ("%s could not be resolved" % literal.pred.name)
