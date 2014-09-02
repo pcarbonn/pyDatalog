@@ -63,15 +63,12 @@ def Term_of(atom):
         return Const(atom)
 
 class Term(object):
-    def is_const(self): # for backward compatibility with custom resolvers
-        return self.is_constant
-    
+    pass
 
 class Fresh_var(Term):
     """ a variable created by the search algorithm """
     __slots__ = ['id']
     counter = util.Counter()
-    is_constant = False # it's faster than is_const()
     def __init__(self):
         self.id = ('f', Fresh_var.counter.next()) #id
     
@@ -129,7 +126,6 @@ class Var(Fresh_var):
 class Const(Term):
     """ a constant """
     __slots__ = ['id']
-    is_constant = True
 
     def __init__(self, _id):
         self.id = _id
@@ -172,7 +168,10 @@ class VarTuple(Term):
     def __init__(self, _id):
         self._id = _id
         self.id =  tuple(e.id for e in _id) #id
-        self.is_constant = all(element.is_constant for element in _id)
+        self.is_constant = all(element.is_const() for element in _id)
+
+    def is_const(self): # for backward compatibility with custom resolvers
+        return self.is_constant
 
     def __len__(self):
         return len(self._id)
@@ -246,6 +245,9 @@ class Operation(Term):
         self.is_constant = False
         self.id = (self.lhs.id, self.operator_id, self.rhs.id) #id
     
+    def is_const(self): # for backward compatibility with custom resolvers
+        return False
+    
     def get_tag(self, env): #id
         return (self.lhs.get_tag(env), self.operator_id, self.rhs.get_tag(env))
     
@@ -253,16 +255,16 @@ class Operation(Term):
         lhs = self.lhs.subst(env)
         rhs = self.rhs.subst(env)
         try:
-            if self.operator == '[' and isinstance(lhs, (VarTuple, Const)) and rhs.is_constant:
+            if self.operator == '[' and isinstance(lhs, (VarTuple, Const)) and rhs.is_const():
                 v = lhs._id if isinstance(lhs, VarTuple) else lhs.id
                 if isinstance(rhs, VarTuple): # a slice
                     return Term_of(v.__getitem__(slice(*rhs.id)))
                 return Term_of(v.__getitem__(rhs.id))
             if self.operator == '#' and isinstance(rhs, VarTuple):
                 return Term_of(len(rhs))
-            if self.operator == '..' and rhs.is_constant:
+            if self.operator == '..' and rhs.is_const():
                 return Term_of(range(rhs.id))
-            if lhs.is_constant and rhs.is_constant:
+            if lhs.is_const() and rhs.is_const():
                 # calculate expression of constants
                 if self.operator == '+':
                     return Term_of(lhs.id + rhs.id)
@@ -615,7 +617,7 @@ def relevant_clauses(literal):
     """ returns matching clauses for a literal query, using index """
     result = None
     for i, term in enumerate(literal.terms):
-        if term.is_constant:
+        if term.is_const():
             facts = literal.pred.index[i].get(term.id, set()) # default : a set
             result = facts if result == None else result.intersection(facts)
     if result == None: # no constants found
@@ -709,7 +711,7 @@ def fact(subgoal, literal):
     Store a derived fact, and inform all waiters of the fact too. 
     SLG_ANSWER in the reference article
     """
-    if isinstance(literal, Literal) and not all(t.is_constant for t in literal.terms):
+    if isinstance(literal, Literal) and not all(t.is_const() for t in literal.terms):
         literal = True # a partial fact is True
     if literal is True:
         if subgoal.facts != True: # if already True, do not advise its waiters again
@@ -726,7 +728,7 @@ def fact(subgoal, literal):
             if resolvent != None:
                 schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
         if len(subgoal.facts)==1 \
-        and all(subgoal.literal.terms[i].is_constant 
+        and all(subgoal.literal.terms[i].is_const() 
                 for i in range(subgoal.literal.pred.prearity)):
             subgoal.is_done = True # one fact for a function of constant
 
@@ -790,7 +792,7 @@ def search(subgoal):
     class0 = literal0.pred._class()
     terms = literal0.terms
     
-    if class0 and terms[1].is_constant and terms[1].id is None: return
+    if class0 and terms[1].is_const() and terms[1].id is None: return
     if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
         if Logging: logging.debug("pyDatalog will search negation of %s" % literal0)
         base_literal = Literal(literal0.pred.base_pred, terms)
@@ -885,17 +887,17 @@ def search(subgoal):
             return
         except AttributeError:
             pass
-    elif literal.pred.comparison and len(terms)==3 and terms[0].is_constant \
-    and terms[0].id != '_pyD_class' and terms[1].is_constant: # X.a[1]==Y
+    elif literal.pred.comparison and len(terms)==3 and terms[0].is_const() \
+    and terms[0].id != '_pyD_class' and terms[1].is_const(): # X.a[1]==Y
         # do not use pyDatalog_search as the variable may not be in a pyDatalog class
         v = getattr(terms[0].id, literal.pred.suffix)
         if isinstance(terms[1], VarTuple): # a slice
             v = v.__getitem__(slice(*terms[1].id))
         else:
             v = v.__getitem__(terms[1].id)
-        if terms[2].is_constant and compare(v, literal.pred.comparison, terms[2].id):
+        if terms[2].is_const() and compare(v, literal.pred.comparison, terms[2].id):
             fact_candidate(subgoal, class0, (terms[0], terms[1], terms[2]))
-        elif literal.pred.comparison == "==" and not terms[2].is_constant:
+        elif literal.pred.comparison == "==" and not terms[2].is_const():
             fact_candidate(subgoal, class0, (terms[0], terms[1], v))
         else:
             raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
@@ -945,7 +947,7 @@ def equals_primitive(literal, subgoal):
 def compare_primitive(literal, subgoal):
     x = literal.terms[0]
     y = literal.terms[1]
-    if not x.is_constant:
+    if not x.is_const():
         if literal.pred.name == '_pyD_in':
             if not y.is_const:
                 raise util.DatalogError("Error: right hand side must be bound: %s" % literal, None, None)
@@ -955,7 +957,7 @@ def compare_primitive(literal, subgoal):
         else:
             raise util.DatalogError("Error: left hand side of comparison must be bound: %s" 
                                     % literal.pred.id, None, None)
-    elif y.is_constant:
+    elif y.is_const():
         if compare(x.id, literal.pred.name, y.id):
             fact(subgoal, True)
     else:

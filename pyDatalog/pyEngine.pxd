@@ -4,7 +4,6 @@ from cpython cimport bool #TODO
 
 cdef class Term(object):
     cdef public object id
-    cpdef bool is_const(self)
 
 cdef class Fresh_var(Term):
 
