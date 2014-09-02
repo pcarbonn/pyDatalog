@@ -58,7 +58,7 @@ def Term_of(atom):
     if isinstance(atom, Term):
         return atom
     elif isinstance(atom, (list, tuple, util.xrange)):
-        return VarTuple(tuple(Term_of(element) for element in atom))
+        return VarTuple(tuple(map(Term_of, atom)))
     else:
         return Const(atom)
 
@@ -522,6 +522,7 @@ class Clause(object):
     def __init__(self, head, body):
         self.head = head
         self.body = body
+        self.id = None
     def __str__(self):  
         return "%s <= %s" % (str(self.head), '&'.join(str(literal) for literal in self.body))
     def __neg__(self):
@@ -532,7 +533,7 @@ class Clause(object):
         """ The id's encoding ensures that two clauses are structurally equal
             if they have the same id.  A clause's id is used as a key into the
             clause database. """
-        if not hasattr(self, 'id'): # cached
+        if self.id is None: # cached
             if not self.body: #if it is a fact
                 self.id = (self.head.get_fact_id(),)
             else:
