@@ -519,6 +519,8 @@ class Clause(object):
     """ A clause asserts that its head is true if every literal in its body is
         true.  If there are no literals in the body, the clause is a fact
     """
+    __slots__ = ['head', 'body', 'id']
+
     def __init__(self, head, body):
         self.head = head
         self.body = body
@@ -657,6 +659,7 @@ class Subgoal(object):
     A subgoal has a literal, a set of facts, and an array of waiters.
     A waiter is a pair containing a subgoal and a clause.
     """
+    __slots__ = ['literal', 'facts', 'waiters', 'is_done']
     def __init__(self, literal):
         self.literal = literal
         self.facts = {}
