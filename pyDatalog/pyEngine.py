@@ -239,7 +239,7 @@ class Operation(Term):
     counter = util.Counter()
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
-        self.operator_id = 'l' + str(Operation.counter.next()) if isinstance(self.operator, type(lambda: None)) else str(self.operator)
+        self.operator_id = 'l' + str(Operation.counter.next()) if isinstance(self.operator, type(util.LAMBDA)) else str(self.operator)
         self.lhs = lhs
         self.rhs = rhs
         self.is_constant = False
@@ -873,7 +873,7 @@ def search(subgoal):
                 Y1 = Fresh_var()
                 literal1.terms[-1] = Y1
                 literal2 = Literal(literal.pred.comparison, [Y1, terms[-1]])
-                clause = Clause(literal, (literal1, literal2))
+                clause = Clause(literal, [literal1, literal2])
                 renamed = clause.rename()
                 env = literal.unify(renamed.head)
                 if env != None:
