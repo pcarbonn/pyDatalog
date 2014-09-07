@@ -80,7 +80,7 @@ class Fresh_var(Term):
     def subst(self, env): #unify
         return env.get(self.id, self)
     def shuffle(self, env): #shuffle
-        env.setdefault(self.id, Fresh_var())
+        return env.setdefault(self.id, Fresh_var())
     def chase(self, env): #unify
         # try ... except is not faster
         return env[self.id].chase(env) if self.id in env else self
@@ -139,7 +139,7 @@ class Const(Term):
     def subst(self, env): #unify
         return self
     def shuffle(self, env): #shuffle
-        pass
+        return self
     def chase(self, env): #unify
         return self
     
@@ -195,9 +195,13 @@ class VarTuple(Term):
         return VarTuple(result)
 
     def shuffle(self, env): #shuffle
-        if not self.is_constant:
+        if self.is_constant:
+            return self
+        else:
+            result = []
             for element in self._id:
-                element.shuffle(env)
+                result.append(element.shuffle(env))
+            return VarTuple(result)
     def chase(self, env): #unify
         if self.is_constant:
             return self
@@ -295,8 +299,7 @@ class Operation(Term):
             return Term_of(e)
             
     def shuffle(self, env): #shuffle
-        self.lhs.shuffle(env)
-        self.rhs.shuffle(env)
+        return Operation(self.lhs.shuffle(env), self.operator, self.rhs.shuffle(env))
 
     def chase(self, env): #unify
         return Operation(self.lhs.chase(env), self.operator, self.rhs.chase(env))
@@ -461,13 +464,14 @@ class Literal(object):
         return Literal(self.pred, result, aggregate=self.aggregate)
 
     def shuffle(self, env): #shuffle
+        result = []
         for term in self.terms:
-            term.shuffle(env)
+            result.append(term.shuffle(env))
+        return Literal(self.pred, result, aggregate=self.aggregate)
 
     def rename(self): #shuffle
         env={}
-        self.shuffle(env)
-        return self.subst(env)
+        return self.shuffle(env)
 
     def unify(self, other): #unify
         if self.pred != other.pred: return None
@@ -554,10 +558,8 @@ class Clause(object):
     def rename(self):
         """ returns the clause with fresh variables """
         env = {}
-        self.head.shuffle(env)
-        for bodi in self.body:
-            bodi.shuffle(env)
-        return self.subst(env)
+        return Clause(self.head.shuffle(env),
+                           [bodi.shuffle(env) for bodi in self.body])
 
 def add_class(cls, name):
     """ Update the list of pyDatalog-capable classes, and update clauses accordingly"""
