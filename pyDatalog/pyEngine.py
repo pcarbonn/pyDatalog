@@ -676,7 +676,7 @@ def resolve(clause, literal):
     two literals unify, a new clause is generated that has a body with
     one less literal.
     """
-    env = clause.body[0].unify(literal.rename())
+    env = clause.body[0].unify(literal)
     return Clause(clause.head.subst(env), [bodi.subst(env) for bodi in clause.body[1:] ])
  
 ################# Task management ###############################
