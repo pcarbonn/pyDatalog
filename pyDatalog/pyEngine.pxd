@@ -67,6 +67,7 @@ cdef class Literal(object):
     cpdef public Literal subst(self, dict env)        
     cpdef public object shuffle(self, dict env)        
     cpdef public dict unify(self, Literal other)
+    cpdef public Literal rename(self)
     
     cpdef public tuple get_id(self)
     cpdef public tuple get_fact_id(self)
