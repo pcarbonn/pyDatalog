@@ -469,10 +469,6 @@ class Literal(object):
             result.append(term.shuffle(env))
         return Literal(self.pred, result, aggregate=self.aggregate)
 
-    def rename(self): #shuffle
-        env={}
-        return self.shuffle(env)
-
     def unify(self, other): #unify
         if self.pred != other.pred: return None
         env = {}
