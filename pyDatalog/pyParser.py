@@ -201,7 +201,7 @@ class Expression(object):
     def __rdiv__(self, other):
         return Operation(other, '/', self)
     def __rtruediv__(self, other):
-        return Operation(self, '/', other)
+        return Operation(other, '/', self)
     def __rfloordiv__(self, other):
         return Operation(other, '//', self)
     def __rpow__(self, other):
