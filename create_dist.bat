@@ -29,6 +29,9 @@ c:\python27\python.exe Setup.py sdist
 ::
 set DISTUTILS_USE_SDK=1
 set MSSdk=1
+:: cythonize pyEngine.py
+%ENV27%\python.exe cythonize.py  build_ext --inplace
+
 
 ::
 :: Python 27
