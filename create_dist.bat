@@ -29,9 +29,8 @@ c:\python27\python.exe Setup.py sdist
 ::
 set DISTUTILS_USE_SDK=1
 set MSSdk=1
-:: cythonize pyEngine.py
-%ENV27%\python.exe cythonize.py  build_ext --inplace
-
+:: cythonize pyEngine.py, to create pyEngine.c
+%ENV27%\scripts\cython.exe pyDatalog\pyEngine.py
 
 ::
 :: Python 27
@@ -78,7 +77,9 @@ call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.Cmd" /Release /x64
 %ENV3464%\scripts\pip.exe  install wheel 
 %ENV3464%\scripts\pip.exe  wheel --no-deps %PKG_REPO%
  
-:: Restore path
+:: Restore path and environment
 set PATH=%BASEPATH%
+call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.Cmd" /Release /x86
+call "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcvarsall.bat"
 
 pause
