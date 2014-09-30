@@ -58,8 +58,6 @@ from . import pyEngine
 from . import pyParser
 from . import util
     
-print("pyDatalog version %s" % version.__version__)
-
 try:
     from sqlalchemy.ext.declarative import DeclarativeMeta
 except:
