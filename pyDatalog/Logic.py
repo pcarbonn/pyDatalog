@@ -41,6 +41,7 @@ class Logic(object):
             Logic.tl.logic.Tasks = None
             Logic.tl.logic.Stack = []
             Logic.tl.logic.Goal = None       
+            pyEngine.Fresh_var.tl.counter = 0
         elif not (logic) or not hasattr(Logic.tl, 'logic'):
             Logic.tl.logic = object.__new__(cls)
         return Logic.tl.logic
