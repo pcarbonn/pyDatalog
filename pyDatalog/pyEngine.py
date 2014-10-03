@@ -63,6 +63,7 @@ def Term_of(atom):
         return Const(atom)
 
 class Term(object):
+    # needed for Cython
     pass
 
 class Fresh_var(Term):
@@ -150,8 +151,7 @@ class Const(Term):
         if isinstance(term, Fresh_var):
             env[term.id] = self
             return env
-        if isinstance(term, (Const, VarTuple, Operation)):
-            return None
+        return None
 
     def __str__(self): 
         return "'%s'" % self.id
@@ -460,21 +460,21 @@ class Literal(object):
         #Cython equivalent for : return Literal(self.pred, [term.subst(env) for term in self.terms], aggregate=self.aggregate)
         result = []
         for term in self.terms:
-            result.append(term.subst(env))    
+            result.append(term if isinstance(term, Const) else term.subst(env))    
         return Literal(self.pred, result, aggregate=self.aggregate)
 
     def shuffle(self, env): #shuffle
         result = []
         for term in self.terms:
-            result.append(term.shuffle(env))
+            result.append(term if isinstance(term, Const) else term.shuffle(env))
         return Literal(self.pred, result, aggregate=self.aggregate)
 
     def unify(self, other): #unify
         if self.pred != other.pred: return None
         env = {}
         for term, otherterm in zip(self.terms, other.terms):
-            literal_i = term.chase(env)
-            other_i = otherterm.chase(env)
+            literal_i = term if isinstance(term, Const) else term.chase(env)
+            other_i = otherterm if isinstance(otherterm, Const) else otherterm.chase(env)
             if literal_i.id != other_i.id:
                 env = literal_i.unify(other_i, env)
                 if env == None: return env
@@ -625,10 +625,14 @@ def relevant_clauses(literal):
         if term.is_const():
             facts = literal.pred.index[i].get(term.id, set()) # default : a set
             result = facts if result == None else result.intersection(facts)
-    if result == None: # no constants found
-        return list(literal.pred.db.values())
+    if result == None: # no constants found in literal, thus could not filter literal.pred.deb
+        for v in literal.pred.db.values(): 
+            yield v
     else:
-        return list(literal.pred.clauses.values()) + list(result)
+        for v in literal.pred.clauses.values(): 
+            yield v
+        for v in result: 
+            yield v
     
 """
 The remaining functions in this file is based on the tabled logic
@@ -717,7 +721,8 @@ def fact(subgoal, literal):
     Store a derived fact, and inform all waiters of the fact too. 
     SLG_ANSWER in the reference article
     """
-    if isinstance(literal, Literal) and not all(t.is_const() for t in literal.terms):
+    if isinstance(literal, Literal) and \
+    not all(isinstance(t, Const) or t.is_const() for t in literal.terms): # isinstance for speed
         literal = True # a partial fact is True
     if literal is True:
         if subgoal.facts != True: # if already True, do not advise its waiters again
