@@ -69,9 +69,10 @@ class Term(object):
 class Fresh_var(Term):
     """ a variable created by the search algorithm """
     __slots__ = ['id']
-    counter = util.Counter()
+    tl = threading.local()
     def __init__(self):
-        self.id = ('f', Fresh_var.counter.next()) #id
+        Fresh_var.tl.counter = Fresh_var.tl.counter +1
+        self.id = ('f', Fresh_var.tl.counter) #id
     
     def is_const(self):
         return False
@@ -989,7 +990,8 @@ def clear():
     Logic.tl.logic.Subgoals = {}
     Logic.tl.logic.Tasks = None
     Logic.tl.logic.Stack = []
-    Logic.tl.logic.Goal = None       
+    Logic.tl.logic.Goal = None
+    Fresh_var.tl.counter = 0
 
     insert(Pred("==", 2)).prim = equals_primitive
     insert(Pred("<" , 2)).prim = compare_primitive
