@@ -125,6 +125,11 @@ class LazyListOfList(LazyList):
                             '-|-'.join( widths[i]*'-' for i in util.xrange(len(widths))),
                             '\n'.join(fofo % s for s in self._data)))
 
+    def sort(self):
+        if self.data is not True: 
+            self.data.sort()
+        return self
+    
     def __str__(self):
         return util.cast_to_str(self.__unicode__())
 
