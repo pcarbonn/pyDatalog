@@ -579,7 +579,9 @@ def insert(pred):
     return pred
 
 def remove(pred):
-    if pred.id in Logic.tl.logic.Db : 
+    if pred.id in Logic.tl.logic.Pred_registry:
+        del Logic.tl.logic.Pred_registry[pred.id]
+    if pred.id in Logic.tl.logic.Db: 
         del Logic.tl.logic.Db[pred.id]
     return pred
     
