@@ -547,14 +547,17 @@ class Literal(object):
         " head <= body creates a clause"
         Thread_storage.variables = set([]) #call reset the list of variables
         body = body.as_literal if isinstance(body, Call) else body #call
-        if not isinstance(body, (Literal, Body)):
-            raise util.DatalogError("Invalid body for clause", None, None)
-        newBody = Body()
-        for literal in body.literals:
-            if isinstance(literal, HeadLiteral):
-                raise util.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
-            newBody = newBody & literal
-        return add_clause(self, newBody)
+        if body is None:
+            pyEngine.remove(self.lua.pred)
+        elif not isinstance(body, (Literal, Body)):
+                raise util.DatalogError("Invalid body for clause", None, None)
+        else:
+            newBody = Body()
+            for literal in body.literals:
+                if isinstance(literal, HeadLiteral):
+                    raise util.DatalogError("Aggregation cannot appear in the body of a clause", None, None)
+                newBody = newBody & literal
+            return add_clause(self, newBody)
 
 class HeadLiteral(Literal):
     """ represents literals that can be used only in head of clauses, i.e. literals with aggregate function"""

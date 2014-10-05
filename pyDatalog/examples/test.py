@@ -109,7 +109,7 @@ def test():
         + p(datetime.date.today())
         assert (ask(p(datetime.date.today()))) == set([()])
         -p(datetime.date.today())
-                
+
         + n(None)
         assert ask(n(X)) == set([(None,)])
         assert ask(n(None)) == set([()])
@@ -335,6 +335,18 @@ def test():
         assert ask(odd(1)) == set([()])
         assert ask(odd(5)) == set([()])
         assert ask(even(5)) == None
+    
+    """ reset predicate"""
+    pyDatalog.clear()
+    @pyDatalog.program()
+    def reset(): 
+        +q(1)
+        p(X) <= q(X)
+        assert p(X) == set([(1,)])
+        p(X) <= None # reset p
+        p(X) <= ~q(X)
+        assert p(1) == set([])
+        assert p(2) == set([()])
     
     """ recursion with expressions                                         """
     # reset the engine
