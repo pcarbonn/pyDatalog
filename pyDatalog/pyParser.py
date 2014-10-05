@@ -719,7 +719,8 @@ def add_clause(head,body):
 def add_symbols(names, variables):
     """ add the names to the variables dictionary"""
     for name in names:
-        variables[name] = Term(name)            
+        if name not in variables.keys():
+            variables[name] = Term(name)            
     
 class _transform_ast(ast.NodeTransformer):
     """ does some transformation of the Abstract Syntax Tree of the datalog program """

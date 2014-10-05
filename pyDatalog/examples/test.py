@@ -39,6 +39,12 @@ else:
         return x
 
 from pyDatalog import pyDatalog
+print(pyDatalog.__version__)
+
+def todate():
+    return(datetime.datetime(2014, 8, 11, 7, 39, 59, 788000))
+pyDatalog.create_terms('todate')
+
 def test():
 
     # test of expressions
@@ -46,6 +52,10 @@ def test():
         + p(a) # p is a proposition
     """)
     assert pyDatalog.ask('p(a)') == set([()])
+
+    #issue 9
+    pyDatalog.load('''a(Y) <= (Y == todate())''')
+    assert pyDatalog.ask('a(Y)') == set([(datetime.datetime(2014, 8, 11, 7, 39, 59, 788000),)]) 
     
     @pyDatalog.program()
     def unicode_(): 
