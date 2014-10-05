@@ -57,7 +57,9 @@ from . import Logic
 from . import pyEngine
 from . import pyParser
 from . import util
-    
+
+__version__ = version.__version__
+     
 try:
     from sqlalchemy.ext.declarative import DeclarativeMeta
 except:
@@ -97,7 +99,12 @@ def _predicate(func):
 
 def load(code):
     """loads the clauses contained in the code string """
-    return pyParser.load(code)
+    stack = inspect.stack()
+    newglobals = {}
+    for key, value in stack[1][0].f_globals.items():
+        if hasattr(value, '_pyD_atomized'):
+            newglobals[key] = value
+    return pyParser.load(code, newglobals=newglobals)
 
 def ask(code):
     """returns the result of the query contained in the code string"""

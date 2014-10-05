@@ -1,4 +1,4 @@
-set version=0.14.7c1
+set version=0.15.0c1
 set PKG_REPO="C:\Users\pcarbonn\Documents\98 Eclipse\pyDatalog"
 set ENV27=c:\python27
 set ENV33=c:\python33
