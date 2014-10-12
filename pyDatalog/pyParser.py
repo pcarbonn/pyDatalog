@@ -690,17 +690,16 @@ class Body(LazyListOfList):
     def ask(self):
         """ resolve the query and determine the values of its variables"""
         literal = self.literal()
-        variables = self._variables().values() #issue8
         self._data = literal.lua.ask()
         literal.todo, self.todo = None, None
         - (literal <= self) # delete the temporary clause
         # update the variables
         transposed = list(zip(*(self._data))) if isinstance(self._data, list) else None # transpose result
-        for i, arg in enumerate(variables):
+        for i, arg in enumerate(self._variables().values()):
             if self._data is True:
                 arg._data = True
             elif self._data:
-                arg._data.extend(transposed[i])
+                arg._data = list(transposed[i])
             arg.todo = None
         return self._data
 
