@@ -651,14 +651,6 @@ It should be noted that a simplified version of the algorithm of
 supported with another algorithm. 
 """
 
-# The subgoal table is a map from the tag of a subgoal's
-# literal to a subgoal.
-
-def find(literal):
-    tag = literal.get_tag()
-    return Logic.tl.logic.Subgoals.get(tag)
-
-
 class Subgoal(object):
     """
     A subgoal has a literal, a set of facts, and an array of waiters.
@@ -703,6 +695,7 @@ class Thunk(object):
         
 def schedule(task):
     if not isinstance(task, Thunk) and task[0] is SEARCH:
+        # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
         Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
     return Logic.tl.logic.Tasks.append(task)
 
@@ -769,10 +762,9 @@ def rule(subgoal, clause, selected):
     Use a newly derived rule. 
     SLG_POSITIVE in the reference article
     """
-    sg = find(selected)
+    sg = Logic.tl.logic.Subgoals.get(selected.get_tag())
     if sg != None:
         sg.waiters.append(Waiter(subgoal, clause))
-        todo = []
         if sg.facts is True:
             resolvent = Clause(clause.head, clause.body[1:])
             schedule((ADD_CLAUSE, subgoal, resolvent))
@@ -788,7 +780,7 @@ def rule(subgoal, clause, selected):
     
 def add_clause(subgoal, clause):
     """ SLG_NEWCLAUSE in the reference article """
-    if subgoal.is_done or Logic.tl.logic.Goal.is_done:
+    if subgoal.is_done:
         return # no need to keep looking if THE answer is found already
     if not clause.body:
         return fact(subgoal, clause.head)
