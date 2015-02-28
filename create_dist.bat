@@ -1,4 +1,6 @@
-set version=0.15.0
+rem verify version in version.py too !
+
+set version=0.15.1
 set PKG_REPO="C:\Users\pcarbonn\Documents\98 Eclipse\pyDatalog"
 set ENV27=c:\python27
 set ENV33=c:\python33
@@ -21,7 +23,7 @@ cd %PKG_REPO%
 :: create regular package
 ::
 
-c:\python27\python.exe Setup.py sdist
+c:\python27\python.exe setup.py sdist
 
 
 ::
