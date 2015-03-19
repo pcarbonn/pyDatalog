@@ -46,7 +46,9 @@ print (all_path(1,Y,P))
 print (all_path(X,1,P))
 
 print("a path from / to 1")
-(path[X,Y]==P) <= link(X,Z) & (path[Z,Y]==P2) & (X!=Y) & (X._not_in(P2)) & (Y._not_in(P2)) & (P==[Z]+P2) 
+(path[X,Y]==P) <= (link(X,Z) & (path[Z,Y]==P2) 
+                   #& (X!=Y) & (X._not_in(P2)) & (Y._not_in(P2)) 
+                   & (P==[Z]+P2)) 
 (path[X,Y]==P) <= link(X,Y) & (P==[])
 
 print (path[1,Y]==P)

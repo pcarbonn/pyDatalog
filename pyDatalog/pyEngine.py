@@ -32,7 +32,7 @@ Some notable differences between python and lua:
 * lua variables are global by default, python ones are local by default
 * variable bindings in a closure.  See http://tiny.cc/7837cw, http://tiny.cc/rq47cw
 """
-from collections import OrderedDict
+from collections import deque, OrderedDict
 import gc
 import logging
 import re
@@ -347,6 +347,7 @@ class Pred(Interned):
                 o.index = [{} for i in range(int(o.arity))]
                 o.prim = None
                 o.expression = None
+                o.recursive = False
                 Logic.tl.logic.Pred_registry[_id] = o
         return o
     
@@ -494,7 +495,7 @@ class Literal(object):
         """ Invoke the tasks. Each task may append new tasks on the schedule."""
         Ts = Logic.tl.logic
         saved_environment = Ts.Tasks, Ts.Subgoals, Ts.Goal
-        Ts.Tasks, Ts.Subgoals, Ts.Goal = list(), {}, Subgoal(self)
+        Ts.Tasks, Ts.Subgoals, Ts.Goal = deque(), {}, Subgoal(self)
         schedule((SEARCH, Ts.Goal))
         while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
             while Ts.Tasks and not Ts.Goal.is_done:
@@ -598,6 +599,8 @@ def assert_(clause):
                 clauses = pred.index[i].setdefault(term.id, set()) # create a set if needed
                 clauses.add(clause)
         else:
+            if any(literal.pred.name == pred.name for literal in clause.body):
+                pred.recursive = True
             pred.clauses[id_] = clause
         insert(pred)
     return clause
@@ -694,16 +697,20 @@ class Thunk(object):
         self.thunk()
         
 def schedule(task):
-    if not isinstance(task, Thunk) and task[0] is SEARCH:
+    if isinstance(task, Thunk):
+        return Logic.tl.logic.Tasks.append(task)
+    if task[0] is SEARCH:
         # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
         Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
+    if task[1].literal.pred.recursive:
+        return Logic.tl.logic.Tasks.appendleft(task)
     return Logic.tl.logic.Tasks.append(task)
 
 def complete(subgoal, post_thunk):
     """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
     Ts = Logic.tl.logic
     Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
-    Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, list(), subgoal
+    Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
     schedule((SEARCH, subgoal))
     # prepend post_thunk at one level lower in the Stack, 
     # so that it is run immediately by invoke() after the search() thunk is complete
