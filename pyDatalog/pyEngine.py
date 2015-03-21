@@ -510,7 +510,7 @@ class Literal(object):
                 elif todo[0] is SEARCH:
                     todo[1].search()
                 elif todo[0] is ADD_CLAUSE:
-                    add_clause(todo[1], todo[2])
+                    todo[2].add_clause(todo[1])
             if Ts.Stack: 
                 Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
                 if Logging: logging.debug('pop')
@@ -660,6 +660,16 @@ It should be noted that a simplified version of the algorithm of
 supported with another algorithm. 
 """
 
+################# Task management ###############################
+
+# A stack of thunks is used to avoid the stack overflow problem
+# by delaying the evaluation of some functions
+
+# op codes
+SEARCH = 1
+ADD_CLAUSE = 2
+THUNK = 3
+
 class Subgoal(object):
     """
     A subgoal has a literal, a set of facts, and an array of waiters.
@@ -751,7 +761,7 @@ class Subgoal(object):
                     if env != None:
                         clause = renamed.subst(env, class0)
                         if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
-                        schedule((ADD_CLAUSE, self, clause))
+                        schedule((ADD_CLAUSE, clause, self))
                 return
             elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
                 literal1 = literal.equalized()
@@ -765,7 +775,7 @@ class Subgoal(object):
                     if env != None:
                         renamed = renamed.subst(env, class0)
                         if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
-                        schedule((ADD_CLAUSE, self, renamed))
+                        schedule((ADD_CLAUSE, renamed, self))
                     return
                 
         if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
@@ -797,6 +807,15 @@ class Subgoal(object):
     
         raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
                 
+    def add_clause(self, clause):
+        """ SLG_NEWCLAUSE in the reference article """
+        if self.is_done:
+            return # no need to keep looking if THE answer is found already
+        if not clause.body:
+            return fact(self, clause.head)
+        else:
+            return rule(self, clause, clause.body[0])
+        
     def complete(self, subgoal, post_thunk):
         """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
         Ts = Logic.tl.logic
@@ -820,16 +839,6 @@ def resolve(clause, literal):
     env = clause.body[0].unify(literal)
     return Clause(clause.head.subst(env), [bodi.subst(env) for bodi in clause.body[1:] ])
  
-################# Task management ###############################
-
-# A stack of thunks is used to avoid the stack overflow problem
-# by delaying the evaluation of some functions
-
-# op codes
-SEARCH = 1
-ADD_CLAUSE = 2
-THUNK = 3
-
 # Schedule a task for later invocation
 
 def schedule(task):
@@ -838,7 +847,7 @@ def schedule(task):
     if task[0] is SEARCH:
         # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
         Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
-    if task[1].literal.pred.recursive:
+    if task[-1].literal.pred.recursive:
         return Logic.tl.logic.Tasks.appendleft(task)
     return Logic.tl.logic.Tasks.append(task)
 
@@ -858,14 +867,14 @@ def fact(subgoal, literal):
             subgoal.facts, subgoal.is_done = True, True
             for waiter in subgoal.waiters:
                 resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
-                schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
+                schedule((ADD_CLAUSE, resolvent, waiter.subgoal))
     elif subgoal.facts is not True and not subgoal.facts.get(literal.get_fact_id()):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[literal.get_fact_id()] = literal
         for waiter in subgoal.waiters:
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
-                schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
+                schedule((ADD_CLAUSE, resolvent, waiter.subgoal))
         if len(subgoal.facts)==1 \
         and all(subgoal.literal.terms[i].is_const() 
                 for i in range(subgoal.literal.pred.prearity)):
@@ -899,25 +908,16 @@ def rule(subgoal, clause, selected):
         sg.waiters.append(Waiter(subgoal, clause))
         if sg.facts is True:
             resolvent = Clause(clause.head, clause.body[1:])
-            schedule((ADD_CLAUSE, subgoal, resolvent))
+            schedule((ADD_CLAUSE, resolvent, subgoal))
         else:
             for fact in sg.facts.values():
                 resolvent = resolve(clause, fact)
                 if resolvent != None: 
-                    schedule((ADD_CLAUSE, subgoal, resolvent))
+                    schedule((ADD_CLAUSE, resolvent, subgoal))
     else:
         sg = Subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
         return schedule((SEARCH, sg))
-    
-def add_clause(subgoal, clause):
-    """ SLG_NEWCLAUSE in the reference article """
-    if subgoal.is_done:
-        return # no need to keep looking if THE answer is found already
-    if not clause.body:
-        return fact(subgoal, clause.head)
-    else:
-        return rule(subgoal, clause, clause.body[0])
     
 
 # PRIMITIVES   ##################################################
