@@ -505,8 +505,8 @@ class Literal(object):
         while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
             while Ts.Tasks and not Ts.Goal.is_done:
                 todo = Ts.Tasks.pop()
-                if isinstance(todo, Thunk):
-                    todo.do() # get the thunk and execute it
+                if todo[0] is THUNK:
+                    todo[1].thunk() # get the thunk and execute it
                 elif todo[0] is SEARCH:
                     todo[1].search()
                 elif todo[0] is ADD_CLAUSE:
@@ -665,7 +665,7 @@ class Subgoal(object):
     A subgoal has a literal, a set of facts, and an array of waiters.
     A waiter is a pair containing a subgoal and a clause.
     """
-    __slots__ = ['literal', 'facts', 'waiters', 'is_done']
+    __slots__ = ['literal', 'facts', 'waiters', 'is_done', 'thunk']
     def __init__(self, literal):
         self.literal = literal
         self.facts = {}
@@ -696,7 +696,7 @@ class Subgoal(object):
             #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
             # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
             base_subgoal = Subgoal(base_literal)
-            complete(base_subgoal,
+            self.complete(base_subgoal,
                     lambda base_subgoal=base_subgoal, subgoal=self:
                         fact(subgoal, True) if not base_subgoal.facts else None)
             return
@@ -740,7 +740,7 @@ class Subgoal(object):
                     base_terms[i] = Fresh_var()
                 base_literal = Literal(literal.pred.name, base_terms) # without aggregate to avoid infinite loop
                 base_subgoal = Subgoal(base_literal)
-                complete(base_subgoal,
+                self.complete(base_subgoal,
                         lambda base_subgoal=base_subgoal, subgoal=self, aggregate=literal.aggregate:
                             aggregate.complete(base_subgoal, subgoal))
                 return
@@ -797,6 +797,18 @@ class Subgoal(object):
     
         raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
                 
+    def complete(self, subgoal, post_thunk):
+        """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
+        Ts = Logic.tl.logic
+        Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
+        Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
+        schedule((SEARCH, subgoal))
+        # prepend post_thunk at one level lower in the Stack, 
+        # so that it is run immediately by invoke() after the search() thunk is complete
+        if Logging: logging.debug('push')
+        self.thunk = post_thunk
+        Ts.Stack[-1][1].append((THUNK, self)) 
+    
 
 def resolve(clause, literal):
     """
@@ -816,17 +828,12 @@ def resolve(clause, literal):
 # op codes
 SEARCH = 1
 ADD_CLAUSE = 2
+THUNK = 3
 
 # Schedule a task for later invocation
 
-class Thunk(object):
-    def __init__(self, thunk):
-        self.thunk = thunk
-    def do(self):
-        self.thunk()
-        
 def schedule(task):
-    if isinstance(task, Thunk):
+    if task[0] is THUNK:
         return Logic.tl.logic.Tasks.append(task)
     if task[0] is SEARCH:
         # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
@@ -834,17 +841,6 @@ def schedule(task):
     if task[1].literal.pred.recursive:
         return Logic.tl.logic.Tasks.appendleft(task)
     return Logic.tl.logic.Tasks.append(task)
-
-def complete(subgoal, post_thunk):
-    """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
-    Ts = Logic.tl.logic
-    Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
-    Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
-    schedule((SEARCH, subgoal))
-    # prepend post_thunk at one level lower in the Stack, 
-    # so that it is run immediately by invoke() after the search() thunk is complete
-    if Logging: logging.debug('push')
-    Ts.Stack[-1][1].append(Thunk(post_thunk)) 
 
 ################## add derived facts and use rules ##############
 
