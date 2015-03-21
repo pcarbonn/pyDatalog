@@ -62,9 +62,11 @@ def Term_of(atom):
     else:
         return Const(atom)
 
+
 class Term(object):
     # needed for Cython
     pass
+
 
 class Fresh_var(Term):
     """ a variable created by the search algorithm """
@@ -124,6 +126,7 @@ class Var(Fresh_var):
 
     def unify(self, term, env):
         return Fresh_var.unify(self, term, env)
+
 
 class Const(Term):
     """ a constant """
@@ -311,6 +314,7 @@ class Operation(Term):
     def __str__(self): 
         return "(%s%s%s)" % (str(self.lhs), str(self.operator), str(self.rhs))
 
+
 class Interned(object):
     """ Abstract class for objects having only one instance in memory """
     notFound = object()
@@ -320,6 +324,7 @@ class Interned(object):
         return id(self)
     def __ne__(self, other):
         return not self is other
+
 
 class Pred(Interned):
     """ A predicate symbol has a name, an arity, and a database table.  
@@ -503,7 +508,7 @@ class Literal(object):
                 if isinstance(todo, Thunk):
                     todo.do() # get the thunk and execute it
                 elif todo[0] is SEARCH:
-                    search(todo[1])
+                    todo[1].search()
                 elif todo[0] is ADD_CLAUSE:
                     add_clause(todo[1], todo[2])
             if Ts.Stack: 
@@ -558,6 +563,7 @@ class Clause(object):
         env = {}
         return Clause(self.head.shuffle(env),
                            [bodi.shuffle(env) for bodi in self.body])
+
 
 def add_class(cls, name):
     """ Update the list of pyDatalog-capable classes, and update clauses accordingly"""
@@ -668,6 +674,129 @@ class Subgoal(object):
         # or when one fact is found for a function of constants
         self.is_done = False
     
+    def search(self):
+        """ 
+        Search for derivations of the literal associated with this subgoal 
+        aka SLG_SUBGOAL in the reference article
+        """
+        literal0 = self.literal
+        class0 = literal0.pred._class()
+        terms = literal0.terms
+        
+        if class0 and terms[1].is_const() and terms[1].id is None: return
+        if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
+            if Logging: logging.debug("pyDatalog will search negation of %s" % literal0)
+            base_literal = Literal(literal0.pred.base_pred, terms)
+            """ the rest of the processing essentially performs the following, 
+            but in its own environment, and with precautions to avoid stack overflow :
+                result = ask(base_literal)
+                if result is None or 0 == len(result.answers):
+                    return fact(self, literal)
+            """
+            #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
+            # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
+            base_subgoal = Subgoal(base_literal)
+            complete(base_subgoal,
+                    lambda base_subgoal=base_subgoal, subgoal=self:
+                        fact(subgoal, True) if not base_subgoal.facts else None)
+            return
+        
+        for _class in literal0.pred.parent_classes():
+            literal = literal0.rebased(_class)
+            
+            if Python_resolvers:
+                resolver = literal.pred.id if literal.pred.id in Python_resolvers \
+                        else literal.pred.id.replace(r'/', str(literal.pred.arity)+r"/")
+                if resolver in Python_resolvers:
+                    if Logging : logging.debug("pyDatalog uses python resolvers for %s" % literal)
+                    for result in Python_resolvers[resolver](*terms):
+                        fact_candidate(self, class0, result)
+                    return
+            if _class: 
+                # TODO add special method for custom comparison
+                method_name = '_pyD_%s%i' % (literal.pred.suffix, int(literal.pred.arity - 1)) #prefixed
+                if literal.pred.suffix and method_name in _class.__dict__:
+                    if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
+                    for result in getattr(_class, method_name)(*(terms[1:])): 
+                        fact_candidate(self, class0, (terms[0],) + result)
+                    return        
+                try: # call class._pyD_query
+                    resolver = _class._pyD_query
+                    if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
+                    for result in resolver(literal.pred.name, terms[1:]):
+                        fact_candidate(self, class0, (terms[0],) + result)
+                    if Logging : logging.debug("pyDatalog has used _pyD_query resolvers for %s" % literal)
+                    return
+                except:
+                    pass
+            if literal.pred.prim: # X==Y, X < Y+Z
+                if Logging : logging.debug("pyDatalog uses comparison primitive for %s" % literal)
+                literal.pred.prim(literal, self)
+                return
+            elif literal.aggregate:
+                if Logging : logging.debug("pyDatalog uses aggregate primitive for %s" % literal)
+                base_terms = list(terms[:-1])
+                for i in literal.aggregate.slice_to_variabilize:
+                    base_terms[i] = Fresh_var()
+                base_literal = Literal(literal.pred.name, base_terms) # without aggregate to avoid infinite loop
+                base_subgoal = Subgoal(base_literal)
+                complete(base_subgoal,
+                        lambda base_subgoal=base_subgoal, subgoal=self, aggregate=literal.aggregate:
+                            aggregate.complete(base_subgoal, subgoal))
+                return
+            elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
+                for clause in relevant_clauses(literal):
+                    renamed = clause.rename()
+                    env = literal.unify(renamed.head)
+                    if env != None:
+                        clause = renamed.subst(env, class0)
+                        if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
+                        schedule((ADD_CLAUSE, self, clause))
+                return
+            elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
+                literal1 = literal.equalized()
+                if literal1.pred.id in Logic.tl.logic.Db: # equality has a datalog definition
+                    Y1 = Fresh_var()
+                    literal1.terms[-1] = Y1
+                    literal2 = Literal(literal.pred.comparison, [Y1, terms[-1]])
+                    clause = Clause(literal, [literal1, literal2])
+                    renamed = clause.rename()
+                    env = literal.unify(renamed.head)
+                    if env != None:
+                        renamed = renamed.subst(env, class0)
+                        if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
+                        schedule((ADD_CLAUSE, self, renamed))
+                    return
+                
+        if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
+            try: 
+                resolver = class0.pyDatalog_search
+                if not class0.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
+                if Logging : logging.debug("pyDatalog uses pyDatalog_search for %s" % literal)
+                for result in resolver(literal):
+                    fact_candidate(self, class0, result)
+                return
+            except AttributeError:
+                pass
+        elif literal.pred.comparison and len(terms)==3 and terms[0].is_const() \
+        and terms[0].id != '_pyD_class' and terms[1].is_const(): # X.a[1]==Y
+            # do not use pyDatalog_search as the variable may not be in a pyDatalog class
+            v = getattr(terms[0].id, literal.pred.suffix)
+            if isinstance(terms[1], VarTuple): # a slice
+                v = v.__getitem__(slice(*terms[1].id))
+            else:
+                v = v.__getitem__(terms[1].id)
+            if terms[2].is_const() and compare(v, literal.pred.comparison, terms[2].id):
+                fact_candidate(self, class0, (terms[0], terms[1], terms[2]))
+            elif literal.pred.comparison == "==" and not terms[2].is_const():
+                fact_candidate(self, class0, (terms[0], terms[1], v))
+            else:
+                raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
+                                    % literal.pred.id, None, None)
+            return
+    
+        raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
+                
 
 def resolve(clause, literal):
     """
@@ -794,131 +923,6 @@ def add_clause(subgoal, clause):
     else:
         return rule(subgoal, clause, clause.body[0])
     
-###############     SEARCH     ##################################
-
-def search(subgoal):
-    """ 
-    Search for derivations of the literal associated with this subgoal 
-    aka SLG_SUBGOAL in the reference article
-    """
-    literal0 = subgoal.literal
-    class0 = literal0.pred._class()
-    terms = literal0.terms
-    
-    if class0 and terms[1].is_const() and terms[1].id is None: return
-    if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
-        if Logging: logging.debug("pyDatalog will search negation of %s" % literal0)
-        base_literal = Literal(literal0.pred.base_pred, terms)
-        """ the rest of the processing essentially performs the following, 
-        but in its own environment, and with precautions to avoid stack overflow :
-            result = ask(base_literal)
-            if result is None or 0 == len(result.answers):
-                return fact(subgoal, literal)
-        """
-        #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
-        # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-        base_subgoal = Subgoal(base_literal)
-        complete(base_subgoal,
-                lambda base_subgoal=base_subgoal, subgoal=subgoal:
-                    fact(subgoal, True) if not base_subgoal.facts else None)
-        return
-    
-    for _class in literal0.pred.parent_classes():
-        literal = literal0.rebased(_class)
-        
-        if Python_resolvers:
-            resolver = literal.pred.id if literal.pred.id in Python_resolvers \
-                    else literal.pred.id.replace(r'/', str(literal.pred.arity)+r"/")
-            if resolver in Python_resolvers:
-                if Logging : logging.debug("pyDatalog uses python resolvers for %s" % literal)
-                for result in Python_resolvers[resolver](*terms):
-                    fact_candidate(subgoal, class0, result)
-                return
-        if _class: 
-            # TODO add special method for custom comparison
-            method_name = '_pyD_%s%i' % (literal.pred.suffix, int(literal.pred.arity - 1)) #prefixed
-            if literal.pred.suffix and method_name in _class.__dict__:
-                if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
-                for result in getattr(_class, method_name)(*(terms[1:])): 
-                    fact_candidate(subgoal, class0, (terms[0],) + result)
-                return        
-            try: # call class._pyD_query
-                resolver = _class._pyD_query
-                if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
-                for result in resolver(literal.pred.name, terms[1:]):
-                    fact_candidate(subgoal, class0, (terms[0],) + result)
-                if Logging : logging.debug("pyDatalog has used _pyD_query resolvers for %s" % literal)
-                return
-            except:
-                pass
-        if literal.pred.prim: # X==Y, X < Y+Z
-            if Logging : logging.debug("pyDatalog uses comparison primitive for %s" % literal)
-            literal.pred.prim(literal, subgoal)
-            return
-        elif literal.aggregate:
-            if Logging : logging.debug("pyDatalog uses aggregate primitive for %s" % literal)
-            base_terms = list(terms[:-1])
-            for i in literal.aggregate.slice_to_variabilize:
-                base_terms[i] = Fresh_var()
-            base_literal = Literal(literal.pred.name, base_terms) # without aggregate to avoid infinite loop
-            base_subgoal = Subgoal(base_literal)
-            complete(base_subgoal,
-                    lambda base_subgoal=base_subgoal, subgoal=subgoal, aggregate=literal.aggregate:
-                        aggregate.complete(base_subgoal, subgoal))
-            return
-        elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
-            for clause in relevant_clauses(literal):
-                renamed = clause.rename()
-                env = literal.unify(renamed.head)
-                if env != None:
-                    clause = renamed.subst(env, class0)
-                    if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
-                    schedule((ADD_CLAUSE, subgoal, clause))
-            return
-        elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
-            literal1 = literal.equalized()
-            if literal1.pred.id in Logic.tl.logic.Db: # equality has a datalog definition
-                Y1 = Fresh_var()
-                literal1.terms[-1] = Y1
-                literal2 = Literal(literal.pred.comparison, [Y1, terms[-1]])
-                clause = Clause(literal, [literal1, literal2])
-                renamed = clause.rename()
-                env = literal.unify(renamed.head)
-                if env != None:
-                    renamed = renamed.subst(env, class0)
-                    if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
-                    schedule((ADD_CLAUSE, subgoal, renamed))
-                return
-            
-    if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
-        try: 
-            resolver = class0.pyDatalog_search
-            if not class0.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
-            if Logging : logging.debug("pyDatalog uses pyDatalog_search for %s" % literal)
-            for result in resolver(literal):
-                fact_candidate(subgoal, class0, result)
-            return
-        except AttributeError:
-            pass
-    elif literal.pred.comparison and len(terms)==3 and terms[0].is_const() \
-    and terms[0].id != '_pyD_class' and terms[1].is_const(): # X.a[1]==Y
-        # do not use pyDatalog_search as the variable may not be in a pyDatalog class
-        v = getattr(terms[0].id, literal.pred.suffix)
-        if isinstance(terms[1], VarTuple): # a slice
-            v = v.__getitem__(slice(*terms[1].id))
-        else:
-            v = v.__getitem__(terms[1].id)
-        if terms[2].is_const() and compare(v, literal.pred.comparison, terms[2].id):
-            fact_candidate(subgoal, class0, (terms[0], terms[1], terms[2]))
-        elif literal.pred.comparison == "==" and not terms[2].is_const():
-            fact_candidate(subgoal, class0, (terms[0], terms[1], v))
-        else:
-            raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
-                                % literal.pred.id, None, None)
-        return
-
-    raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
-            
 
 # PRIMITIVES   ##################################################
 
