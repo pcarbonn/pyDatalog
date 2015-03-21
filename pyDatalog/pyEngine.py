@@ -501,7 +501,7 @@ class Literal(object):
         Ts = Logic.tl.logic
         saved_environment = Ts.Tasks, Ts.Subgoals, Ts.Goal
         Ts.Tasks, Ts.Subgoals, Ts.Goal = deque(), {}, Subgoal(self)
-        schedule((SEARCH, Ts.Goal))
+        Ts.Goal.schedule((SEARCH, ))
         while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
             while Ts.Tasks and not Ts.Goal.is_done:
                 todo = Ts.Tasks.pop()
@@ -684,6 +684,18 @@ class Subgoal(object):
         # or when one fact is found for a function of constants
         self.is_done = False
     
+    def schedule(self, task):
+        """ Schedule a task for later invocation """
+        task += (self, )
+        if task[0] is THUNK:
+            return Logic.tl.logic.Tasks.append(task)
+        if task[0] is SEARCH:
+            # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
+            Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
+        if task[-1].literal.pred.recursive:
+            return Logic.tl.logic.Tasks.appendleft(task)
+        return Logic.tl.logic.Tasks.append(task)
+    
     def search(self):
         """ 
         Search for derivations of the literal associated with this subgoal 
@@ -761,7 +773,7 @@ class Subgoal(object):
                     if env != None:
                         clause = renamed.subst(env, class0)
                         if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
-                        schedule((ADD_CLAUSE, clause, self))
+                        self.schedule((ADD_CLAUSE, clause))
                 return
             elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
                 literal1 = literal.equalized()
@@ -775,7 +787,7 @@ class Subgoal(object):
                     if env != None:
                         renamed = renamed.subst(env, class0)
                         if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
-                        schedule((ADD_CLAUSE, renamed, self))
+                        self.schedule((ADD_CLAUSE, renamed))
                     return
                 
         if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
@@ -821,7 +833,7 @@ class Subgoal(object):
         Ts = Logic.tl.logic
         Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
         Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
-        schedule((SEARCH, subgoal))
+        subgoal.schedule((SEARCH, ))
         # prepend post_thunk at one level lower in the Stack, 
         # so that it is run immediately by invoke() after the search() thunk is complete
         if Logging: logging.debug('push')
@@ -839,18 +851,6 @@ def resolve(clause, literal):
     env = clause.body[0].unify(literal)
     return Clause(clause.head.subst(env), [bodi.subst(env) for bodi in clause.body[1:] ])
  
-# Schedule a task for later invocation
-
-def schedule(task):
-    if task[0] is THUNK:
-        return Logic.tl.logic.Tasks.append(task)
-    if task[0] is SEARCH:
-        # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
-        Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
-    if task[-1].literal.pred.recursive:
-        return Logic.tl.logic.Tasks.appendleft(task)
-    return Logic.tl.logic.Tasks.append(task)
-
 ################## add derived facts and use rules ##############
 
 def fact(subgoal, literal):
@@ -867,14 +867,14 @@ def fact(subgoal, literal):
             subgoal.facts, subgoal.is_done = True, True
             for waiter in subgoal.waiters:
                 resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
-                schedule((ADD_CLAUSE, resolvent, waiter.subgoal))
+                waiter.subgoal.schedule((ADD_CLAUSE, resolvent))
     elif subgoal.facts is not True and not subgoal.facts.get(literal.get_fact_id()):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[literal.get_fact_id()] = literal
         for waiter in subgoal.waiters:
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
-                schedule((ADD_CLAUSE, resolvent, waiter.subgoal))
+                waiter.subgoal.schedule((ADD_CLAUSE, resolvent))
         if len(subgoal.facts)==1 \
         and all(subgoal.literal.terms[i].is_const() 
                 for i in range(subgoal.literal.pred.prearity)):
@@ -908,16 +908,16 @@ def rule(subgoal, clause, selected):
         sg.waiters.append(Waiter(subgoal, clause))
         if sg.facts is True:
             resolvent = Clause(clause.head, clause.body[1:])
-            schedule((ADD_CLAUSE, resolvent, subgoal))
+            subgoal.schedule((ADD_CLAUSE, resolvent))
         else:
             for fact in sg.facts.values():
                 resolvent = resolve(clause, fact)
                 if resolvent != None: 
-                    schedule((ADD_CLAUSE, resolvent, subgoal))
+                    subgoal.schedule((ADD_CLAUSE, resolvent))
     else:
         sg = Subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
-        return schedule((SEARCH, sg))
+        return sg.schedule((SEARCH, ))
     
 
 # PRIMITIVES   ##################################################
