@@ -501,11 +501,11 @@ class Literal(object):
         Ts = Logic.tl.logic
         saved_environment = Ts.Tasks, Ts.Subgoals, Ts.Goal
         Ts.Tasks, Ts.Subgoals, Ts.Goal = deque(), {}, Subgoal(self)
-        Ts.Goal.schedule((SEARCH, Ts.Goal))
+        Ts.Goal.schedule((SEARCH, (Ts.Goal, )))
         while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
             while Ts.Tasks and not Ts.Goal.is_done:
-                todo = Ts.Tasks.pop()
-                todo[0](*todo[1:])
+                todo, arg = Ts.Tasks.pop()
+                todo(*arg)
             if Ts.Stack: 
                 Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
                 if Logging: logging.debug('pop')
@@ -764,7 +764,7 @@ class Subgoal(object):
                     if env != None:
                         clause = renamed.subst(env, class0)
                         if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
-                        self.schedule((ADD_CLAUSE, self, clause))
+                        self.schedule((ADD_CLAUSE, (self, clause)))
                 return
             elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
                 literal1 = literal.equalized()
@@ -778,7 +778,7 @@ class Subgoal(object):
                     if env != None:
                         renamed = renamed.subst(env, class0)
                         if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
-                        self.schedule((ADD_CLAUSE, self, renamed))
+                        self.schedule((ADD_CLAUSE, (self, renamed)))
                     return
                 
         if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
@@ -826,11 +826,11 @@ class Subgoal(object):
         """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
         Ts = Logic.tl.logic
         self.thunk_ = post_thunk
-        self.schedule((THUNK, self))
+        self.schedule((THUNK, (self, )))
         if Logging: logging.debug('push')
         Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
         Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
-        subgoal.schedule((SEARCH, subgoal))
+        subgoal.schedule((SEARCH, (subgoal,)))
     
 # op codes are defined after class Subgoal is defined
 SEARCH = Subgoal.search
@@ -864,14 +864,14 @@ def fact(subgoal, literal):
             subgoal.facts, subgoal.is_done = True, True
             for waiter in subgoal.waiters:
                 resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
-                waiter.subgoal.schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
+                waiter.subgoal.schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
     elif subgoal.facts is not True and not subgoal.facts.get(literal.get_fact_id()):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[literal.get_fact_id()] = literal
         for waiter in subgoal.waiters:
             resolvent = resolve(waiter.clause, literal)
             if resolvent != None:
-                waiter.subgoal.schedule((ADD_CLAUSE, waiter.subgoal, resolvent))
+                waiter.subgoal.schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
         if len(subgoal.facts)==1 \
         and all(subgoal.literal.terms[i].is_const() 
                 for i in range(subgoal.literal.pred.prearity)):
@@ -905,16 +905,16 @@ def rule(subgoal, clause, selected):
         sg.waiters.append(Waiter(subgoal, clause))
         if sg.facts is True:
             resolvent = Clause(clause.head, clause.body[1:])
-            subgoal.schedule((ADD_CLAUSE, subgoal, resolvent))
+            subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
         else:
             for fact in sg.facts.values():
                 resolvent = resolve(clause, fact)
                 if resolvent != None: 
-                    subgoal.schedule((ADD_CLAUSE, subgoal, resolvent))
+                    subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
     else:
         sg = Subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
-        sg.schedule((SEARCH, sg))
+        sg.schedule((SEARCH, (sg, )))
     
 
 # PRIMITIVES   ##################################################
