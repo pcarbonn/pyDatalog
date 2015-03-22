@@ -503,8 +503,7 @@ class Literal(object):
         Ts.Tasks, Ts.Subgoals, Ts.Goal = deque(), {}, Subgoal(self)
         todo, arg = (SEARCH, (Ts.Goal, ))
         while todo:
-            todo(*arg)
-            todo, arg = arg[0].next_step()
+            todo, arg = todo(*arg)
     
         if Ts.Goal.facts is True:
             return True
@@ -692,7 +691,7 @@ class Subgoal(object):
         class0 = literal0.pred._class()
         terms = literal0.terms
         
-        if class0 and terms[1].is_const() and terms[1].id is None: return
+        if class0 and terms[1].is_const() and terms[1].id is None: return self.next_step()
         if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
             if Logging: logging.debug("pyDatalog will search negation of %s" % literal0)
             base_literal = Literal(literal0.pred.base_pred, terms)
@@ -708,7 +707,7 @@ class Subgoal(object):
             self.complete(base_subgoal,
                     lambda base_subgoal=base_subgoal, subgoal=self:
                         fact(subgoal, True) if not base_subgoal.facts else None)
-            return
+            return self.next_step()
         
         for _class in literal0.pred.parent_classes():
             literal = literal0.rebased(_class)
@@ -720,7 +719,7 @@ class Subgoal(object):
                     if Logging : logging.debug("pyDatalog uses python resolvers for %s" % literal)
                     for result in Python_resolvers[resolver](*terms):
                         fact_candidate(self, class0, result)
-                    return
+                    return self.next_step()
             if _class: 
                 # TODO add special method for custom comparison
                 method_name = '_pyD_%s%i' % (literal.pred.suffix, int(literal.pred.arity - 1)) #prefixed
@@ -728,20 +727,20 @@ class Subgoal(object):
                     if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
                     for result in getattr(_class, method_name)(*(terms[1:])): 
                         fact_candidate(self, class0, (terms[0],) + result)
-                    return        
+                    return self.next_step()        
                 try: # call class._pyD_query
                     resolver = _class._pyD_query
                     if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
                     for result in resolver(literal.pred.name, terms[1:]):
                         fact_candidate(self, class0, (terms[0],) + result)
                     if Logging : logging.debug("pyDatalog has used _pyD_query resolvers for %s" % literal)
-                    return
+                    return self.next_step()
                 except:
                     pass
             if literal.pred.prim: # X==Y, X < Y+Z
                 if Logging : logging.debug("pyDatalog uses comparison primitive for %s" % literal)
                 literal.pred.prim(literal, self)
-                return
+                return self.next_step()
             elif literal.aggregate:
                 if Logging : logging.debug("pyDatalog uses aggregate primitive for %s" % literal)
                 base_terms = list(terms[:-1])
@@ -752,7 +751,7 @@ class Subgoal(object):
                 self.complete(base_subgoal,
                         lambda base_subgoal=base_subgoal, subgoal=self, aggregate=literal.aggregate:
                             aggregate.complete(base_subgoal, subgoal))
-                return
+                return self.next_step()
             elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
                 for clause in relevant_clauses(literal):
                     renamed = clause.rename()
@@ -761,7 +760,7 @@ class Subgoal(object):
                         clause = renamed.subst(env, class0)
                         if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
                         self.schedule((ADD_CLAUSE, (self, clause)))
-                return
+                return self.next_step()
             elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
                 literal1 = literal.equalized()
                 if literal1.pred.id in Logic.tl.logic.Db: # equality has a datalog definition
@@ -775,7 +774,7 @@ class Subgoal(object):
                         renamed = renamed.subst(env, class0)
                         if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
                         self.schedule((ADD_CLAUSE, (self, renamed)))
-                    return
+                    return self.next_step()
                 
         if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
             try: 
@@ -784,7 +783,7 @@ class Subgoal(object):
                 if Logging : logging.debug("pyDatalog uses pyDatalog_search for %s" % literal)
                 for result in resolver(literal):
                     fact_candidate(self, class0, result)
-                return
+                return self.next_step()
             except AttributeError:
                 pass
         elif literal.pred.comparison and len(terms)==3 and terms[0].is_const() \
@@ -802,18 +801,19 @@ class Subgoal(object):
             else:
                 raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
                                     % literal.pred.id, None, None)
-            return
+            return self.next_step()
     
         raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
                 
     def add_clause(self, clause):
         """ SLG_NEWCLAUSE in the reference article """
         if self.is_done:
-            return # no need to keep looking if THE answer is found already
+            return self.next_step() # no need to keep looking if THE answer is found already
         if not clause.body:
             fact(self, clause.head)
         else:
             rule(self, clause, clause.body[0])
+        return self.next_step()
     
     def next_step(self):
         """ returns the next step in the resolution """
@@ -829,6 +829,7 @@ class Subgoal(object):
         
     def thunk(self):
         self.thunk_()
+        return self.next_step()
             
     def complete(self, subgoal, post_thunk):
         """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
