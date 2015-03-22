@@ -505,12 +505,7 @@ class Literal(object):
         while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
             while Ts.Tasks and not Ts.Goal.is_done:
                 todo = Ts.Tasks.pop()
-                if todo[0] is THUNK:
-                    todo[1].thunk() # get the thunk and execute it
-                elif todo[0] is SEARCH:
-                    todo[1].search()
-                elif todo[0] is ADD_CLAUSE:
-                    todo[2].add_clause(todo[1])
+                todo[0](*todo[1:])
             if Ts.Stack: 
                 Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
                 if Logging: logging.debug('pop')
@@ -665,17 +660,12 @@ supported with another algorithm.
 # A stack of thunks is used to avoid the stack overflow problem
 # by delaying the evaluation of some functions
 
-# op codes
-SEARCH = 1
-ADD_CLAUSE = 2
-THUNK = 3
-
 class Subgoal(object):
     """
     A subgoal has a literal, a set of facts, and an array of waiters.
     A waiter is a pair containing a subgoal and a clause.
     """
-    __slots__ = ['literal', 'facts', 'waiters', 'is_done', 'thunk']
+    __slots__ = ['literal', 'facts', 'waiters', 'is_done', 'thunk_']
     def __init__(self, literal):
         self.literal = literal
         self.facts = {}
@@ -686,13 +676,13 @@ class Subgoal(object):
     
     def schedule(self, task):
         """ Schedule a task for later invocation """
-        task += (self, )
+        task = (task[0], self) + task[1:] # TODO
         if task[0] is THUNK:
             return Logic.tl.logic.Tasks.append(task)
         if task[0] is SEARCH:
             # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
             Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
-        if task[-1].literal.pred.recursive:
+        if task[1].literal.pred.recursive:
             return Logic.tl.logic.Tasks.appendleft(task)
         return Logic.tl.logic.Tasks.append(task)
     
@@ -827,7 +817,10 @@ class Subgoal(object):
             return fact(self, clause.head)
         else:
             return rule(self, clause, clause.body[0])
-        
+    
+    def thunk(self):
+        self.thunk_()
+            
     def complete(self, subgoal, post_thunk):
         """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
         Ts = Logic.tl.logic
@@ -837,9 +830,14 @@ class Subgoal(object):
         # prepend post_thunk at one level lower in the Stack, 
         # so that it is run immediately by invoke() after the search() thunk is complete
         if Logging: logging.debug('push')
-        self.thunk = post_thunk
+        self.thunk_ = post_thunk
         Ts.Stack[-1][1].append((THUNK, self)) 
     
+# op codes are defined after class Subgoal is defined
+SEARCH = Subgoal.search
+ADD_CLAUSE = Subgoal.add_clause
+THUNK = Subgoal.thunk
+
 
 def resolve(clause, literal):
     """
