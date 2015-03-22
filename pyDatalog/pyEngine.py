@@ -677,13 +677,15 @@ class Subgoal(object):
     def schedule(self, task):
         """ Schedule a task for later invocation """
         if task[0] is THUNK:
-            return Logic.tl.logic.Tasks.append(task)
-        if task[0] is SEARCH:
-            # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
-            Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
-        if self.literal.pred.recursive:
-            return Logic.tl.logic.Tasks.appendleft(task)
-        return Logic.tl.logic.Tasks.append(task)
+            Logic.tl.logic.Tasks.append(task)
+        else:
+            if task[0] is SEARCH:
+                # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
+                Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
+            if self.literal.pred.recursive:
+                Logic.tl.logic.Tasks.appendleft(task)
+            else:
+                Logic.tl.logic.Tasks.append(task)
     
     def search(self):
         """ 
@@ -813,9 +815,9 @@ class Subgoal(object):
         if self.is_done:
             return # no need to keep looking if THE answer is found already
         if not clause.body:
-            return fact(self, clause.head)
+            fact(self, clause.head)
         else:
-            return rule(self, clause, clause.body[0])
+            rule(self, clause, clause.body[0])
     
     def thunk(self):
         self.thunk_()
@@ -912,7 +914,7 @@ def rule(subgoal, clause, selected):
     else:
         sg = Subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
-        return sg.schedule((SEARCH, sg))
+        sg.schedule((SEARCH, sg))
     
 
 # PRIMITIVES   ##################################################
