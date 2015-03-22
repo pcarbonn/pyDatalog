@@ -501,14 +501,10 @@ class Literal(object):
         Ts = Logic.tl.logic
         saved_environment = Ts.Tasks, Ts.Subgoals, Ts.Goal
         Ts.Tasks, Ts.Subgoals, Ts.Goal = deque(), {}, Subgoal(self)
-        Ts.Goal.schedule((SEARCH, (Ts.Goal, )))
-        while (Ts.Tasks or Ts.Stack) and not Ts.Goal.is_done:
-            while Ts.Tasks and not Ts.Goal.is_done:
-                todo, arg = Ts.Tasks.pop()
-                todo(*arg)
-            if Ts.Stack: 
-                Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
-                if Logging: logging.debug('pop')
+        todo, arg = (SEARCH, (Ts.Goal, ))
+        while todo:
+            todo(*arg)
+            todo, arg = arg[0].next_step()
     
         if Ts.Goal.facts is True:
             return True
@@ -819,6 +815,18 @@ class Subgoal(object):
         else:
             rule(self, clause, clause.body[0])
     
+    def next_step(self):
+        """ returns the next step in the resolution """
+        Ts = Logic.tl.logic
+        todo, args = None, None
+        if not Ts.Goal.is_done and Ts.Tasks:
+            todo, args = Ts.Tasks.pop()
+        if not todo and Ts.Stack:
+            if Logging: logging.debug('pop')
+            Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
+            todo, args = Ts.Tasks.pop()
+        return todo, args
+        
     def thunk(self):
         self.thunk_()
             
@@ -832,6 +840,7 @@ class Subgoal(object):
         Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
         subgoal.schedule((SEARCH, (subgoal,)))
     
+        
 # op codes are defined after class Subgoal is defined
 SEARCH = Subgoal.search
 ADD_CLAUSE = Subgoal.add_clause
