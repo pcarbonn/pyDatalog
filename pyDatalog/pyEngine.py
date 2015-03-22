@@ -668,6 +668,7 @@ class Subgoal(object):
         # subgoal is done when a partial literal is true 
         # or when one fact is found for a function of constants
         self.is_done = False
+        self.thunk_ = None
     
     def schedule(self, task):
         """ Schedule a task for later invocation """
@@ -834,6 +835,7 @@ class Subgoal(object):
     def complete(self, subgoal, post_thunk):
         """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
         Ts = Logic.tl.logic
+        assert self.thunk_ is None, "Subgoal already has a thunk !" #TODO could occur in some rare cases ?
         self.thunk_ = post_thunk
         self.schedule((THUNK, (self, )))
         if Logging: logging.debug('push')
