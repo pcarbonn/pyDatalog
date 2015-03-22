@@ -680,8 +680,8 @@ class Subgoal(object):
             return Logic.tl.logic.Tasks.append(task)
         if task[0] is SEARCH:
             # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
-            Logic.tl.logic.Subgoals[task[1].literal.get_tag()] = task[1]
-        if task[1].literal.pred.recursive:
+            Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
+        if self.literal.pred.recursive:
             return Logic.tl.logic.Tasks.appendleft(task)
         return Logic.tl.logic.Tasks.append(task)
     
@@ -823,14 +823,12 @@ class Subgoal(object):
     def complete(self, subgoal, post_thunk):
         """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
         Ts = Logic.tl.logic
+        self.thunk_ = post_thunk
+        self.schedule((THUNK, self))
+        if Logging: logging.debug('push')
         Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
         Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
         subgoal.schedule((SEARCH, subgoal))
-        # prepend post_thunk at one level lower in the Stack, 
-        # so that it is run immediately by invoke() after the search() thunk is complete
-        if Logging: logging.debug('push')
-        self.thunk_ = post_thunk
-        Ts.Stack[-1][1].append((THUNK, self)) 
     
 # op codes are defined after class Subgoal is defined
 SEARCH = Subgoal.search
