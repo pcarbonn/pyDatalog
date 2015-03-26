@@ -673,12 +673,9 @@ class Subgoal(object):
     def schedule(self, task):
         """ Schedule a task for later invocation """
         if task[0] is SEARCH:
-            # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
+            # not done in Subgoal.complete() for speed reason
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
-        if self.literal.pred.recursive:
-            Logic.tl.logic.Tasks.appendleft(task)
-        else:
-            Logic.tl.logic.Tasks.append(task)
+        Logic.tl.logic.Tasks.append(task)
     
     def search(self):
         """ 
@@ -818,7 +815,10 @@ class Subgoal(object):
         Ts = Logic.tl.logic
         todo, args = None, None
         if not Ts.Goal.is_done and Ts.Tasks:
-            todo, args = Ts.Tasks.pop()
+            if self.literal.pred.recursive:
+                todo, args = Ts.Tasks.popleft()
+            else:
+                todo, args = Ts.Tasks.pop()
         if not todo and Ts.Goal.on_completion_:
             todo, args = Ts.Goal.on_completion_
         return todo, args
@@ -832,10 +832,13 @@ class Subgoal(object):
             
     def complete(self, subgoal, post_thunk):
         """makes sure that subgoal is completed before calling post_thunk and resuming processing"""
+        # this is done by saving the environment to the stack. on_completion will eventually do the Stack.pop().
         if Logging: logging.debug('push')
         Ts = Logic.tl.logic
-        Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
+        Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) 
         Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
+        
+        # now initialize the new search
         assert subgoal.on_completion_ is None
         subgoal.on_completion_ = (ON_COMPLETION, (self, post_thunk))
         subgoal.schedule((SEARCH, (subgoal,)))
