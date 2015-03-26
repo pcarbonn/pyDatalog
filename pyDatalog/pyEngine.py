@@ -660,7 +660,7 @@ class Subgoal(object):
     A subgoal has a literal, a set of facts, and an array of waiters.
     A waiter is a pair containing a subgoal and a clause.
     """
-    __slots__ = ['literal', 'facts', 'waiters', 'is_done', 'thunk_']
+    __slots__ = ['literal', 'facts', 'waiters', 'is_done', 'on_completion_']
     def __init__(self, literal):
         self.literal = literal
         self.facts = {}
@@ -668,20 +668,17 @@ class Subgoal(object):
         # subgoal is done when a partial literal is true 
         # or when one fact is found for a function of constants
         self.is_done = False
-        self.thunk_ = None
+        self.on_completion_ = None
     
     def schedule(self, task):
         """ Schedule a task for later invocation """
-        if task[0] is THUNK:
-            Logic.tl.logic.Tasks.append(task)
+        if task[0] is SEARCH:
+            # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
+            Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
+        if self.literal.pred.recursive:
+            Logic.tl.logic.Tasks.appendleft(task)
         else:
-            if task[0] is SEARCH:
-                # cannot be done in Subgoal.__init__ because would be in wrong Subgoals (see complete() below)
-                Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
-            if self.literal.pred.recursive:
-                Logic.tl.logic.Tasks.appendleft(task)
-            else:
-                Logic.tl.logic.Tasks.append(task)
+            Logic.tl.logic.Tasks.append(task)
     
     def search(self):
         """ 
@@ -822,32 +819,32 @@ class Subgoal(object):
         todo, args = None, None
         if not Ts.Goal.is_done and Ts.Tasks:
             todo, args = Ts.Tasks.pop()
-        if not todo and Ts.Stack:
-            if Logging: logging.debug('pop')
-            Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
-            todo, args = Ts.Tasks.pop()
+        if not todo and Ts.Goal.on_completion_:
+            todo, args = Ts.Goal.on_completion_
         return todo, args
         
-    def thunk(self):
-        self.thunk_()
+    def on_completion(self, post_thunk):
+        if Logging: logging.debug('pop + post processing')
+        Ts = Logic.tl.logic
+        Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
+        post_thunk()
         return self.next_step()
             
     def complete(self, subgoal, post_thunk):
-        """makes sure that thunk() is completed before calling post_thunk and resuming processing of other thunks"""
-        Ts = Logic.tl.logic
-        assert self.thunk_ is None, "Subgoal already has a thunk !" #TODO could occur in some rare cases ?
-        self.thunk_ = post_thunk
-        self.schedule((THUNK, (self, )))
+        """makes sure that subgoal is completed before calling post_thunk and resuming processing"""
         if Logging: logging.debug('push')
+        Ts = Logic.tl.logic
         Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) # save the environment to the stack. Invoke will eventually do the Stack.pop().
         Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
+        assert subgoal.on_completion_ is None
+        subgoal.on_completion_ = (ON_COMPLETION, (self, post_thunk))
         subgoal.schedule((SEARCH, (subgoal,)))
     
         
 # op codes are defined after class Subgoal is defined
 SEARCH = Subgoal.search
 ADD_CLAUSE = Subgoal.add_clause
-THUNK = Subgoal.thunk
+ON_COMPLETION = Subgoal.on_completion
 
 
 def resolve(clause, literal):
