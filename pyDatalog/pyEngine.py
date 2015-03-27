@@ -670,13 +670,6 @@ class Subgoal(object):
         self.is_done = False
         self.on_completion_ = None
     
-    def schedule(self, task):
-        """ Schedule a task for later invocation """
-        if task[0] is SEARCH:
-            # not done in Subgoal.complete() for speed reason
-            Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
-        Logic.tl.logic.Tasks.append(task)
-    
     def search(self):
         """ 
         Search for derivations of the literal associated with this subgoal 
@@ -796,6 +789,15 @@ class Subgoal(object):
             rule(self, clause, clause.body[0])
         return self.next_step()
     
+    # state machine of the engine :
+    
+    def schedule(self, task):
+        """ Schedule a task for later invocation """
+        if task[0] is SEARCH:
+            # not done in Subgoal.complete() for speed reason
+            Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
+        Logic.tl.logic.Tasks.append(task)
+    
     def next_step(self):
         """ returns the next step in the resolution """
         Ts = Logic.tl.logic
@@ -809,18 +811,6 @@ class Subgoal(object):
             todo, args = Ts.Goal.on_completion_
         return todo, args
         
-    def on_completion(self, parent, aggregate):
-        if Logging: logging.debug('pop + post processing')
-        Ts = Logic.tl.logic
-        Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
-        if aggregate:
-            aggregate.complete(self, parent)
-        else:
-            assert hasattr(parent.literal.pred, 'base_pred') # parent is a negation
-            if not self.facts:
-                fact(parent, True)
-        return self.next_step()
-            
     def complete(self, subgoal, aggregate=None):
         """makes sure that subgoal is completed before calling post_thunk and resuming processing"""
         #TODO check for infinite loops
@@ -837,6 +827,18 @@ class Subgoal(object):
         subgoal.on_completion_ = (ON_COMPLETION, (subgoal, self, aggregate))
         subgoal.schedule((SEARCH, (subgoal,)))
     
+    def on_completion(self, parent, aggregate):
+        if Logging: logging.debug('pop + post processing')
+        Ts = Logic.tl.logic
+        Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
+        if aggregate:
+            aggregate.complete(self, parent)
+        else:
+            assert hasattr(parent.literal.pred, 'base_pred') # parent is a negation
+            if not self.facts:
+                fact(parent, True)
+        return self.next_step()
+            
         
 # op codes are defined after class Subgoal is defined
 SEARCH = Subgoal.search
