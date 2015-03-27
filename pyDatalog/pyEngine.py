@@ -690,18 +690,7 @@ class Subgoal(object):
         if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
             if Logging: logging.debug("pyDatalog will search negation of %s" % literal0)
             base_literal = Literal(literal0.pred.base_pred, terms)
-            """ the rest of the processing essentially performs the following, 
-            but in its own environment, and with precautions to avoid stack overflow :
-                result = ask(base_literal)
-                if result is None or 0 == len(result.answers):
-                    return fact(self, literal)
-            """
-            #TODO check that literal is not one of the subgoals already in the stack, to prevent infinite loop
-            # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-            base_subgoal = Subgoal(base_literal)
-            self.complete(base_subgoal,
-                    lambda base_subgoal=base_subgoal, subgoal=self:
-                        fact(subgoal, True) if not base_subgoal.facts else None)
+            self.complete(Subgoal(base_literal))
             return self.next_step()
         
         for _class in literal0.pred.parent_classes():
@@ -742,10 +731,7 @@ class Subgoal(object):
                 for i in literal.aggregate.slice_to_variabilize:
                     base_terms[i] = Fresh_var()
                 base_literal = Literal(literal.pred.name, base_terms) # without aggregate to avoid infinite loop
-                base_subgoal = Subgoal(base_literal)
-                self.complete(base_subgoal,
-                        lambda base_subgoal=base_subgoal, subgoal=self, aggregate=literal.aggregate:
-                            aggregate.complete(base_subgoal, subgoal))
+                self.complete(Subgoal(base_literal), literal.aggregate)
                 return self.next_step()
             elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
                 for clause in relevant_clauses(literal):
@@ -802,7 +788,7 @@ class Subgoal(object):
                 
     def add_clause(self, clause):
         """ SLG_NEWCLAUSE in the reference article """
-        if self.is_done:
+        if self.is_done: # for speed
             return self.next_step() # no need to keep looking if THE answer is found already
         if not clause.body:
             fact(self, clause.head)
@@ -823,24 +809,32 @@ class Subgoal(object):
             todo, args = Ts.Goal.on_completion_
         return todo, args
         
-    def on_completion(self, post_thunk):
+    def on_completion(self, parent, aggregate):
         if Logging: logging.debug('pop + post processing')
         Ts = Logic.tl.logic
         Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
-        post_thunk()
+        if aggregate:
+            aggregate.complete(self, parent)
+        else:
+            assert hasattr(parent.literal.pred, 'base_pred') # parent is a negation
+            if not self.facts:
+                fact(parent, True)
         return self.next_step()
             
-    def complete(self, subgoal, post_thunk):
+    def complete(self, subgoal, aggregate=None):
         """makes sure that subgoal is completed before calling post_thunk and resuming processing"""
+        #TODO check for infinite loops
+        # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
+
         # this is done by saving the environment to the stack. on_completion will eventually do the Stack.pop().
         if Logging: logging.debug('push')
         Ts = Logic.tl.logic
-        Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal)) 
+        Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal))
         Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
         
         # now initialize the new search
         assert subgoal.on_completion_ is None
-        subgoal.on_completion_ = (ON_COMPLETION, (self, post_thunk))
+        subgoal.on_completion_ = (ON_COMPLETION, (subgoal, self, aggregate))
         subgoal.schedule((SEARCH, (subgoal,)))
     
         
