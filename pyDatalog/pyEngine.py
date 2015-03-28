@@ -557,6 +557,7 @@ class Clause(object):
 
 def add_class(cls, name):
     """ Update the list of pyDatalog-capable classes, and update clauses accordingly"""
+    # this is needed because class definition could occur after clause definition
     Class_dict[name] = cls
     #prefixed replace the first term of each functional comparison literal for that class..
     env = {Var(name).id: Const('_pyD_class')}
@@ -839,23 +840,12 @@ class Subgoal(object):
                 fact(parent, True)
         return self.next_step()
             
-        
 # op codes are defined after class Subgoal is defined
 SEARCH = Subgoal.search
 ADD_CLAUSE = Subgoal.add_clause
 ON_COMPLETION = Subgoal.on_completion
 
 
-def resolve(clause, literal):
-    """
-    Resolve the selected literal of a clause with a literal.  The
-    selected literal is the first literal in body of a rule.  If the
-    two literals unify, a new clause is generated that has a body with
-    one less literal.
-    """
-    env = clause.body[0].unify(literal)
-    return Clause(clause.head.subst(env), [bodi.subst(env) for bodi in clause.body[1:] ])
- 
 ################## add derived facts and use rules ##############
 
 def fact(subgoal, literal):
@@ -877,9 +867,14 @@ def fact(subgoal, literal):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[literal.get_fact_id()] = literal
         for waiter in subgoal.waiters:
-            resolvent = resolve(waiter.clause, literal)
-            if resolvent != None:
-                waiter.subgoal.schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
+            # Resolve the selected literal of a clause with a literal.
+            # The selected literal is the first literal in body of a rule.
+            # A new clause is generated that has a body with one less literal.
+            env = waiter.clause.body[0].unify(literal)
+            assert env != None
+            resolvent = Clause(waiter.clause.head.subst(env), 
+                               [bodi.subst(env) for bodi in waiter.clause.body[1:] ])
+            waiter.subgoal.schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
         if len(subgoal.facts)==1 \
         and all(subgoal.literal.terms[i].is_const() 
                 for i in range(subgoal.literal.pred.prearity)):
@@ -909,17 +904,19 @@ def rule(subgoal, clause, selected):
     SLG_POSITIVE in the reference article
     """
     sg = Logic.tl.logic.Subgoals.get(selected.get_tag())
-    if sg != None:
-        sg.waiters.append(Waiter(subgoal, clause))
+    if sg != None: # selected subgoal exists already
+        sg.waiters.append(Waiter(subgoal, clause)) # add me to sg's waiters
         if sg.facts is True:
             resolvent = Clause(clause.head, clause.body[1:])
             subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
         else:
-            for fact in sg.facts.values():
-                resolvent = resolve(clause, fact)
-                if resolvent != None: 
-                    subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
-    else:
+            for fact in sg.facts.values(): # catch-up with facts already established
+                env = clause.body[0].unify(fact)
+                assert env != None
+                resolvent = Clause(clause.head.subst(env), 
+                                   [bodi.subst(env) for bodi in clause.body[1:] ])
+                subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
+    else: # new subgoal --> create it and launch it
         sg = Subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
         sg.schedule((SEARCH, (sg, )))
@@ -988,6 +985,8 @@ def compare(l,op,r):
         else l<=r if op=='<=' else l>=r if op=='>=' else l>r if op=='>' else None
 def compare2(l,op,r):
     return l._in(r) if op=='_pyD_in' else l._not_in(r) if op=='_pyD_not_in' else compare(l,op,r)
+
+# Initialization   ##################################################
 
 def clear():
     """ clears the logic """
