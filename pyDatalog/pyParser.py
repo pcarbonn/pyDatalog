@@ -766,7 +766,7 @@ def load(code, newglobals=None, defined=None, function='load'):
         spaces = r.match(line).group()
         if spaces and line != spaces:
             break
-    code = '\n'.join([line.replace(spaces,'') for line in lines])
+    code = '\n'.join([re.sub('^' + spaces, '', line) for line in lines])
     
     tree = ast.parse(code, function, 'exec')
     try:

@@ -445,6 +445,7 @@ def test():
         assert ask(Y==f[X]) == set([('a', 'b')])
         assert ask(b==f[X]) == set([('a',)])
         assert ask(f[X]==f[X]) == set([('a',)])
+        assert ask(f[a]==c) == None
     
         f[a]=c
         assert ask(f[a]==X) == set([('c',)])
@@ -506,6 +507,9 @@ def test():
         
         assert ask(default[0]==X) == set([(0,)])
         assert ask(default[3]==X) == set([(1,)])
+        
+        assert ask(default[0]==1) == None
+        assert ask(~(default[0]==1)) == set([()])
                 
     @pyDatalog.program()
     def function_comparison(): 
