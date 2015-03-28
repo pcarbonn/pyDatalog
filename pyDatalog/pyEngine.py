@@ -830,6 +830,7 @@ class Subgoal(object):
     
     def on_completion(self, parent, aggregate):
         if Logging: logging.debug('pop + post processing')
+        self.on_completion_ = None # don't do it again
         Ts = Logic.tl.logic
         Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
         if aggregate:
