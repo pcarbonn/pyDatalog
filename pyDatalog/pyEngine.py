@@ -705,16 +705,18 @@ class Subgoal(object):
                     if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
                     for result in getattr(_class, method_name)(*(terms[1:])): 
                         fact_candidate(self, class0, (terms[0],) + result)
-                    return self.next_step()        
-                try: # call class._pyD_query
-                    resolver = _class._pyD_query
-                    if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
-                    for result in resolver(literal.pred.name, terms[1:]):
-                        fact_candidate(self, class0, (terms[0],) + result)
-                    if Logging : logging.debug("pyDatalog has used _pyD_query resolvers for %s" % literal)
                     return self.next_step()
-                except:
-                    pass
+                if '_pyD_query' in _class.__dict__:        
+                    try: # call class._pyD_query
+                        if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
+                        results = list(_class._pyD_query(literal.pred.name, terms[1:]))
+                    except AttributeError:
+                        pass
+                    else:
+                        if Logging: logging.debug("pyDatalog uses _pyD_query resolvers for %s" % literal)
+                        for result in results:
+                            fact_candidate(self, class0, (terms[0],) + result)
+                        return self.next_step()
             if literal.pred.prim: # X==Y, X < Y+Z
                 if Logging : logging.debug("pyDatalog uses comparison primitive for %s" % literal)
                 literal.pred.prim(literal, self)
@@ -753,14 +755,15 @@ class Subgoal(object):
                 
         if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
             try: 
-                resolver = class0.pyDatalog_search
                 if not class0.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
-                if Logging : logging.debug("pyDatalog uses pyDatalog_search for %s" % literal)
-                for result in resolver(literal):
-                    fact_candidate(self, class0, result)
-                return self.next_step()
+                results = tuple(class0.pyDatalog_search(literal))
             except AttributeError:
                 pass
+            else:
+                if Logging: logging.debug("pyDatalog uses pyDatalog_search for %s" % literal)
+                for result in results:
+                    fact_candidate(self, class0, result)
+                return self.next_step()
         elif literal.pred.comparison and len(terms)==3 and terms[0].is_const() \
         and terms[0].id != '_pyD_class' and terms[1].is_const(): # X.a[1]==Y
             # do not use pyDatalog_search as the variable may not be in a pyDatalog class
