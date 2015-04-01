@@ -638,6 +638,8 @@ def relevant_clauses(literal):
         for v in result: 
             yield v
     
+################# Subgoals ###############################
+
 """
 The remaining functions in this file is based on the tabled logic
 programming algorithm described in "Efficient Top-Down Computation of
@@ -652,10 +654,24 @@ It should be noted that a simplified version of the algorithm of
 supported with another algorithm. 
 """
 
-################# Task management ###############################
-
-# A stack of thunks is used to avoid the stack overflow problem
-# by delaying the evaluation of some functions
+class block(object):
+    def __init__(self, subgoal, start, iterable, end):
+        self.subgoal = subgoal
+        if subgoal.literal.pred.recursive:
+            if start: subgoal.schedule(start)
+            self.task = end
+            self.iterable = reversed(list(iterable))
+        else:
+            if end: subgoal.schedule(end)
+            self.task = start
+            self.iterable = iterable
+    
+    def __enter__(self):
+        return self.iterable 
+    
+    def __exit__(self, type, value, traceback):
+        if self.task: self.subgoal.schedule(self.task)
+        
 
 class Subgoal(object):
     """
@@ -696,16 +712,18 @@ class Subgoal(object):
                         else literal.pred.id.replace(r'/', str(literal.pred.arity)+r"/")
                 if resolver in Python_resolvers:
                     if Logging : logging.debug("pyDatalog uses python resolvers for %s" % literal)
-                    for result in Python_resolvers[resolver](*terms):
-                        fact_candidate(self, class0, result)
+                    with block(self, None, Python_resolvers[resolver](*terms), None) as iterable:
+                        for result in iterable:
+                            fact_candidate(self, class0, result)
                     return self.next_step()
             if _class: 
                 # TODO add special method for custom comparison
                 method_name = '_pyD_%s%i' % (literal.pred.suffix, int(literal.pred.arity - 1)) #prefixed
                 if literal.pred.suffix and method_name in _class.__dict__:
                     if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
-                    for result in getattr(_class, method_name)(*(terms[1:])): 
-                        fact_candidate(self, class0, (terms[0],) + result)
+                    with block(self, None, getattr(_class, method_name)(*(terms[1:])), None) as iterable :
+                        for result in iterable: 
+                            fact_candidate(self, class0, (terms[0],) + result)
                     return self.next_step()
                 if '_pyD_query' in _class.__dict__:        
                     try: # call class._pyD_query
@@ -717,8 +735,9 @@ class Subgoal(object):
                         pass
                     else:
                         if Logging: logging.debug("pyDatalog uses _pyD_query resolvers for %s" % literal)
-                        for result in results:
-                            fact_candidate(self, class0, (terms[0],) + result)
+                        with block(self, None, results, None) as iterable:
+                            for result in iterable:
+                                fact_candidate(self, class0, (terms[0],) + result)
                         return self.next_step()
             if literal.pred.prim: # X==Y, X < Y+Z
                 if Logging : logging.debug("pyDatalog uses comparison primitive for %s" % literal)
@@ -733,13 +752,14 @@ class Subgoal(object):
                 self.complete(Subgoal(base_literal), literal.aggregate)
                 return self.next_step()
             elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
-                for clause in relevant_clauses(literal):
-                    renamed = clause.rename()
-                    env = literal.unify(renamed.head)
-                    if env != None:
-                        clause = renamed.subst(env, class0)
-                        if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
-                        self.schedule((ADD_CLAUSE, (self, clause)))
+                with block(self, None, relevant_clauses(literal), None) as iterable:
+                    for clause in iterable:
+                        renamed = clause.rename()
+                        env = literal.unify(renamed.head)
+                        if env != None:
+                            clause = renamed.subst(env, class0)
+                            if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
+                            self.schedule((ADD_CLAUSE, (self, clause)))
                 return self.next_step()
             elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
                 literal1 = literal.equalized()
@@ -766,8 +786,9 @@ class Subgoal(object):
                 pass
             else:
                 if Logging: logging.debug("pyDatalog uses pyDatalog_search for %s" % literal)
-                for result in results:
-                    fact_candidate(self, class0, result)
+                with block(self, None, results, None) as iterable:
+                    for result in iterable:
+                        fact_candidate(self, class0, result)
                 return self.next_step()
         elif literal.pred.comparison and len(terms)==3 and terms[0].is_const() \
         and terms[0].id != '_pyD_class' and terms[1].is_const(): # X.a[1]==Y
@@ -799,6 +820,8 @@ class Subgoal(object):
         return self.next_step()
     
     # state machine of the engine :
+    # A stack of thunks is used to avoid the stack overflow problem
+    # by delaying the evaluation of some functions
     
     def schedule(self, task):
         """ Schedule a task for later invocation """
