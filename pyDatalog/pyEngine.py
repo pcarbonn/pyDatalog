@@ -501,6 +501,7 @@ class Literal(object):
         Ts = Logic.tl.logic
         saved_environment = Ts.Tasks, Ts.Subgoals, Ts.Goal
         Ts.Tasks, Ts.Subgoals, Ts.Goal = deque(), {}, Subgoal(self)
+        Ts.gc_uncollected = True
         todo, arg = (SEARCH, (Ts.Goal, ))
         while todo:
             todo, arg = todo(*arg)
@@ -708,7 +709,9 @@ class Subgoal(object):
                     return self.next_step()
                 if '_pyD_query' in _class.__dict__:        
                     try: # call class._pyD_query
-                        if not _class.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
+                        if Logic.tl.logic.gc_uncollected and not _class.has_SQLAlchemy: 
+                            gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
+                            Logic.tl.logic.gc_uncollected = False
                         results = list(_class._pyD_query(literal.pred.name, terms[1:]))
                     except AttributeError:
                         pass
@@ -755,7 +758,9 @@ class Subgoal(object):
                 
         if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
             try: 
-                if not class0.has_SQLAlchemy : gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
+                if Logic.tl.logic.gc_uncollected and not class0.has_SQLAlchemy: 
+                    gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
+                    Logic.tl.logic.gc_uncollected = False
                 results = tuple(class0.pyDatalog_search(literal))
             except AttributeError:
                 pass
@@ -1000,6 +1005,7 @@ def clear():
     Logic.tl.logic.Tasks = None
     Logic.tl.logic.Stack = []
     Logic.tl.logic.Goal = None
+    Logic.tl.logic.gc_uncollected = False
     Fresh_var.tl.counter = 0
 
     insert(Pred("==", 2)).prim = equals_primitive
