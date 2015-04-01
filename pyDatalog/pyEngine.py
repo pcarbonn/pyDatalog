@@ -892,22 +892,22 @@ def fact(subgoal, literal):
         if subgoal.facts != True: # if already True, do not advise its waiters again
             if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
             subgoal.facts, subgoal.is_done = True, True
-            for waiter in subgoal.waiters:
-                resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
-                waiter.subgoal.schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
+            for goal, clause in subgoal.waiters:
+                resolvent = Clause(clause.head, clause.body[1:])
+                goal.schedule((ADD_CLAUSE, (goal, resolvent)))
             subgoal.waiters = []
     elif subgoal.facts is not True and not subgoal.facts.get(literal.get_fact_id()):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[literal.get_fact_id()] = literal
-        for waiter in subgoal.waiters:
+        for goal, clause in subgoal.waiters:
             # Resolve the selected literal of a clause with a literal.
             # The selected literal is the first literal in body of a rule.
             # A new clause is generated that has a body with one less literal.
-            env = waiter.clause.body[0].unify(literal)
+            env = clause.body[0].unify(literal)
             assert env != None
-            resolvent = Clause(waiter.clause.head.subst(env), 
-                               [bodi.subst(env) for bodi in waiter.clause.body[1:] ])
-            waiter.subgoal.schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
+            resolvent = Clause(clause.head.subst(env), 
+                               [bodi.subst(env) for bodi in clause.body[1:] ])
+            goal.schedule((ADD_CLAUSE, (goal, resolvent)))
         if len(subgoal.facts)==1 \
         and all(subgoal.literal.terms[i].is_const() 
                 for i in range(subgoal.literal.pred.prearity)):
@@ -927,11 +927,6 @@ def fact_candidate(subgoal, class0, result):
     if subgoal.literal.match(result) != None:
         fact(subgoal, result)
 
-class Waiter(object):
-    def __init__(self, subgoal, clause):
-        self.subgoal = subgoal
-        self.clause = clause
-        
 def rule(subgoal, clause, selected):
     """ 
     Use a newly derived rule. 
@@ -950,10 +945,10 @@ def rule(subgoal, clause, selected):
                                    [bodi.subst(env) for bodi in clause.body[1:] ])
                 subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
         if not sg.is_done:
-            sg.waiters.append(Waiter(subgoal, clause)) # add me to sg's waiters
+            sg.waiters.append((subgoal, clause)) # add me to sg's waiters
     else: # new subgoal --> create it and launch it
         sg = Subgoal(selected)
-        sg.waiters.append(Waiter(subgoal, clause))
+        sg.waiters.append((subgoal, clause))
         sg.schedule((SEARCH, (sg, )))
     
 
