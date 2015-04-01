@@ -895,6 +895,7 @@ def fact(subgoal, literal):
             for waiter in subgoal.waiters:
                 resolvent = Clause(waiter.clause.head, waiter.clause.body[1:])
                 waiter.subgoal.schedule((ADD_CLAUSE, (waiter.subgoal, resolvent)))
+            subgoal.waiters = []
     elif subgoal.facts is not True and not subgoal.facts.get(literal.get_fact_id()):
         if Logging: logging.info("New fact : %s" % str(literal))
         subgoal.facts[literal.get_fact_id()] = literal
@@ -911,6 +912,7 @@ def fact(subgoal, literal):
         and all(subgoal.literal.terms[i].is_const() 
                 for i in range(subgoal.literal.pred.prearity)):
             subgoal.is_done = True # one fact for a function of constant
+            subgoal.waiters = []
 
 def fact_candidate(subgoal, class0, result):
     """ add result as a candidate fact of class0 for subgoal"""
@@ -937,7 +939,6 @@ def rule(subgoal, clause, selected):
     """
     sg = Logic.tl.logic.Subgoals.get(selected.get_tag())
     if sg != None: # selected subgoal exists already
-        sg.waiters.append(Waiter(subgoal, clause)) # add me to sg's waiters
         if sg.facts is True:
             resolvent = Clause(clause.head, clause.body[1:])
             subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
@@ -948,6 +949,8 @@ def rule(subgoal, clause, selected):
                 resolvent = Clause(clause.head.subst(env), 
                                    [bodi.subst(env) for bodi in clause.body[1:] ])
                 subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
+        if not sg.is_done:
+            sg.waiters.append(Waiter(subgoal, clause)) # add me to sg's waiters
     else: # new subgoal --> create it and launch it
         sg = Subgoal(selected)
         sg.waiters.append(Waiter(subgoal, clause))
