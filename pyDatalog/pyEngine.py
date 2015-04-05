@@ -43,6 +43,7 @@ from . import util
 
 Logging = False # True --> logging is activated.  Kept for performance reason
 Auto_print = False # True => automatically prints the result of a query
+Slow_motion = False # True => detail print of the stack of tasks
 
 Python_resolvers = {} # dictionary  of python functions that can resolve a predicate
 Logic = None # place holder for Logic class from Logic module
@@ -525,6 +526,8 @@ class Clause(object):
         self.id = None
     def __str__(self):  
         return "%s <= %s" % (str(self.head), '&'.join(str(literal) for literal in self.body))
+    def __repr__(self):  
+        return ("%s <= %s" % (str(self.head), '&'.join(str(literal) for literal in self.body)))[:50]
     def __neg__(self):
         """retract clause"""
         retract(self) 
@@ -688,6 +691,9 @@ class Subgoal(object):
         self.is_done = False
         self.on_completion_ = None
     
+    def __repr__(self):
+        return str(self.literal)
+    
     def search(self):
         """ 
         Search for derivations of the literal associated with this subgoal 
@@ -812,6 +818,7 @@ class Subgoal(object):
     def add_clause(self, clause):
         """ SLG_NEWCLAUSE in the reference article """
         if self.is_done: # for speed
+            if Slow_motion: print("Already completed !")
             return self.next_step() # no need to keep looking if THE answer is found already
         if not clause.body:
             fact(self, clause.head)
@@ -825,13 +832,21 @@ class Subgoal(object):
     
     def schedule(self, task):
         """ Schedule a task for later invocation """
+        if Slow_motion: print("  Add : %s" % (str(task)[25:] if len(str(task))<115 else str(task)[25:115]+'..'))
         if task[0] is SEARCH:
             # not done in Subgoal.complete() for speed reason
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
         Logic.tl.logic.Tasks.append(task)
-    
+
     def next_step(self):
         """ returns the next step in the resolution """
+        # self.print_()
+        if Slow_motion:
+            print("STACK :")
+            for task in Logic.tl.logic.Tasks:
+                print("  " + (str(task)[25:] if len(str(task))<115 else str(task)[25:115]+'..'))
+            print(" ")
+
         Ts = Logic.tl.logic
         todo, args = None, None
         if not Ts.Goal.is_done and Ts.Tasks:
@@ -841,8 +856,15 @@ class Subgoal(object):
                 todo, args = Ts.Tasks.pop()
         if not todo and Ts.Goal.on_completion_:
             todo, args = Ts.Goal.on_completion_
+
+        if Slow_motion: 
+            print("Processing : %s" % (str((todo, args))[25:] if len(str((todo, args)))<115 else str((todo, args))[25:115]+'..'))
+            print(" from tasks of " + str(self))
         return todo, args
         
+    def goto(self, subgoal):
+        return subgoal.next_step()
+    
     def complete(self, subgoal, aggregate=None):
         """makes sure that subgoal is completed before calling post_thunk and resuming processing"""
         #TODO check for infinite loops
@@ -869,12 +891,13 @@ class Subgoal(object):
         else:
             assert hasattr(parent.literal.pred, 'base_pred') # parent is a negation
             if not self.facts:
-                fact(parent, True)
+                fact(parent, True) #TODO goto parent ??
         return self.next_step()
             
 # op codes are defined after class Subgoal is defined
 SEARCH = Subgoal.search
 ADD_CLAUSE = Subgoal.add_clause
+GOTO = Subgoal.goto
 ON_COMPLETION = Subgoal.on_completion
 
 
@@ -911,6 +934,7 @@ def fact(subgoal, literal):
         if len(subgoal.facts)==1 \
         and all(subgoal.literal.terms[i].is_const() 
                 for i in range(subgoal.literal.pred.prearity)):
+            if Slow_motion: print("is done !")
             subgoal.is_done = True # one fact for a function of constant
             subgoal.waiters = []
 
@@ -949,7 +973,7 @@ def rule(subgoal, clause, selected):
     else: # new subgoal --> create it and launch it
         sg = Subgoal(selected)
         sg.waiters.append((subgoal, clause))
-        sg.schedule((SEARCH, (sg, )))
+        subgoal.schedule((SEARCH, (sg, )))
     
 
 # PRIMITIVES   ##################################################
