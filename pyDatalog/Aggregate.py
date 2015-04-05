@@ -133,7 +133,7 @@ class Aggregate(object):
         if row is not None:
             class0 = subgoal.literal.pred._class()
             row[self.index_first_arg:-1] = [""] * (len(row)-self.index_first_arg-1)
-            pyEngine.fact_candidate(subgoal, class0, row)
+            subgoal.fact_candidate(class0, row)
 
     def complete(self, base_subgoal, subgoal):
         """ calculate the aggregate after base facts have been found """
