@@ -163,7 +163,7 @@ class Const(Term):
     def equals_primitive(self, term, subgoal):
         if self.id == term.id:          # Both terms are constant and equal.
             literal = Literal("==", [self, self])
-            return fact(subgoal, literal)
+            return subgoal.fact(literal)
 
 
 class VarTuple(Term):
@@ -240,7 +240,7 @@ class VarTuple(Term):
     def equals_primitive(self, term, subgoal):
         if self.id == term.id:          # Both terms are constant and equal.
             literal = Literal("==", [self, self])
-            return fact(subgoal, literal)
+            return subgoal.fact(literal)
 
 
 class Operation(Term):
@@ -720,7 +720,7 @@ class Subgoal(object):
                     if Logging : logging.debug("pyDatalog uses python resolvers for %s" % literal)
                     with block(self, None, Python_resolvers[resolver](*terms), None) as iterable:
                         for result in iterable:
-                            fact_candidate(self, class0, result)
+                            self.fact_candidate(class0, result)
                     return self.next_step()
             if _class: 
                 # TODO add special method for custom comparison
@@ -729,7 +729,7 @@ class Subgoal(object):
                     if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
                     with block(self, None, getattr(_class, method_name)(*(terms[1:])), None) as iterable :
                         for result in iterable: 
-                            fact_candidate(self, class0, (terms[0],) + result)
+                            self.fact_candidate(class0, (terms[0],) + result)
                     return self.next_step()
                 if '_pyD_query' in _class.__dict__:        
                     try: # call class._pyD_query
@@ -743,7 +743,7 @@ class Subgoal(object):
                         if Logging: logging.debug("pyDatalog uses _pyD_query resolvers for %s" % literal)
                         with block(self, None, results, None) as iterable:
                             for result in iterable:
-                                fact_candidate(self, class0, (terms[0],) + result)
+                                self.fact_candidate(class0, (terms[0],) + result)
                         return self.next_step()
             if literal.pred.prim: # X==Y, X < Y+Z
                 if Logging : logging.debug("pyDatalog uses comparison primitive for %s" % literal)
@@ -794,7 +794,7 @@ class Subgoal(object):
                 if Logging: logging.debug("pyDatalog uses pyDatalog_search for %s" % literal)
                 with block(self, None, results, None) as iterable:
                     for result in iterable:
-                        fact_candidate(self, class0, result)
+                        self.fact_candidate(class0, result)
                 return self.next_step()
         elif literal.pred.comparison and len(terms)==3 and terms[0].is_const() \
         and terms[0].id != '_pyD_class' and terms[1].is_const(): # X.a[1]==Y
@@ -805,9 +805,9 @@ class Subgoal(object):
             else:
                 v = v.__getitem__(terms[1].id)
             if terms[2].is_const() and compare(v, literal.pred.comparison, terms[2].id):
-                fact_candidate(self, class0, (terms[0], terms[1], terms[2]))
+                self.fact_candidate(class0, (terms[0], terms[1], terms[2]))
             elif literal.pred.comparison == "==" and not terms[2].is_const():
-                fact_candidate(self, class0, (terms[0], terms[1], v))
+                self.fact_candidate(class0, (terms[0], terms[1], v))
             else:
                 raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
                                     % literal.pred.id, None, None)
@@ -815,17 +815,91 @@ class Subgoal(object):
     
         raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
                 
+    ################## add derived facts and use rules ##############
+
     def add_clause(self, clause):
         """ SLG_NEWCLAUSE in the reference article """
         if self.is_done: # for speed
             if Slow_motion: print("Already completed !")
             return self.next_step() # no need to keep looking if THE answer is found already
         if not clause.body:
-            fact(self, clause.head)
+            self.fact(clause.head)
         else:
-            rule(self, clause, clause.body[0])
+            self.rule(clause, clause.body[0])
         return self.next_step()
     
+    def fact(self, literal):
+        """ 
+        Store a derived fact, and inform all waiters of the fact too. 
+        SLG_ANSWER in the reference article
+        """
+        if isinstance(literal, Literal) and \
+        not all(isinstance(t, Const) or t.is_const() for t in literal.terms): # isinstance for speed
+            literal = True # a partial fact is True
+        if literal is True:
+            if self.facts != True: # if already True, do not advise its waiters again
+                if Logging: logging.info("New fact : %s is True" % str(self.literal))
+                self.facts, self.is_done = True, True
+                for subgoal, clause in self.waiters:
+                    resolvent = Clause(clause.head, clause.body[1:])
+                    subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
+                self.waiters = []
+        elif self.facts is not True and not self.facts.get(literal.get_fact_id()):
+            if Logging: logging.info("New fact : %s" % str(literal))
+            self.facts[literal.get_fact_id()] = literal
+            for subgoal, clause in self.waiters:
+                # Resolve the selected literal of a clause with a literal.
+                # The selected literal is the first literal in body of a rule.
+                # A new clause is generated that has a body with one less literal.
+                env = clause.body[0].unify(literal)
+                assert env != None
+                resolvent = Clause(clause.head.subst(env), 
+                                   [bodi.subst(env) for bodi in clause.body[1:] ])
+                subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
+            if len(self.facts)==1 \
+            and all(self.literal.terms[i].is_const() 
+                    for i in range(self.literal.pred.prearity)):
+                if Slow_motion: print("is done !")
+                self.is_done = True # one fact for a function of constant
+                self.waiters = []
+
+    def fact_candidate(self, class0, result):
+        """ add result as a candidate fact of class0 for subgoal"""
+        if result is True:
+            return self.fact(True)
+        result = [Term_of(r) for r in result]
+        if len(result) != len(self.literal.terms):
+            return
+        if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
+            return
+        result = Literal(self.literal.pred.name, result)
+        if self.literal.match(result) != None:
+            self.fact(result)
+
+    def rule(self, clause, selected):
+        """ 
+        Use a newly derived rule. 
+        SLG_POSITIVE in the reference article
+        """
+        sg = Logic.tl.logic.Subgoals.get(selected.get_tag())
+        if sg != None: # selected subgoal exists already
+            if sg.facts is True:
+                resolvent = Clause(clause.head, clause.body[1:])
+                self.schedule((ADD_CLAUSE, (self, resolvent)))
+            else:
+                for fact in sg.facts.values(): # catch-up with facts already established
+                    env = clause.body[0].unify(fact)
+                    assert env != None
+                    resolvent = Clause(clause.head.subst(env), 
+                                       [bodi.subst(env) for bodi in clause.body[1:] ])
+                    self.schedule((ADD_CLAUSE, (self, resolvent)))
+            if not sg.is_done:
+                sg.waiters.append((self, clause)) # add me to sg's waiters
+        else: # new subgoal --> create it and launch it
+            sg = Subgoal(selected)
+            sg.waiters.append((self, clause))
+            sg.schedule((SEARCH, (sg, ))) #TODO not self for hashtag ?
+
     # state machine of the engine :
     # A stack of thunks is used to avoid the stack overflow problem
     # by delaying the evaluation of some functions
@@ -891,7 +965,7 @@ class Subgoal(object):
         else:
             assert hasattr(parent.literal.pred, 'base_pred') # parent is a negation
             if not self.facts:
-                fact(parent, True) #TODO goto parent ??
+                parent.fact(True) #TODO goto parent ??
         return self.next_step()
             
 # op codes are defined after class Subgoal is defined
@@ -900,80 +974,6 @@ ADD_CLAUSE = Subgoal.add_clause
 GOTO = Subgoal.goto
 ON_COMPLETION = Subgoal.on_completion
 
-
-################## add derived facts and use rules ##############
-
-def fact(subgoal, literal):
-    """ 
-    Store a derived fact, and inform all waiters of the fact too. 
-    SLG_ANSWER in the reference article
-    """
-    if isinstance(literal, Literal) and \
-    not all(isinstance(t, Const) or t.is_const() for t in literal.terms): # isinstance for speed
-        literal = True # a partial fact is True
-    if literal is True:
-        if subgoal.facts != True: # if already True, do not advise its waiters again
-            if Logging: logging.info("New fact : %s is True" % str(subgoal.literal))
-            subgoal.facts, subgoal.is_done = True, True
-            for goal, clause in subgoal.waiters:
-                resolvent = Clause(clause.head, clause.body[1:])
-                goal.schedule((ADD_CLAUSE, (goal, resolvent)))
-            subgoal.waiters = []
-    elif subgoal.facts is not True and not subgoal.facts.get(literal.get_fact_id()):
-        if Logging: logging.info("New fact : %s" % str(literal))
-        subgoal.facts[literal.get_fact_id()] = literal
-        for goal, clause in subgoal.waiters:
-            # Resolve the selected literal of a clause with a literal.
-            # The selected literal is the first literal in body of a rule.
-            # A new clause is generated that has a body with one less literal.
-            env = clause.body[0].unify(literal)
-            assert env != None
-            resolvent = Clause(clause.head.subst(env), 
-                               [bodi.subst(env) for bodi in clause.body[1:] ])
-            goal.schedule((ADD_CLAUSE, (goal, resolvent)))
-        if len(subgoal.facts)==1 \
-        and all(subgoal.literal.terms[i].is_const() 
-                for i in range(subgoal.literal.pred.prearity)):
-            if Slow_motion: print("is done !")
-            subgoal.is_done = True # one fact for a function of constant
-            subgoal.waiters = []
-
-def fact_candidate(subgoal, class0, result):
-    """ add result as a candidate fact of class0 for subgoal"""
-    if result is True:
-        return fact(subgoal, True)
-    result = [Term_of(r) for r in result]
-    if len(result) != len(subgoal.literal.terms):
-        return
-    if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
-        return
-    result = Literal(subgoal.literal.pred.name, result)
-    if subgoal.literal.match(result) != None:
-        fact(subgoal, result)
-
-def rule(subgoal, clause, selected):
-    """ 
-    Use a newly derived rule. 
-    SLG_POSITIVE in the reference article
-    """
-    sg = Logic.tl.logic.Subgoals.get(selected.get_tag())
-    if sg != None: # selected subgoal exists already
-        if sg.facts is True:
-            resolvent = Clause(clause.head, clause.body[1:])
-            subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
-        else:
-            for fact in sg.facts.values(): # catch-up with facts already established
-                env = clause.body[0].unify(fact)
-                assert env != None
-                resolvent = Clause(clause.head.subst(env), 
-                                   [bodi.subst(env) for bodi in clause.body[1:] ])
-                subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
-        if not sg.is_done:
-            sg.waiters.append((subgoal, clause)) # add me to sg's waiters
-    else: # new subgoal --> create it and launch it
-        sg = Subgoal(selected)
-        sg.waiters.append((subgoal, clause))
-        subgoal.schedule((SEARCH, (sg, )))
     
 
 # PRIMITIVES   ##################################################
@@ -1022,13 +1022,13 @@ def compare_primitive(literal, subgoal):
                 raise util.DatalogError("Error: right hand side must be bound: %s" % literal, None, None)
             for v in y.id:
                 literal = Literal(literal.pred.name, [Term_of(v), y])
-                fact(subgoal, literal)
+                subgoal.fact(literal)
         else:
             raise util.DatalogError("Error: left hand side of comparison must be bound: %s" 
                                     % literal.pred.id, None, None)
     elif y.is_const():
         if compare(x.id, literal.pred.name, y.id):
-            fact(subgoal, True)
+            subgoal.fact(True)
     else:
         raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
                                 % literal.pred.id, None, None)
