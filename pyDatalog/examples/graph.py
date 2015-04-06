@@ -34,28 +34,28 @@ link(X,Y) <= link(Y,X) # optional : make each link bi-directional
 print (link(1,Y))
 
 print("can reach from 1")
-can_reach(X,Y) <= link(X,Z) & can_reach(Z,Y) & (X!=Y)
+can_reach(X,Y) <= can_reach(X,Z) & link(Z,Y) & (X!=Y)
 can_reach(X,Y) <= link(X,Y)
 print (can_reach(1,Y))
 
 print("all path from/to 1")
-all_path(X,Y,P) <= link(X,Z) & all_path(Z,Y,P2) & (X!=Y) & (X._not_in(P2)) & (Y._not_in(P2)) & (P==[Z]+P2)
+all_path(X,Y,P) <= all_path(X,Z,P2) & link(Z,Y) & (X!=Y) & (X._not_in(P2)) & (Y._not_in(P2)) & (P==P2+[Z])
 all_path(X,Y,P) <= link(X,Y) & (P==[])
 
 print (all_path(1,Y,P))
 print (all_path(X,1,P))
 
 print("a path from / to 1")
-(path[X,Y]==P) <= (link(X,Z) & (path[Z,Y]==P2) 
+(path[X,Y]==P) <= ((path[X,Z]==P2) &  link(Z,Y)
                    #& (X!=Y) & (X._not_in(P2)) & (Y._not_in(P2)) 
-                   & (P==[Z]+P2)) 
+                   & (P==P2+[Z])) 
 (path[X,Y]==P) <= link(X,Y) & (P==[])
 
 print (path[1,Y]==P)
 print (path[Y,1]==P)
 
 print ("path with cost from / to 1")
-(path_with_cost(X,Y,P,C)) <= link(X,Z) & (path_with_cost(Z,Y,P2,C2)) & (X!=Y) & (X._not_in(P2)) & (Y._not_in(P2)) & (P==[Z]+P2) & (C==C2+1) 
+(path_with_cost(X,Y,P,C)) <= (path_with_cost(X,Z,P2,C2)) & link(Z,Y) & (X!=Y) & (X._not_in(P2)) & (Y._not_in(P2)) & (P==P2+[Z]) & (C==C2+1) 
 (path_with_cost(X,Y,P,C)) <= link(X,Y) & (P==[]) & (C==0)
 
 print (path_with_cost(1,Y,P,C))
