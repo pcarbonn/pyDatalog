@@ -901,7 +901,6 @@ class Subgoal(object):
             sg.waiters.append((self, clause))
             sg.schedule((SEARCH, (sg, )))
             if Slow_motion: print("  On completion, goto " + str(self))
-            #assert self.on_completion_ is None
             sg.on_completion_ = (GOTO, (sg, self))
             self.schedule_now((GOTO, (self, sg)))
             
@@ -929,33 +928,33 @@ class Subgoal(object):
             
     def next_step(self):
         """ returns the next step in the resolution """
+        Ts = Logic.tl.logic
         # self.print_()
         if Slow_motion:
             print("STACK :")
-            for task in Logic.tl.logic.Tasks:
+            for task in Ts.Tasks if self.literal.pred.recursive else reversed(Ts.Tasks):
                 print("  " + (str(task)[25:] if len(str(task))<115 else str(task)[25:115]+'..'))
             print(" ")
             
-        Ts = Logic.tl.logic
-        todo, args = None, None
+        task = (None, None)
         if self.tasks == 0 and self.on_completion_:
             if Slow_motion: print("Completed :" + str(self))
-            todo, args = self.on_completion_
+            task = self.on_completion_
             self.on_completion_ = None
-            
-        if not todo and not Ts.Goal.is_done and Ts.Tasks:
-            #self.tasks -= 1
+        elif not Ts.Goal.is_done and Ts.Tasks:
+            self.tasks -= 1
             if self.literal.pred.recursive:
-                todo, args = Ts.Tasks.popleft()
+                task = Ts.Tasks.popleft()
             else:
-                todo, args = Ts.Tasks.pop()
-        if not todo and Ts.Goal.on_completion_:
-            todo, args = Ts.Goal.on_completion_
+                task = Ts.Tasks.pop()
+        elif Ts.Goal.on_completion_:
+            task = Ts.Goal.on_completion_
 
+        #TODO assert task ==(None, None) or task[1][0] == self
         if Slow_motion: 
-            print("Processing : %s" % (str((todo, args))[25:] if len(str((todo, args)))<115 else str((todo, args))[25:115]+'..'))
-            print(" from tasks of " + str(self))
-        return todo, args
+            print("Subgoal " + str(self))
+            print("  is processing : %s" % (str((task))[25:] if len(str((task)))<115 else str((task))[25:115]+'..'))
+        return task
         
     def goto(self, subgoal):
         return subgoal.next_step()
