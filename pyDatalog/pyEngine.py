@@ -681,11 +681,12 @@ class Subgoal(object):
     A subgoal has a literal, a set of facts, and an array of waiters.
     A waiter is a pair containing a subgoal and a clause.
     """
-    __slots__ = ['literal', 'facts', 'waiters', 'is_done', 'on_completion_']
+    __slots__ = ['literal', 'facts', 'waiters', 'tasks', 'is_done', 'on_completion_']
     def __init__(self, literal):
         self.literal = literal
         self.facts = {}
         self.waiters = []
+        self.tasks = 0
         # subgoal is done when a partial literal is true 
         # or when one fact is found for a function of constants
         self.is_done = False
@@ -898,7 +899,12 @@ class Subgoal(object):
         else: # new subgoal --> create it and launch it
             sg = Subgoal(selected)
             sg.waiters.append((self, clause))
-            sg.schedule((SEARCH, (sg, ))) #TODO not self for hashtag ?
+            sg.schedule((SEARCH, (sg, )))
+            if Slow_motion: print("  On completion, goto " + str(self))
+            #assert self.on_completion_ is None
+            sg.on_completion_ = (GOTO, (sg, self))
+            self.schedule_now((GOTO, (self, sg)))
+            
 
     # state machine of the engine :
     # A stack of thunks is used to avoid the stack overflow problem
@@ -911,7 +917,16 @@ class Subgoal(object):
             # not done in Subgoal.complete() for speed reason
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
         Logic.tl.logic.Tasks.append(task)
+        self.tasks += 1
 
+    def schedule_now(self, task):
+        if Slow_motion: print("  Add now: %s" % (str(task)[25:] if len(str(task))<115 else str(task)[25:115]+'..'))
+        if self.literal.pred.recursive:
+            Logic.tl.logic.Tasks.appendleft(task)
+        else:
+            Logic.tl.logic.Tasks.append(task)
+        self.tasks += 1
+            
     def next_step(self):
         """ returns the next step in the resolution """
         # self.print_()
@@ -920,10 +935,16 @@ class Subgoal(object):
             for task in Logic.tl.logic.Tasks:
                 print("  " + (str(task)[25:] if len(str(task))<115 else str(task)[25:115]+'..'))
             print(" ")
-
+            
         Ts = Logic.tl.logic
         todo, args = None, None
-        if not Ts.Goal.is_done and Ts.Tasks:
+        if self.tasks == 0 and self.on_completion_:
+            if Slow_motion: print("Completed :" + str(self))
+            todo, args = self.on_completion_
+            self.on_completion_ = None
+            
+        if not todo and not Ts.Goal.is_done and Ts.Tasks:
+            #self.tasks -= 1
             if self.literal.pred.recursive:
                 todo, args = Ts.Tasks.popleft()
             else:
@@ -953,7 +974,7 @@ class Subgoal(object):
         # now initialize the new search
         assert subgoal.on_completion_ is None
         subgoal.on_completion_ = (ON_COMPLETION, (subgoal, self, aggregate))
-        subgoal.schedule((SEARCH, (subgoal,)))
+        subgoal.schedule((SEARCH, (subgoal, )))
     
     def on_completion(self, parent, aggregate):
         if Logging: logging.debug('pop + post processing')
