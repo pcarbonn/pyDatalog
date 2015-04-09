@@ -434,7 +434,7 @@ class Literal(object):
             self.terms[0] = self.terms[0].subst(env)
                 
     def __str__(self):
-        return "%s(%s)" % (self.pred.name, ','.join([str(term) for term in self.terms])) 
+        return "%s(%s)" % (self.pred.name, ','.join([str(term).replace("'_pyD_class'", '*') for term in self.terms])) 
 
     def get_id(self): #id
         """ The id's encoding ensures that two literals are structurally the
@@ -600,7 +600,7 @@ def assert_(clause):
                 clauses = pred.index[i].setdefault(term.id, set()) # create a set if needed
                 clauses.add(clause)
         else:
-            if any(literal.pred.name == pred.name for literal in clause.body):
+            if any(literal.pred.id == pred.id for literal in clause.body):
                 pred.recursive = True
             pred.clauses[id_] = clause
         insert(pred)
@@ -901,8 +901,6 @@ class Subgoal(object):
             sg.waiters.append((self, clause))
             sg.schedule((SEARCH, (sg, )))
             if Slow_motion: print("  On completion, goto " + str(self))
-            sg.on_completion_ = (GOTO, (sg, self))
-            self.schedule_now((GOTO, (self, sg)))
             
 
     # state machine of the engine :
@@ -911,21 +909,13 @@ class Subgoal(object):
     
     def schedule(self, task):
         """ Schedule a task for later invocation """
-        if Slow_motion: print("  Add : %s" % (str(task)[25:] if len(str(task))<115 else str(task)[25:115]+'..'))
+        if Slow_motion: print("  Add : %s" % (str(task)[25:] if len(str(task))<135 else str(task)[25:135]+'..'))
         if task[0] is SEARCH:
             # not done in Subgoal.complete() for speed reason
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
         Logic.tl.logic.Tasks.append(task)
         self.tasks += 1
 
-    def schedule_now(self, task):
-        if Slow_motion: print("  Add now: %s" % (str(task)[25:] if len(str(task))<115 else str(task)[25:115]+'..'))
-        if self.literal.pred.recursive:
-            Logic.tl.logic.Tasks.appendleft(task)
-        else:
-            Logic.tl.logic.Tasks.append(task)
-        self.tasks += 1
-            
     def next_step(self):
         """ returns the next step in the resolution """
         Ts = Logic.tl.logic
@@ -933,7 +923,7 @@ class Subgoal(object):
         if Slow_motion:
             print("STACK :")
             for task in Ts.Tasks if self.literal.pred.recursive else reversed(Ts.Tasks):
-                print("  " + (str(task)[25:] if len(str(task))<115 else str(task)[25:115]+'..'))
+                print("  " + (str(task)[25:] if len(str(task))<135 else str(task)[25:135]+'..'))
             print(" ")
             
         task = (None, None)
@@ -951,14 +941,11 @@ class Subgoal(object):
             task = Ts.Goal.on_completion_
 
         #TODO assert task ==(None, None) or task[1][0] == self
-        if Slow_motion: 
+        if Slow_motion:
             print("Subgoal " + str(self))
-            print("  is processing : %s" % (str((task))[25:] if len(str((task)))<115 else str((task))[25:115]+'..'))
+            print("  is processing : %s" % (str((task))[25:] if len(str((task)))<135 else str((task))[25:135]+'..'))
         return task
         
-    def goto(self, subgoal):
-        return subgoal.next_step()
-    
     def complete(self, subgoal, aggregate=None):
         """makes sure that subgoal is completed before calling post_thunk and resuming processing"""
         #TODO check for infinite loops
@@ -985,13 +972,12 @@ class Subgoal(object):
         else:
             assert hasattr(parent.literal.pred, 'base_pred') # parent is a negation
             if not self.facts:
-                parent.fact(True) #TODO goto parent ??
+                parent.fact(True)
         return self.next_step()
             
 # op codes are defined after class Subgoal is defined
 SEARCH = Subgoal.search
 ADD_CLAUSE = Subgoal.add_clause
-GOTO = Subgoal.goto
 ON_COMPLETION = Subgoal.on_completion
 
     
