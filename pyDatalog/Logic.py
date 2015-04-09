@@ -37,11 +37,12 @@ class Logic(object):
         if isinstance(logic, cls):
             pyParser.clear()
             Logic.tl.logic = copy.copy(logic) 
-            Logic.tl.logic.Subgoals = {}
-            Logic.tl.logic.Tasks = None
-            Logic.tl.logic.Stack = []
+            Logic.tl.logic.Subgoals = {} # for memoization of subgoals (tabled resolution)
+            Logic.tl.logic.Tasks = None # LIFO stack of tasks
+            Logic.tl.logic.Recursive_Tasks = None # FIFO queue of tasks for recursive clauses
+            Logic.tl.logic.Recursive = False # True -> process Recursive_tasks. Otherwise, process Tasks
             Logic.tl.logic.Goal = None
-            Logic.tl.logic.gc_uncollected = False
+            Logic.tl.logic.gc_uncollected = False # did we run gc.collect() yet ?
             pyEngine.Fresh_var.tl.counter = 0
         elif not (logic) or not hasattr(Logic.tl, 'logic'):
             Logic.tl.logic = object.__new__(cls)

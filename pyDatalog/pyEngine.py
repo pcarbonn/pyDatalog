@@ -43,7 +43,7 @@ from . import util
 
 Logging = False # True --> logging is activated.  Kept for performance reason
 Auto_print = False # True => automatically prints the result of a query
-Slow_motion = False # True => detail print of the stack of tasks
+Slow_motion = False # True => detail print of the stack of tasks at each step
 
 Python_resolvers = {} # dictionary  of python functions that can resolve a predicate
 Logic = None # place holder for Logic class from Logic module
@@ -500,9 +500,9 @@ class Literal(object):
     def ask(self):
         """ Invoke the tasks. Each task may append new tasks on the schedule."""
         Ts = Logic.tl.logic
-        saved_environment = Ts.Tasks, Ts.Subgoals, Ts.Goal
-        Ts.Tasks, Ts.Subgoals, Ts.Goal = deque(), {}, Subgoal(self)
-        Ts.gc_uncollected = True
+        saved_environment = Ts.Tasks, Ts.Recursive_Tasks, Ts.Recursive, Ts.Subgoals, Ts.Goal
+        Ts.Tasks, Ts.Recursive_Tasks, Ts.Subgoals, Ts.Goal = list(), deque(), {}, Subgoal(self)
+        Ts.gc_uncollected, Ts.Recursive = True, False
         todo, arg = (SEARCH, (Ts.Goal, ))
         while todo:
             todo, arg = todo(*arg)
@@ -510,7 +510,7 @@ class Literal(object):
         if Ts.Goal.facts is True:
             return True
         result = [ tuple(term.id for term in literal.terms) for literal in list(Ts.Goal.facts.values())]
-        Ts.Tasks, Ts.Subgoals, Ts.Goal = saved_environment
+        Ts.Tasks, Ts.Recursive_Tasks, Ts.Recursive, Ts.Subgoals, Ts.Goal = saved_environment
         return result    
 
 
@@ -899,7 +899,7 @@ class Subgoal(object):
         else: # new subgoal --> create it and launch it
             sg = Subgoal(selected)
             sg.waiters.append((self, clause))
-            sg.schedule((SEARCH, (sg, )))
+            self.schedule_search(sg)
             if Slow_motion: print("  On completion, goto " + str(self))
             
 
@@ -914,61 +914,88 @@ class Subgoal(object):
             # not done in Subgoal.complete() for speed reason
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
         if self.literal.pred.recursive:
-            Logic.tl.logic.Tasks.appendleft(task)
+            Logic.tl.logic.Recursive_Tasks.appendleft(task)
             self.tasks.appendleft(task)
         else:
             Logic.tl.logic.Tasks.append(task)
             self.tasks.append(task)
 
+    def schedule_search(self, subgoal):
+        # schedule SEARCH before SEARCHING, if possible
+        Logic.tl.logic.Recursive = subgoal.literal.pred.recursive
+        if self.literal.pred.recursive:
+            if subgoal.literal.pred.recursive:
+                subgoal.schedule((SEARCH, (subgoal, ))) # first
+                self.schedule((SEARCHING, (self, subgoal ))) # last
+            else:
+                self.schedule((SEARCHING, (self, subgoal ))) # last
+                subgoal.schedule((SEARCH, (subgoal, ))) # first
+        else:
+            if subgoal.literal.pred.recursive:
+                self.schedule((SEARCHING, (self, subgoal ))) # first !
+                subgoal.schedule((SEARCH, (subgoal, ))) # last !
+            else:
+                self.schedule((SEARCHING, (self, subgoal ))) # last
+                subgoal.schedule((SEARCH, (subgoal, ))) # first
+            
     def next_step(self):
         """ returns the next step in the resolution """
         Ts = Logic.tl.logic
         # self.print_()
         if Slow_motion:
-            print("STACK :")
-            for task in Ts.Tasks if self.literal.pred.recursive else reversed(Ts.Tasks):
+            print("STACK :" + ("<---" if not Ts.Recursive else ""))
+            for task in reversed(Ts.Tasks):
+                print("  " + (str(task)[25:] if len(str(task))<135 else str(task)[25:135]+'..'))
+            print("RECURSIVE STACK :" + ("<---" if Ts.Recursive else ""))
+            for task in reversed(Ts.Recursive_Tasks):
                 print("  " + (str(task)[25:] if len(str(task))<135 else str(task)[25:135]+'..'))
             print(" ")
             
-        task = (None, None)
-        if not(self.tasks) and self.on_completion_:
-            if Slow_motion: print("Completed :" + str(self))
-            task = self.on_completion_
-            self.on_completion_ = None
-        elif not Ts.Goal.is_done and Ts.Tasks:
-            task = Ts.Tasks.pop()
-            task2 = self.tasks.pop() if self.tasks else (None, None)
-            #TODO assert task == task2
-        elif Ts.Goal.on_completion_:
-            task = Ts.Goal.on_completion_
+        task = (None, None); task2 = task
+        if not Ts.Goal.is_done:
+            if Ts.Recursive:
+                if Ts.Recursive_Tasks:
+                    task = Ts.Recursive_Tasks.pop()
+                    task2 = task[1][0].tasks.pop() if task[1][0].tasks else (None, None)
+                elif Ts.Tasks:
+                    Ts.Recursive = False
+                    task = Ts.Tasks.pop()
+                    task2 = task[1][0].tasks.pop() if task[1][0].tasks else (None, None)
+            else:
+                if Ts.Tasks:
+                    task = Ts.Tasks.pop()
+                    task2 = task[1][0].tasks.pop() if task[1][0].tasks else (None, None)
+                elif Ts.Recursive_Tasks:
+                    Ts.Recursive = True
+                    task = Ts.Recursive_Tasks.pop()
+                    task2 = task[1][0].tasks.pop() if task[1][0].tasks else (None, None)
+            assert task == task2 # make sure we are in sync, and not lose tasks
 
-        #TODO assert task ==(None, None) or task[1][0] == self
         if Slow_motion:
-            print("Subgoal " + str(self))
-            print("  is processing : %s" % (str((task))[25:] if len(str((task)))<135 else str((task))[25:135]+'..'))
+            print("Processing : %s" % (str((task))[25:] if len(str((task)))<135 else str((task))[25:135]+'..'))
         return task
         
+    def searching(self, subgoal):
+        if not(subgoal.tasks): # subgoal is completed
+            return subgoal.on_completion_ or self.next_step()
+        # restart searching, but in good recursive mode
+        self.schedule((SEARCHING, (self, subgoal)))
+        Logic.tl.logic.Recursive = subgoal.literal.pred.recursive
+        return self.next_step()
+    
     def complete(self, subgoal, aggregate=None):
         """makes sure that subgoal is completed before calling post_thunk and resuming processing"""
         #TODO check for infinite loops
         # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-
-        # this is done by saving the environment to the stack. on_completion will eventually do the Stack.pop().
-        if Logging: logging.debug('push')
-        Ts = Logic.tl.logic
-        Ts.Stack.append((Ts.Subgoals, Ts.Tasks, Ts.Goal))
-        Ts.Subgoals, Ts.Tasks, Ts.Goal = {}, deque(), subgoal
+        assert subgoal.on_completion_ is None
         
         # now initialize the new search
-        assert subgoal.on_completion_ is None
         subgoal.on_completion_ = (ON_COMPLETION, (subgoal, self, aggregate))
-        subgoal.schedule((SEARCH, (subgoal, )))
+        self.schedule_search(subgoal)
     
     def on_completion(self, parent, aggregate):
-        if Logging: logging.debug('pop + post processing')
+        if Logging: logging.debug('Processing aggregate or negation')
         self.on_completion_ = None # don't do it again
-        Ts = Logic.tl.logic
-        Ts.Subgoals, Ts.Tasks, Ts.Goal = Ts.Stack.pop()
         if aggregate:
             aggregate.complete(self, parent)
         else:
@@ -978,6 +1005,7 @@ class Subgoal(object):
         return self.next_step()
             
 # op codes are defined after class Subgoal is defined
+SEARCHING = Subgoal.searching
 SEARCH = Subgoal.search
 ADD_CLAUSE = Subgoal.add_clause
 ON_COMPLETION = Subgoal.on_completion
@@ -1056,7 +1084,8 @@ def clear():
     Logic.tl.logic.Pred_registry = weakref.WeakValueDictionary()
     Logic.tl.logic.Subgoals = {}
     Logic.tl.logic.Tasks = None
-    Logic.tl.logic.Stack = []
+    Logic.tl.logic.Recursive_Tasks = None
+    Logic.tl.logic.Recursive = False
     Logic.tl.logic.Goal = None
     Logic.tl.logic.gc_uncollected = False
     Fresh_var.tl.counter = 0
