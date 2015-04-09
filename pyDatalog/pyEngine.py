@@ -686,7 +686,7 @@ class Subgoal(object):
         self.literal = literal
         self.facts = {}
         self.waiters = []
-        self.tasks = 0
+        self.tasks = deque()
         # subgoal is done when a partial literal is true 
         # or when one fact is found for a function of constants
         self.is_done = False
@@ -913,8 +913,12 @@ class Subgoal(object):
         if task[0] is SEARCH:
             # not done in Subgoal.complete() for speed reason
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
-        Logic.tl.logic.Tasks.append(task)
-        self.tasks += 1
+        if self.literal.pred.recursive:
+            Logic.tl.logic.Tasks.appendleft(task)
+            self.tasks.appendleft(task)
+        else:
+            Logic.tl.logic.Tasks.append(task)
+            self.tasks.append(task)
 
     def next_step(self):
         """ returns the next step in the resolution """
@@ -927,16 +931,14 @@ class Subgoal(object):
             print(" ")
             
         task = (None, None)
-        if self.tasks == 0 and self.on_completion_:
+        if not(self.tasks) and self.on_completion_:
             if Slow_motion: print("Completed :" + str(self))
             task = self.on_completion_
             self.on_completion_ = None
         elif not Ts.Goal.is_done and Ts.Tasks:
-            self.tasks -= 1
-            if self.literal.pred.recursive:
-                task = Ts.Tasks.popleft()
-            else:
-                task = Ts.Tasks.pop()
+            task = Ts.Tasks.pop()
+            task2 = self.tasks.pop() if self.tasks else (None, None)
+            #TODO assert task == task2
         elif Ts.Goal.on_completion_:
             task = Ts.Goal.on_completion_
 
