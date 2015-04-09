@@ -681,12 +681,13 @@ class Subgoal(object):
     A subgoal has a literal, a set of facts, and an array of waiters.
     A waiter is a pair containing a subgoal and a clause.
     """
-    __slots__ = ['literal', 'facts', 'waiters', 'tasks', 'is_done', 'on_completion_']
+    __slots__ = ['literal', 'facts', 'waiters', 'tasks', 'recursive', 'is_done', 'on_completion_']
     def __init__(self, literal):
         self.literal = literal
         self.facts = {}
         self.waiters = []
         self.tasks = deque()
+        self.recursive = literal.pred.recursive
         # subgoal is done when a partial literal is true 
         # or when one fact is found for a function of constants
         self.is_done = False
@@ -913,7 +914,7 @@ class Subgoal(object):
         if task[0] is SEARCH:
             # not done in Subgoal.complete() for speed reason
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
-        if self.literal.pred.recursive:
+        if self.recursive:
             Logic.tl.logic.Recursive_Tasks.appendleft(task)
             self.tasks.appendleft(task)
         else:
@@ -922,16 +923,16 @@ class Subgoal(object):
 
     def schedule_search(self, subgoal):
         # schedule SEARCH before SEARCHING, if possible
-        Logic.tl.logic.Recursive = subgoal.literal.pred.recursive
-        if self.literal.pred.recursive:
-            if subgoal.literal.pred.recursive:
+        Logic.tl.logic.Recursive = subgoal.recursive
+        if self.recursive:
+            if subgoal.recursive:
                 subgoal.schedule((SEARCH, (subgoal, ))) # first
                 self.schedule((SEARCHING, (self, subgoal ))) # last
             else:
                 self.schedule((SEARCHING, (self, subgoal ))) # last
                 subgoal.schedule((SEARCH, (subgoal, ))) # first
         else:
-            if subgoal.literal.pred.recursive:
+            if subgoal.recursive:
                 self.schedule((SEARCHING, (self, subgoal ))) # first !
                 subgoal.schedule((SEARCH, (subgoal, ))) # last !
             else:
@@ -980,7 +981,7 @@ class Subgoal(object):
             return subgoal.on_completion_ or self.next_step()
         # restart searching, but in good recursive mode
         self.schedule((SEARCHING, (self, subgoal)))
-        Logic.tl.logic.Recursive = subgoal.literal.pred.recursive
+        Logic.tl.logic.Recursive = subgoal.recursive
         return self.next_step()
     
     def complete(self, subgoal, aggregate=None):
