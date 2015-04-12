@@ -24,14 +24,8 @@ This file contains the port of the datalog engine of J. D. Ramsdell,
 from lua to python, with many enhancements.
 
 See also doc.py for additional source code documentation.
-
-Some notable differences between python and lua:
-* lua indices start at 1, not 0
-* any variable is true in lua if it is not nil or false.
-* lua tables contain both a list and a dictionary --> need to change them to objects
-* lua variables are global by default, python ones are local by default
-* variable bindings in a closure.  See http://tiny.cc/7837cw, http://tiny.cc/rq47cw
 """
+
 from collections import deque, OrderedDict
 import gc
 import logging
@@ -804,7 +798,8 @@ class Subgoal(object):
             return self.next_step()
     
         raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
-                
+
+
     ################## add derived facts and use rules ##############
 
     def add_clause(self, clause):
@@ -867,10 +862,7 @@ class Subgoal(object):
             self.fact(result)
 
     def rule(self, clause, selected):
-        """ 
-        Use a newly derived rule. 
-        SLG_POSITIVE in the reference article
-        """
+        """ Use a newly derived rule. SLG_POSITIVE in the reference article """
         sg = Logic.tl.logic.Subgoals.get(selected.get_tag())
         if sg != None: # selected subgoal exists already
             if sg.facts is True:
@@ -910,7 +902,7 @@ class Subgoal(object):
             self.tasks.append(task)
 
     def schedule_search(self, subgoal):
-        # schedule SEARCH before SEARCHING, if possible
+        """ schedule SEARCH before SEARCHING, if possible """
         Logic.tl.logic.Recursive = subgoal.recursive
         if self.recursive:
             if subgoal.recursive:
