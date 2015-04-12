@@ -348,6 +348,11 @@ def test():
         assert p(1) == set([])
         assert p(2) == set([()])
     
+        # issue 14
+        p(X,X) <= q(X,Y)
+        +q(1,2)
+        assert ask(p(X,2)) == None
+        
     """ recursion with expressions                                         """
     # reset the engine
     pyDatalog.clear()

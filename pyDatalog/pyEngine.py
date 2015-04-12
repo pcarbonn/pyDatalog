@@ -486,6 +486,9 @@ class Literal(object):
             if literal_i.id != other_i.id:
                 env = literal_i.unify(other_i, env)
                 if env == None: return env
+        for key, value in env.items(): # 2nd pass for issue #14
+            if not isinstance(value, Const):
+                env[key] = value.chase(env)
         return env
 
     def match(self, fact):
@@ -910,7 +913,7 @@ class Subgoal(object):
     
     def schedule(self, task):
         """ Schedule a task for later invocation """
-        if Slow_motion: print("  Add : %s" % (str(task)[25:] if len(str(task))<135 else str(task)[25:135]+'..'))
+        if Slow_motion: print("  Add : %s" % show(task))
         if task[0] is SEARCH:
             # not done in Subgoal.complete() for speed reason
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
@@ -946,10 +949,10 @@ class Subgoal(object):
         if Slow_motion:
             print("STACK :" + ("<---" if not Ts.Recursive else ""))
             for task in reversed(Ts.Tasks):
-                print("  " + (str(task)[25:] if len(str(task))<135 else str(task)[25:135]+'..'))
+                print("  " + show(task))
             print("RECURSIVE STACK :" + ("<---" if Ts.Recursive else ""))
             for task in reversed(Ts.Recursive_Tasks):
-                print("  " + (str(task)[25:] if len(str(task))<135 else str(task)[25:135]+'..'))
+                print("  " + show(task))
             print(" ")
             
         task = (None, None); task2 = task
@@ -973,7 +976,7 @@ class Subgoal(object):
             assert task == task2 # make sure we are in sync, and not lose tasks
 
         if Slow_motion:
-            print("Processing : %s" % (str((task))[25:] if len(str((task)))<135 else str((task))[25:135]+'..'))
+            print("Processing : %s" % show(task))
         return task
         
     def searching(self, subgoal):
@@ -1011,7 +1014,12 @@ SEARCH = Subgoal.search
 ADD_CLAUSE = Subgoal.add_clause
 ON_COMPLETION = Subgoal.on_completion
 
-    
+def show(task):
+    if task == (None, None):
+        return
+    result = {SEARCHING: "Searching", SEARCH: "Search", ADD_CLAUSE: "Add clause", ON_COMPLETION: "On completion"}
+    result = result[task[0]] + " " + str(task[1])
+    return result if len(result)<110 else result[:110]
 
 # PRIMITIVES   ##################################################
 
