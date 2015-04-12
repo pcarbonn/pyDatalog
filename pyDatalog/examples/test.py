@@ -383,7 +383,8 @@ def test():
     # Factorial
     pyDatalog.clear()
     @pyDatalog.program()
-    def factorial(): 
+    def factorial():
+        factorial[N] = 0 # should never be used 
         factorial[N] = N*factorial[N-1] # most general clause first
         factorial[1] = 1
         (factorial[N] == F) <= (N < 1) & (F== -factorial[-N])

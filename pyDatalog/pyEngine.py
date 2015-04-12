@@ -665,13 +665,14 @@ class Subgoal(object):
     A subgoal has a literal, a set of facts, and an array of waiters.
     A waiter is a pair containing a subgoal and a clause.
     """
-    __slots__ = ['literal', 'facts', 'waiters', 'tasks', 'recursive', 'is_done', 'on_completion_']
+    __slots__ = ['literal', 'facts', 'waiters', 'tasks', 'clauses', 'recursive', 'is_done', 'on_completion_']
     def __init__(self, literal):
         self.literal = literal
         self.facts = {}
         self.waiters = []
-        self.tasks = deque()
         self.recursive = literal.pred.recursive
+        self.tasks = deque() if self.recursive else list()
+        self.clauses = []
         # subgoal is done when a partial literal is true 
         # or when one fact is found for a function of constants
         self.is_done = False
@@ -744,13 +745,15 @@ class Subgoal(object):
                 self.complete(Subgoal(base_literal), literal.aggregate)
                 return self.next_step()
             elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
-                for clause in self.iterable(relevant_clauses(literal)):
+                self.clauses = []
+                self.schedule((NEXT_CLAUSE, (self,)))
+                for clause in relevant_clauses(literal):
                     renamed = clause.rename()
                     env = literal.unify(renamed.head)
                     if env != None:
                         clause = renamed.subst(env, class0)
                         if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
-                        self.schedule((ADD_CLAUSE, (self, clause)))
+                        self.clauses.append((ADD_CLAUSE, (self, clause)))
                 return self.next_step()
             elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
                 literal1 = literal.equalized()
@@ -924,6 +927,9 @@ class Subgoal(object):
         Ts = Logic.tl.logic
         # self.print_()
         if Slow_motion:
+            print("Clauses of:" + str(self))
+            for task in self.clauses:
+                print("  " + show(task))
             print("STACK :" + ("<---" if not Ts.Recursive else ""))
             for task in reversed(Ts.Tasks):
                 print("  " + show(task))
@@ -955,9 +961,19 @@ class Subgoal(object):
         if Slow_motion:
             print("Processing : %s" % show(task))
         return task
-        
+
+    def next_clause(self):
+        if self.tasks: # still some tasks to do --> postpone next_clause
+            self.schedule((NEXT_CLAUSE, (self,)))
+            return self.next_step()
+        if self.clauses:
+            task = self.clauses.pop()
+            self.schedule((NEXT_CLAUSE, (self,)))
+            return task
+        return self.on_completion_ or self.next_step()
+                
     def searching(self, subgoal):
-        if not(subgoal.tasks): # subgoal is completed
+        if not(subgoal.tasks) and not(subgoal.clauses): # subgoal is completed
             return subgoal.on_completion_ or self.next_step()
         # restart searching, but in good recursive mode
         self.schedule((SEARCHING, (self, subgoal)))
@@ -989,12 +1005,17 @@ class Subgoal(object):
 SEARCHING = Subgoal.searching
 SEARCH = Subgoal.search
 ADD_CLAUSE = Subgoal.add_clause
+NEXT_CLAUSE = Subgoal.next_clause
 ON_COMPLETION = Subgoal.on_completion
 
 def show(task):
     if task == (None, None):
         return
-    result = {SEARCHING: "Searching", SEARCH: "Search", ADD_CLAUSE: "Add clause", ON_COMPLETION: "On completion"}
+    result = {SEARCHING: "Searching", 
+              SEARCH: "Search", 
+              ADD_CLAUSE: "Add clause", 
+              NEXT_CLAUSE: "Next clause",
+              ON_COMPLETION: "On completion"}
     result = result[task[0]] + " " + str(task[1])
     return result if len(result)<110 else result[:110]
 
