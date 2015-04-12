@@ -681,9 +681,6 @@ class Subgoal(object):
     def __repr__(self):
         return str(self.literal)
     
-    def iterable(self, iterable):
-        return reversed(list(iterable)) if self.recursive else iterable
-
     def search(self):
         """ 
         Search for derivations of the literal associated with this subgoal 
@@ -708,7 +705,7 @@ class Subgoal(object):
                         else literal.pred.id.replace(r'/', str(literal.pred.arity)+r"/")
                 if resolver in Python_resolvers:
                     if Logging : logging.debug("pyDatalog uses python resolvers for %s" % literal)
-                    for result in self.iterable(Python_resolvers[resolver](*terms)):
+                    for result in Python_resolvers[resolver](*terms):
                         self.fact_candidate(class0, result)
                     return self.next_step()
             if _class: 
@@ -716,7 +713,7 @@ class Subgoal(object):
                 method_name = '_pyD_%s%i' % (literal.pred.suffix, int(literal.pred.arity - 1)) #prefixed
                 if literal.pred.suffix and method_name in _class.__dict__:
                     if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
-                    for result in self.iterable(getattr(_class, method_name)(*(terms[1:]))): 
+                    for result in getattr(_class, method_name)(*(terms[1:])): 
                         self.fact_candidate(class0, (terms[0],) + result)
                     return self.next_step()
                 if '_pyD_query' in _class.__dict__:        
@@ -729,7 +726,7 @@ class Subgoal(object):
                         pass
                     else:
                         if Logging: logging.debug("pyDatalog uses _pyD_query resolvers for %s" % literal)
-                        for result in self.iterable(results):
+                        for result in results:
                             self.fact_candidate(class0, (terms[0],) + result)
                         return self.next_step()
             if literal.pred.prim: # X==Y, X < Y+Z
@@ -745,8 +742,7 @@ class Subgoal(object):
                 self.complete(Subgoal(base_literal), literal.aggregate)
                 return self.next_step()
             elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
-                self.clauses = []
-                self.schedule((NEXT_CLAUSE, (self,)))
+                assert self.clauses == []
                 for clause in relevant_clauses(literal):
                     renamed = clause.rename()
                     env = literal.unify(renamed.head)
@@ -754,6 +750,8 @@ class Subgoal(object):
                         clause = renamed.subst(env, class0)
                         if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
                         self.clauses.append((ADD_CLAUSE, (self, clause)))
+                if self.clauses:
+                    self.schedule((NEXT_CLAUSE, (self,)))
                 return self.next_step()
             elif literal.pred.comparison: # p[X]<=Y => consider translating to (p[X]==Y1) & (Y1<Y)
                 literal1 = literal.equalized()
@@ -780,7 +778,7 @@ class Subgoal(object):
                 pass
             else:
                 if Logging: logging.debug("pyDatalog uses pyDatalog_search for %s" % literal)
-                for result in self.iterable(results):
+                for result in results:
                     self.fact_candidate(class0, result)
                 return self.next_step()
         elif literal.pred.comparison and len(terms)==3 and terms[0].is_const() \
@@ -854,7 +852,8 @@ class Subgoal(object):
     def fact_candidate(self, class0, result):
         """ add result as a candidate fact of class0 for subgoal"""
         if result is True:
-            return self.fact(True)
+            self.fact(True)
+            return
         result = [Term_of(r) for r in result]
         if len(result) != len(self.literal.terms):
             return
