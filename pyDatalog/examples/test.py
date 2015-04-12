@@ -352,6 +352,10 @@ def test():
         p(X,X) <= q(X,Y)
         +q(1,2)
         assert ask(p(X,2)) == None
+
+        p(X,X,Y,Y) <= q(X,Y,Z)
+        +q(1,2,3)
+        assert ask(p(X,Y,Y,2)) == None
         
     """ recursion with expressions                                         """
     # reset the engine

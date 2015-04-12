@@ -486,9 +486,15 @@ class Literal(object):
             if literal_i.id != other_i.id:
                 env = literal_i.unify(other_i, env)
                 if env == None: return env
-        for key, value in env.items(): # 2nd pass for issue #14
-            if not isinstance(value, Const):
-                env[key] = value.chase(env)
+        todo = True
+        while todo:
+            todo = False
+            for key, value in env.items(): # 2nd pass for issue #14
+                if not isinstance(value, Const):
+                    new_value = value.chase(env)
+                    if env[key].id != new_value.id:
+                        env[key]= new_value
+                        todo = True
         return env
 
     def match(self, fact):
