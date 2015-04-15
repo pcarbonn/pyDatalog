@@ -833,28 +833,30 @@ class Subgoal(object):
                     resolvent = Clause(clause.head, clause.body[1:])
                     subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
                 self.waiters = []
-        elif self.facts is not True and not self.facts.get(literal.get_fact_id()):
-            if Logging: logging.info("New fact : %s" % str(literal))
-            self.facts[literal.get_fact_id()] = literal
-            for subgoal, clause in self.waiters:
-                # Resolve the selected literal of a clause with a literal.
-                # The selected literal is the first literal in body of a rule.
-                # A new clause is generated that has a body with one less literal.
-                env = clause.body[0].unify(literal)
-                assert env != None
-                resolvent = Clause(clause.head.subst(env), 
-                                   [bodi.subst(env) for bodi in clause.body[1:] ])
-                subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
-            all_const = True # Cython equivalent for all(self.literal.terms[i].is_const() for i in range(self.literal.pred.prearity)
-            for i in range(self.literal.pred.prearity):
-                t = self.literal.terms[i]
-                if not(isinstance(t, Const) or t.is_const()): # use isinstance for speed
-                    all_const = False
-                    break
-            if len(self.facts)==1 and all_const:
-                if Slow_motion: print("is done !")
-                self.is_done = True # one fact for a function of constant
-                self.waiters = []
+        elif self.facts is not True:
+            fact_id = literal.get_fact_id()
+            if not self.facts.get(fact_id):
+                if Logging: logging.info("New fact : %s" % str(literal))
+                self.facts[fact_id] = literal
+                for subgoal, clause in self.waiters:
+                    # Resolve the selected literal of a clause with a literal.
+                    # The selected literal is the first literal in body of a rule.
+                    # A new clause is generated that has a body with one less literal.
+                    env = clause.body[0].unify(literal)
+                    assert env != None
+                    resolvent = Clause(clause.head.subst(env), 
+                                       [bodi.subst(env) for bodi in clause.body[1:] ])
+                    subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
+                all_const = True # Cython equivalent for all(self.literal.terms[i].is_const() for i in range(self.literal.pred.prearity)
+                for i in range(self.literal.pred.prearity):
+                    t = self.literal.terms[i]
+                    if not(isinstance(t, Const) or t.is_const()): # use isinstance for speed
+                        all_const = False
+                        break
+                if len(self.facts)==1 and all_const:
+                    if Slow_motion: print("is done !")
+                    self.is_done = True # one fact for a function of constant
+                    self.waiters = []
 
     def fact_candidate(self, class0, result):
         """ add result as a candidate fact of class0 for subgoal"""
