@@ -819,10 +819,13 @@ class Subgoal(object):
         Store a derived fact, and inform all waiters of the fact too. 
         SLG_ANSWER in the reference article
         """
-        if isinstance(literal, Literal) and \
-        not all(isinstance(t, Const) or t.is_const() for t in literal.terms): # isinstance for speed
-            literal = True # a partial fact is True
-        if literal is True:
+        all_const = True # Cython equivalent for all(t.is_const() for t in literal.terms)
+        if not literal is True:
+            for t in literal.terms:
+                if not(isinstance(t, Const) or t.is_const()): # use isinstance for speed
+                    all_const = False
+                    break
+        if literal is True or not all_const:
             if self.facts != True: # if already True, do not advise its waiters again
                 if Logging: logging.info("New fact : %s is True" % str(self.literal))
                 self.facts, self.is_done = True, True
@@ -842,9 +845,13 @@ class Subgoal(object):
                 resolvent = Clause(clause.head.subst(env), 
                                    [bodi.subst(env) for bodi in clause.body[1:] ])
                 subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
-            if len(self.facts)==1 \
-            and all(self.literal.terms[i].is_const() 
-                    for i in range(self.literal.pred.prearity)):
+            all_const = True # Cython equivalent for all(self.literal.terms[i].is_const() for i in range(self.literal.pred.prearity)
+            for i in range(self.literal.pred.prearity):
+                t = self.literal.terms[i]
+                if not(isinstance(t, Const) or t.is_const()): # use isinstance for speed
+                    all_const = False
+                    break
+            if len(self.facts)==1 and all_const:
                 if Slow_motion: print("is done !")
                 self.is_done = True # one fact for a function of constant
                 self.waiters = []
