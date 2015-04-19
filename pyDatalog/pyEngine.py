@@ -892,7 +892,6 @@ class Subgoal(object):
             sg = Subgoal(selected)
             sg.waiters.append((self, clause))
             self.schedule_search(sg)
-            if Slow_motion: print("  On completion, goto " + str(self))
             
 
     # state machine of the engine :
@@ -935,9 +934,15 @@ class Subgoal(object):
         Ts = Logic.tl.logic
         # self.print_()
         if Slow_motion:
+            if self.facts is not True:
+                print("Facts of:" + str(self))
+                for fact in self.facts:
+                    print("  " + str(fact))
             print("Clauses of:" + str(self))
             for task in self.clauses:
                 print("  " + show(task))
+            if self.on_completion_:
+                print("  on completion : " + show(self.on_completion_))
             print("STACK :" + ("<---" if not Ts.Recursive else ""))
             for task in reversed(Ts.Tasks):
                 print("  " + show(task))
@@ -1024,7 +1029,7 @@ def show(task):
               ADD_CLAUSE: "Add clause", 
               NEXT_CLAUSE: "Next clause",
               ON_COMPLETION: "On completion"}
-    result = result[task[0]] + " " + str(task[1])
+    result = "{:25s}.. : ".format(str(task[1][0])[:25]) + result[task[0]] + " " + str(task[1][1:])
     return result if len(result)<110 else result[:110]
 
 # PRIMITIVES   ##################################################
