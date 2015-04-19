@@ -740,6 +740,22 @@ def test():
         assert ask(balance[Account, 2014,1]==Amount) == set([('Account1',0), ('Account2', 5)])
         assert ask(balance[Account, Y,M]==0) == set([('Account1', 2014,1)])
 
+    @pyDatalog.program()
+    def combined():
+        share[a] = 0.3
+        share[b] = 0.2
+        share[c] = 0.1
+        
+        (rank[X] == rank_(group_by=(), order_by = -Y)) <= (share[X]==Y)
+        
+        (t[None] == tuple_(Row, order_by=Y)) <= (
+              (share[X]==S)
+              & (rank[X]==Y)
+              & (Row == (X, S, Y))
+              )
+        
+        assert ask(t[None]==Text) == set([((('a', 0.3, 0), ('b', 0.2, 1), ('c', 0.1, 2)),)])
+
 
     """ simple in-line queries                                        """
     X = pyDatalog.Variable()

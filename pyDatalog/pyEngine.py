@@ -886,6 +886,8 @@ class Subgoal(object):
                     resolvent = Clause(clause.head.subst(env), 
                                        [bodi.subst(env) for bodi in clause.body[1:] ])
                     self.schedule((ADD_CLAUSE, (self, resolvent)))
+            if sg.tasks:
+                self.schedule((SEARCHING, (self, sg )))
             if not sg.is_done:
                 sg.waiters.append((self, clause)) # add me to sg's waiters
         else: # new subgoal --> create it and launch it
@@ -986,11 +988,19 @@ class Subgoal(object):
         return self.on_completion_ or self.next_step()
                 
     def searching(self, subgoal):
+        Ts = Logic.tl.logic
         if not(subgoal.tasks) and not(subgoal.clauses): # subgoal is completed
             return subgoal.on_completion_ or self.next_step()
-        # restart searching, but in good recursive mode
+        # restart searching of subgoal, in good recursive mode
         self.schedule((SEARCHING, (self, subgoal)))
-        Logic.tl.logic.Recursive = subgoal.recursive
+        if subgoal.recursive:
+            pass #TODO ???
+        else: # move subgoal tasks first
+            for task in subgoal.tasks:
+                pos = Ts.Tasks.index(task)
+                Ts.Tasks.pop(pos)
+                Ts.Tasks.append(task)
+        Ts.Recursive = subgoal.recursive
         return self.next_step()
     
     def complete(self, subgoal, aggregate=None):
