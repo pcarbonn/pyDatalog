@@ -694,7 +694,7 @@ class Subgoal(object):
         if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
             if Logging: logging.debug("pyDatalog will search negation of %s" % literal0)
             base_literal = Literal(literal0.pred.base_pred, terms)
-            self.complete(Subgoal(base_literal))
+            self.complete(base_literal)
             return self.next_step()
         
         for _class in literal0.pred.parent_classes():
@@ -739,7 +739,7 @@ class Subgoal(object):
                 for i in literal.aggregate.slice_to_variabilize:
                     base_terms[i] = Fresh_var()
                 base_literal = Literal(literal.pred.name, base_terms) # without aggregate to avoid infinite loop
-                self.complete(Subgoal(base_literal), literal.aggregate)
+                self.complete(base_literal, literal.aggregate)
                 return self.next_step()
             elif literal.pred.id in Logic.tl.logic.Db: # has a datalog definition, e.g. p(X), p[X]==Y
                 assert self.clauses == []
@@ -908,7 +908,7 @@ class Subgoal(object):
             if Slow_motion:
                 sg = Logic.tl.logic.Subgoals.get(self.literal.get_tag())
                 if sg != None: # selected subgoal exists already
-                    pass #assert False
+                    assert False
                 
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
         if self.recursive:
@@ -949,7 +949,9 @@ class Subgoal(object):
             for task in self.clauses:
                 print("  " + show(task))
             if self.on_completion_:
-                print("  on completion : " + show(self.on_completion_))
+                print("On completion : ")
+                for task in self.on_completion_:
+                    print("  " + show(task))
             print("STACK :" + ("<---" if not Ts.Recursive else ""))
             for task in reversed(Ts.Tasks):
                 print("  " + show(task))
@@ -1020,14 +1022,17 @@ class Subgoal(object):
         Ts.Recursive = subgoal.recursive
         return self.next_step()
     
-    def complete(self, subgoal, aggregate=None):
+    def complete(self, literal, aggregate=None):
         """makes sure that subgoal is completed before calling post_thunk and resuming processing"""
         #TODO check for infinite loops
         # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-        
-        # now initialize the new search
+        subgoal = Logic.tl.logic.Subgoals.get(literal.get_tag())
+        if subgoal == None: # selected subgoal does not exist yet
+            subgoal = Subgoal(literal)
+            self.schedule_search(subgoal)
+        else:
+            self.schedule((SEARCHING, (self, subgoal)))
         subgoal.on_completion_.append( (ON_COMPLETION, (subgoal, self, aggregate)) )
-        self.schedule_search(subgoal)
     
     def on_completion(self, parent, aggregate):
         if Logging: logging.debug('Processing aggregate or negation')
