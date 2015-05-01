@@ -905,6 +905,11 @@ class Subgoal(object):
         if Slow_motion: print("  Add : %s" % show(task))
         if task[0] is SEARCH:
             # not done in Subgoal.complete() for speed reason
+            if Slow_motion:
+                sg = Logic.tl.logic.Subgoals.get(self.literal.get_tag())
+                if sg != None: # selected subgoal exists already
+                    pass #assert False
+                
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
         if self.recursive:
             Logic.tl.logic.Recursive_Tasks.appendleft(task)
@@ -995,11 +1000,11 @@ class Subgoal(object):
         self.schedule((SEARCHING, (self, subgoal)))
         if subgoal.recursive:
             pass #TODO ???
-        else: # move subgoal tasks first
-            for task in subgoal.tasks:
-                pos = Ts.Tasks.index(task)
-                Ts.Tasks.pop(pos)
-                Ts.Tasks.append(task)
+        else: # move first subgoal task first
+            task = subgoal.tasks[-1]
+            pos = Ts.Tasks.index(task)
+            Ts.Tasks.pop(pos)
+            Ts.Tasks.append(task)
         Ts.Recursive = subgoal.recursive
         return self.next_step()
     
