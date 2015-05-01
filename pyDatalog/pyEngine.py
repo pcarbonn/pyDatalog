@@ -676,7 +676,7 @@ class Subgoal(object):
         # subgoal is done when a partial literal is true 
         # or when one fact is found for a function of constants
         self.is_done = False
-        self.on_completion_ = None
+        self.on_completion_ = []
     
     def __repr__(self):
         return str(self.literal)
@@ -983,28 +983,40 @@ class Subgoal(object):
         return task
 
     def next_clause(self):
+        task = None
         if self.tasks: # still some tasks to do --> postpone next_clause
-            self.schedule((NEXT_CLAUSE, (self,)))
-            return self.next_step()
-        if self.clauses:
+            task = self.next_step()
+        elif self.clauses:
             task = self.clauses.pop()
+        elif self.on_completion_:
+            task = self.on_completion_.pop()
+
+        if task:
             self.schedule((NEXT_CLAUSE, (self,)))
             return task
-        return self.on_completion_ or self.next_step()
+        return self.next_step()
                 
     def searching(self, subgoal):
+        """ task used to relaunch searching of subgoal"""
         Ts = Logic.tl.logic
         if not(subgoal.tasks) and not(subgoal.clauses): # subgoal is completed
-            return subgoal.on_completion_ or self.next_step()
+            if subgoal.on_completion_: # find the completion task for self
+                for pos, task in enumerate(subgoal.on_completion_):
+                    if task[1][1] == self:
+                        subgoal.on_completion_.pop(pos) # don't do it again
+                        return task
+            return self.next_step()
         # restart searching of subgoal, in good recursive mode
         self.schedule((SEARCHING, (self, subgoal)))
         if subgoal.recursive:
             pass #TODO ???
-        else: # move first subgoal task first
+        elif subgoal.tasks: # place first subgoal task on top of stack
             task = subgoal.tasks[-1]
-            pos = Ts.Tasks.index(task)
+            pos = Ts.Tasks.index(task) #TODO this may raise an error ?
             Ts.Tasks.pop(pos)
             Ts.Tasks.append(task)
+        elif subgoal.clauses:
+            assert False #TODO needs a test case
         Ts.Recursive = subgoal.recursive
         return self.next_step()
     
@@ -1012,15 +1024,14 @@ class Subgoal(object):
         """makes sure that subgoal is completed before calling post_thunk and resuming processing"""
         #TODO check for infinite loops
         # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
-        assert subgoal.on_completion_ is None
         
         # now initialize the new search
-        subgoal.on_completion_ = (ON_COMPLETION, (subgoal, self, aggregate))
+        subgoal.on_completion_.append( (ON_COMPLETION, (subgoal, self, aggregate)) )
         self.schedule_search(subgoal)
     
     def on_completion(self, parent, aggregate):
         if Logging: logging.debug('Processing aggregate or negation')
-        self.on_completion_ = None # don't do it again
+
         if aggregate:
             aggregate.complete(self, parent)
         else:
