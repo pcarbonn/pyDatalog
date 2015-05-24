@@ -886,7 +886,7 @@ class Subgoal(object):
                     resolvent = Clause(clause.head.subst(env), 
                                        [bodi.subst(env) for bodi in clause.body[1:] ])
                     self.schedule((ADD_CLAUSE, (self, resolvent)))
-            if sg.tasks:
+            if sg.tasks and sg != self: # no need to say that I'm searching myself
                 self.schedule((SEARCHING, (self, sg )))
             if not sg.is_done:
                 sg.waiters.append((self, clause)) # add me to sg's waiters
@@ -978,8 +978,8 @@ class Subgoal(object):
                     Ts.Recursive = True
                     task = Ts.Recursive_Tasks.pop()
                     task2 = task[1][0].tasks.pop() if task[1][0].tasks else (None, None)
-            assert task == task2 # make sure we are in sync, and not lose tasks
-
+            if task != task2: # make sure we are in sync, and not lose tasks
+                pass
         if Slow_motion:
             print("Processing : %s" % show(task))
         return task
@@ -1008,18 +1008,27 @@ class Subgoal(object):
                         subgoal.on_completion_.pop(pos) # don't do it again
                         return task
             return self.next_step()
-        # restart searching of subgoal, in good recursive mode
-        self.schedule((SEARCHING, (self, subgoal)))
-        if subgoal.recursive:
-            pass #TODO ???
-        elif subgoal.tasks: # place first subgoal task on top of stack
-            task = subgoal.tasks[-1]
-            pos = Ts.Tasks.index(task) #TODO this may raise an error ?
-            Ts.Tasks.pop(pos)
-            Ts.Tasks.append(task)
-        elif subgoal.clauses:
-            assert False #TODO needs a test case
-        Ts.Recursive = subgoal.recursive
+        # restart searching of subgoal, in correct recursive mode
+        # unless the subgoal is a waiter of self (to prevent infinite loop)
+        if all(subgoal != waiter[0] for waiter in self.waiters):
+            task = (SEARCHING, (self, subgoal))
+            if task not in self.tasks:
+                self.schedule(task)
+            if subgoal.tasks: # place first subgoal task on top of stack, for immediate use
+                task = subgoal.tasks[-1]
+                if Slow_motion:
+                    print("Moving task forward : %s" % show(task))
+                if subgoal.recursive: # find the last occurence of task
+                    Ts.Recursive_Tasks.reverse()
+                    Ts.Recursive_Tasks.remove(task) #TODO this may raise an error ?
+                    Ts.Recursive_Tasks.reverse()
+                    Ts.Recursive_Tasks.append(task)
+                else:
+                    Ts.Tasks.remove(task) #TODO this may raise an error ?
+                    Ts.Tasks.append(task)
+            elif subgoal.clauses:
+                assert False #TODO needs a test case
+            Ts.Recursive = subgoal.recursive
         return self.next_step()
     
     def complete(self, literal, aggregate=None):
@@ -1060,7 +1069,7 @@ def show(task):
               ADD_CLAUSE: "Add clause", 
               NEXT_CLAUSE: "Next clause",
               ON_COMPLETION: "On completion"}
-    result = "{:25s}.. : ".format(str(task[1][0])[:25]) + result[task[0]] + " " + str(task[1][1:])
+    result = "{:40s}.. : ".format(str(task[1][0])[:40]) + result[task[0]] + " " + str(task[1][1:])
     return result if len(result)<110 else result[:110]
 
 # PRIMITIVES   ##################################################
