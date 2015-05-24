@@ -85,7 +85,7 @@ cdef class Subgoal(object):
     cpdef public list clauses
     cpdef public bool recursive
     cpdef public bool is_done
-    cpdef public tuple on_completion_
+    cpdef public list on_completion_
  
     #cpdef public add_clause(self, Clause clause)
     cpdef public fact(self, object literal)
@@ -94,5 +94,5 @@ cdef class Subgoal(object):
     cpdef public schedule(self, tuple task)
     cpdef public schedule_search(self, Subgoal subgoal)
     #cpdef public searching(self, Subgoal subgoal)
-    cpdef public complete(self, Subgoal subgoal, object aggregate=*)
+    cpdef public complete(self, Literal literal, object aggregate=*)
     #cpdef public on_completion
