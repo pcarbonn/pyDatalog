@@ -960,26 +960,26 @@ class Subgoal(object):
                 print("  " + show(task))
             print(" ")
             
-        task = (None, None); task2 = task
+        task = (None, None); tasks = None
         if not Ts.Goal.is_done:
             if Ts.Recursive:
                 if Ts.Recursive_Tasks:
                     task = Ts.Recursive_Tasks.pop()
-                    task2 = task[1][0].tasks.pop() if task[1][0].tasks else (None, None)
+                    tasks = task[1][0].tasks
                 elif Ts.Tasks:
                     Ts.Recursive = False
                     task = Ts.Tasks.pop()
-                    task2 = task[1][0].tasks.pop() if task[1][0].tasks else (None, None)
+                    tasks = task[1][0].tasks
             else:
                 if Ts.Tasks:
                     task = Ts.Tasks.pop()
-                    task2 = task[1][0].tasks.pop() if task[1][0].tasks else (None, None)
+                    tasks = task[1][0].tasks
                 elif Ts.Recursive_Tasks:
                     Ts.Recursive = True
                     task = Ts.Recursive_Tasks.pop()
-                    task2 = task[1][0].tasks.pop() if task[1][0].tasks else (None, None)
-            if task != task2: # make sure we are in sync, and not lose tasks
-                pass
+                    tasks = task[1][0].tasks
+            task2 = tasks.pop() if tasks else (None, None)
+            assert task == task2 # make sure we are in sync, and not lose tasks
         if Slow_motion:
             print("Processing : %s" % show(task))
         return task
