@@ -70,7 +70,7 @@ cdef class Literal(object):
     
     cpdef public tuple get_id(self)
     cpdef public tuple get_fact_id(self)
-    cpdef public dict match(self, Literal fact)
+    cpdef public dict match(self, list terms)
     
 cdef class Clause(object):
     cpdef public Literal head
