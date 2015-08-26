@@ -847,16 +847,17 @@ class Subgoal(object):
                     resolvent = Clause(clause.head.subst(env), 
                                        [bodi.subst(env) for bodi in clause.body[1:] ])
                     subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
-                all_const = True # Cython equivalent for all(self.literal.terms[i].is_const() for i in range(self.literal.pred.prearity)
-                for i in range(self.literal.pred.prearity):
-                    t = self.literal.terms[i]
-                    if not(isinstance(t, Const) or t.is_const()): # use isinstance for speed
-                        all_const = False
-                        break
-                if len(self.facts)==1 and all_const:
-                    if Slow_motion: print("is done !")
-                    self.is_done = True # one fact for a function of constant
-                    self.waiters = []
+                if len(self.facts)==1:  # stop if one fact for a function of constant
+                    all_const = True # Cython equivalent for all(self.literal.terms[i].is_const() for i in range(self.literal.pred.prearity)
+                    for i in range(self.literal.pred.prearity):
+                        t = self.literal.terms[i]
+                        if not(isinstance(t, Const) or t.is_const()): # use isinstance for speed
+                            all_const = False
+                            break
+                    if all_const:
+                        if Slow_motion: print("is done !")
+                        self.is_done = True
+                        self.waiters = []
 
     def fact_candidate(self, class0, result):
         """ add result as a candidate fact of class0 for subgoal"""
