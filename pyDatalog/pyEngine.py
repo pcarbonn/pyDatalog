@@ -836,8 +836,8 @@ class Subgoal(object):
         elif self.facts is not True:
             fact_id = literal.get_fact_id()
             if not self.facts.get(fact_id):
-                if Logging: logging.info("New fact : %s" % str(literal))
                 self.facts[fact_id] = literal
+                if Logging: logging.info("New fact : %s" % str(literal))
                 for subgoal, clause in self.waiters:
                     # Resolve the selected literal of a clause with a literal.
                     # The selected literal is the first literal in body of a rule.
