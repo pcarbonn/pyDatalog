@@ -491,10 +491,10 @@ class Literal(object):
                         todo = True
         return env
 
-    def match(self, fact):
+    def match(self, terms):
         """ Does a fact unify with a fact known to contain only constant terms? """
         env = {}
-        for term, factterm in zip(self.terms, fact.terms):
+        for term, factterm in zip(self.terms, terms):
             if term.id != factterm.id:
                 env = term.match(factterm, env)
                 if env == None: return env
@@ -864,14 +864,13 @@ class Subgoal(object):
         if result is True:
             self.fact(True)
             return
-        result = [Term_of(r) for r in result]
         if len(result) != len(self.literal.terms):
             return
+        result = [Term_of(r) for r in result]
         if class0 and result[1].id and not isinstance(result[1].id, class0): #prefixed
             return
-        result = Literal(self.literal.pred.name, result)
         if self.literal.match(result) != None:
-            self.fact(result)
+            self.fact(Literal(self.literal.pred.name, result))
 
     def rule(self, clause, selected):
         """ Use a newly derived rule. SLG_POSITIVE in the reference article """
