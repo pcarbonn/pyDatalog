@@ -1,51 +1,78 @@
+#################### IMPORTS
 import os
-import re
 import sys
+import io
+#
 from distutils.command.build_ext import build_ext
 from distutils.errors import (CCompilerError, DistutilsExecError,
                               DistutilsPlatformError)
+from distutils.core import Command as TestCommand
+#
+#################### GLOBAL VARIABLES
+BEFORE_BREAK_PY3 = (2, 7)
+AFTER_BREAK_PY3 = (3, 0)
+LINE_STARS = '*' * 75
+PYDATALOG = 'pyDatalog'
+INIT = '__init__.py'
+README = "README.md"
+CHANGES = "CHANGES.txt"
+TODO = "TODO.md"
+SHORT_DESCRIPTION = "A pure-python implementation of Datalog, "\
+"a truly declarative language derived from Prolog."
 
-has_feature = False
+#################### SYSTEM ANALYSIS
+#
+HAS_FEATURE = False
+#
 try:
     from setuptools import setup, Extension
     try:
         # see
+        #TODO: update URL after moving to GitHub
         # https://bitbucket.org/pypa/setuptools/issue/65/deprecate-and-remove-features,
         # where they may remove Feature.
         from setuptools import Feature
-        has_feature = True
+        HAS_FEATURE = True
     except ImportError:
         pass
 except ImportError:
     from distutils.core import setup, Extension
 
 
-cmdclass = {}
-extra = {}
-py3k = False
-if sys.version_info < (2, 7):
+#
+CMDCLASS = {}
+EXTRA = {}
+PY3K = False
+#
+if sys.version_info < BEFORE_BREAK_PY3:
     raise Exception("pyDatalog requires Python 2.7 or higher.")
-elif sys.version_info >= (3, 0):
-    py3k = True
+elif sys.version_info >= AFTER_BREAK_PY3:
+    PY3K = True
 
 import platform
-cpython = platform.python_implementation() == 'CPython'
+CPYTHON = platform.python_implementation() == 'CPython'
 
-ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
+EXT_ERRORS = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
 if sys.platform == 'win32':
     # 2.6's distutils.msvc9compiler can raise an IOError when failing to
     # find the compiler
-    ext_errors += (IOError,)
+    EXT_ERRORS = EXT_ERRORS + (IOError,)
 
+######################## CLASSES
 
 class BuildFailed(Exception):
+    """
+    Specific Error message to work around py 2/3
+    """
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.cause = sys.exc_info()[1]  # work around py 2/3 different syntax
+        del args
+        del kwargs
 
 
-class ve_build_ext(build_ext):
-    # This class allows C extension building to fail.
+class VeBuildExt(build_ext):
+    """This class allows C extension building to fail."""
 
     def run(self):
         try:
@@ -56,7 +83,7 @@ class ve_build_ext(build_ext):
     def build_extension(self, ext):
         try:
             build_ext.build_extension(self, ext)
-        except ext_errors:
+        except EXT_ERRORS:
             raise BuildFailed()
         except ValueError:
             # this can happen on Windows 64 bit, see Python issue 7511
@@ -64,38 +91,95 @@ class ve_build_ext(build_ext):
                 raise BuildFailed()
             raise BuildFailed()
 
-cmdclass['build_ext'] = ve_build_ext
+#
+##################### FUNCTIONS
+#
+def _read(*filenames, **kwargs):
+    """
+    Read the docs and give a long description.
+    """
+    encoding = kwargs.get('encoding', 'utf-8')
+    sep = kwargs.get('sep', '\n')
+    buf = []
+    for filename in filenames:
+        with io.open(filename, encoding=encoding) as _fic:
+            buf.append(_fic.read())
+    return sep.join(buf)
+
+_LONG_DESCRIPTION = _read(README, CHANGES, TODO)
+
+class PyTest(TestCommand):
+    """
+    For "python setup.py test" working.
+    Usually, PyTest is subclassed from setuptools.
+    Here, it is done from distutils.
+    """
+    def finalize_options(self):
+        try:
+            #
+            # migrated from setuptools
+            # thus needs to be rewritten
+            TestCommand.finalize_options(self)
+        except AttributeError:
+            pass
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        """
+        Self speaking...
+        If dir layout is correct, should pick the tests at 'pyDatalog/test'
+        """
+        import pytest
+        errcode = pytest.main(self.test_args)
+        sys.exit(errcode)
+
+CMDCLASS['build_ext'] = VeBuildExt
+CMDCLASS['test'] = PyTest
+
 
 def status_msgs(*msgs):
-    print('*' * 75)
+    """
+    #HINT: Perhaps a decorator here ?
+    """
+    print(LINE_STARS)
     for msg in msgs:
         print(msg)
-    print('*' * 75)
+    print(LINE_STARS)
 
 
 def find_packages(location):
+    """
+    Finds packages...distutils helper not used here.
+    """
     packages = []
-    for pkg in ['pyDatalog']:
-        for _dir, subdirectories, files in (
-                os.walk(os.path.join(location, pkg))):
-            if '__init__.py' in files:
-                tokens = _dir.split(os.sep)[len(location.split(os.sep)):]
+    for pkg in [PYDATALOG]:
+        _package_path = os.path.join(location, pkg)
+        _walkthrough = os.walk(_package_path)
+        for _dir, subdirectories, files in _walkthrough:
+            del subdirectories
+            if INIT in files:
+                _length = len(location.split(os.sep))
+                tokens = _dir.split(os.sep)[_length:]
                 packages.append(".".join(tokens))
     return packages
 
 
-
+#
 from pyDatalog import version
 
 def run_setup(with_cext):
-    kwargs = extra.copy()
+    """
+    Contains the whole configuration.
+    """
+    kwargs = EXTRA.copy()
     ext_modules = [
         Extension('pyDatalog.pyEngine',
                   sources=['pyDatalog/pyEngine.c']),
         ]
 
     if with_cext:
-        if has_feature:
+        if HAS_FEATURE:
             kwargs['features'] = {'cextensions': Feature(
                 "optional C speed-enhancements",
                 standard=True,
@@ -105,13 +189,14 @@ def run_setup(with_cext):
             kwargs['ext_modules'] = ext_modules
 
     setup(
-        name = "pyDatalog",
-        packages = ["pyDatalog", "pyDatalog/examples"],
+        name = PYDATALOG,
+        packages = [PYDATALOG, "pyDatalog/examples"],
         version = version.__version__,
-        cmdclass=cmdclass,
-        description = "A pure-python implementation of Datalog, a truly declarative language derived from Prolog.",
+        cmdclass = CMDCLASS,
+        description = SHORT_DESCRIPTION,
         author = "Pierre Carbonnelle",
         author_email = "pierre.carbonnelle@gmail.com",
+        tests_require=['pytest'],
         url = "https://sites.google.com/site/pydatalog/",
         download_url = "http://pypi.python.org/pypi?name=pyDatalog&:action=display",
         keywords = "prolog, logic programming, database, SQL, data integration, expert system, AI",
@@ -131,30 +216,11 @@ def run_setup(with_cext):
             "Topic :: Software Development :: Libraries :: Python Modules",
             "Topic :: Scientific/Engineering :: Artificial Intelligence",
             ],
-        long_description = """\
-    pyDatalog adds the logic Programming paradigm to Python's toolbox, in a pythonic way.
-    
-    Logic programmers can now use the extensive standard library of Python, and Python programmers can now express complex algorithms simply.  
-    
-    Datalog is a truly declarative language derived from Prolog, with strong academic foundations.  Datalog excels at managing complexity.  
-    Datalog programs are shorter than their Python equivalent, and Datalog statements can be specified in any order, as simply as formula in a spreadsheet. 
-    
-    In particular, Datalog can be used for:
-    
-    * simulating intelligent behavior (e.g. in games or expert systems), 
-    * performing recursive algorithms (e.g. in network protocol, code and graph analysis),
-    * managing complex sets of related information (e.g. in data integration or the semantic web), 
-    * solving discrete constraint problems. 
-    
-    .. pull-quote::
-    
-        "Datalog is to Python what Python was to C, and what C was to Assembly."
-    
-     """,
+        long_description = _LONG_DESCRIPTION,        
      **kwargs
     )
     
-if not cpython:
+if not CPYTHON:
     run_setup(False)
     status_msgs(
         "WARNING: C extensions are not supported on " +
