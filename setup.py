@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #################### IMPORTS
 import os
 import sys
@@ -13,6 +14,14 @@ BEFORE_BREAK_PY3 = (2, 7)
 AFTER_BREAK_PY3 = (3, 0)
 LINE_STARS = '*' * 75
 PYDATALOG = 'pyDatalog'
+TEST = 'test'
+CURRENT = '.'
+#
+# The following lines could be improved
+RUNTESTS = 'placeholder.py'
+RUNTEST = [CURRENT, PYDATALOG, TEST, RUNTESTS]
+RUNTESTS = os.path.join(*RUNTESTS)
+#
 INIT = '__init__.py'
 README = "README.md"
 CHANGES = "CHANGES.txt"
@@ -28,7 +37,6 @@ try:
     from setuptools import setup, Extension
     try:
         # see
-        #TODO: update URL after moving to GitHub
         # https://bitbucket.org/pypa/setuptools/issue/65/deprecate-and-remove-features,
         # where they may remove Feature.
         from setuptools import Feature
@@ -91,6 +99,39 @@ class VeBuildExt(build_ext):
                 raise BuildFailed()
             raise BuildFailed()
 
+class PyTest(TestCommand):
+    """
+    For "python setup.py test" working.
+    Usually, PyTest is subclassed from setuptools.
+    Here, it is done from distutils.
+    Have a look at http://pytest.org/latest/goodpractises.html#
+    integrating-with-distutils-python-setup-py-test
+    """
+    #
+    # a KILLER line, indeed !
+    user_options = []
+    def initialize_options(self):
+        """
+        Subclassing abstract class PyTest
+        """
+        pass
+    #
+    def finalize_options(self):
+        """
+        Subclassing abstract class PyTest
+        """
+        pass
+
+    def run(self):
+        """
+        Here, RUNTESTS needs to be tuned...
+        """
+        import subprocess
+        import sys
+        errno = subprocess.call([sys.executable,
+                                 RUNTESTS])
+        raise SystemExit(errno)
+
 #
 ##################### FUNCTIONS
 #
@@ -102,45 +143,17 @@ def _read(*filenames, **kwargs):
     sep = kwargs.get('sep', '\n')
     buf = []
     for filename in filenames:
-        with io.open(filename, encoding=encoding) as _fic:
-            buf.append(_fic.read())
-    return sep.join(buf)
-
-_LONG_DESCRIPTION = _read(README, CHANGES, TODO)
-
-class PyTest(TestCommand):
-    """
-    For "python setup.py test" working.
-    Usually, PyTest is subclassed from setuptools.
-    Here, it is done from distutils.
-    """
-    def finalize_options(self):
         try:
-            #
-            # migrated from setuptools
-            # thus needs to be rewritten
-            TestCommand.finalize_options(self)
-        except AttributeError:
+            with io.open(filename, encoding=encoding) as _fic:
+                buf.append(_fic.read())
+        except IOError:
             pass
-        self.test_args = []
-        self.test_suite = True
-
-    def run_tests(self):
-        """
-        Self speaking...
-        If dir layout is correct, should pick the tests at 'pyDatalog/test'
-        """
-        import pytest
-        errcode = pytest.main(self.test_args)
-        sys.exit(errcode)
-
-CMDCLASS['build_ext'] = VeBuildExt
-CMDCLASS['test'] = PyTest
+    return sep.join(buf)
 
 
 def status_msgs(*msgs):
     """
-    #HINT: Perhaps a decorator here ?
+    pretty message formatter
     """
     print(LINE_STARS)
     for msg in msgs:
@@ -166,7 +179,14 @@ def find_packages(location):
 
 
 #
-from pyDatalog import version
+############## PREPARING SETUP VALUES
+#
+from pyDatalog import version as VERSION
+_LONG_DESCRIPTION = _read(README, CHANGES, TODO)
+#
+CMDCLASS['build_ext'] = VeBuildExt
+CMDCLASS['test'] = PyTest
+#
 
 def run_setup(with_cext):
     """
@@ -191,7 +211,7 @@ def run_setup(with_cext):
     setup(
         name = PYDATALOG,
         packages = [PYDATALOG, "pyDatalog/examples"],
-        version = version.__version__,
+        version = VERSION.__version__,
         cmdclass = CMDCLASS,
         description = SHORT_DESCRIPTION,
         author = "Pierre Carbonnelle",
@@ -219,7 +239,9 @@ def run_setup(with_cext):
         long_description = _LONG_DESCRIPTION,        
      **kwargs
     )
-    
+
+####################### MAIN
+
 if not CPYTHON:
     run_setup(False)
     status_msgs(
