@@ -19,7 +19,7 @@ CURRENT = '.'
 #
 # The following lines could be improved
 RUNTESTS = 'placeholder.py'
-RUNTEST = [CURRENT, PYDATALOG, TEST, RUNTESTS]
+RUNTESTS = [CURRENT, PYDATALOG, TEST, RUNTESTS]
 RUNTESTS = os.path.join(*RUNTESTS)
 #
 INIT = '__init__.py'
