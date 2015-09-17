@@ -1,7 +1,7 @@
 rem verify version in version.py too !
 
-set version=0.16.0rc1
-set PKG_REPO="C:\Users\pcarbonn\Documents\98 Eclipse\pyDatalog"
+set version=0.17.0rc1
+set PKG_REPO="C:\Python27\git\pyDatalog"
 set ENV27=c:\python27
 set ENV33=c:\python33
 set ENV34=c:\python34
