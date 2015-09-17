@@ -161,23 +161,6 @@ def status_msgs(*msgs):
     print(LINE_STARS)
 
 
-def find_packages(location):
-    """
-    Finds packages...distutils helper not used here.
-    """
-    packages = []
-    for pkg in [PYDATALOG]:
-        _package_path = os.path.join(location, pkg)
-        _walkthrough = os.walk(_package_path)
-        for _dir, subdirectories, files in _walkthrough:
-            del subdirectories
-            if INIT in files:
-                _length = len(location.split(os.sep))
-                tokens = _dir.split(os.sep)[_length:]
-                packages.append(".".join(tokens))
-    return packages
-
-
 #
 ############## PREPARING SETUP VALUES
 #
