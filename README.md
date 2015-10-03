@@ -13,7 +13,7 @@ In particular, pyDatalog can be used as a query language:
 
 ###1.2 Datalog
 
-####1.2.1 Datalog = SQL + recursivity
+#### Datalog = SQL + recursivity
 Datalog is a truly declarative language derived from Prolog, with strong academic foundations.  It complements Python very well for:
 
 * managing complex sets of related information (e.g. in data integration or the semantic web).  
@@ -21,7 +21,7 @@ Datalog is a truly declarative language derived from Prolog, with strong academi
 * performing recursive algorithms (e.g. in network protocol, code and graph analysis, parsing)
 * solving discrete constraint problems. 
 
-####1.2.2 Simple as Excel
+#### Simple as Excel
 Datalog excels at accelerated development : Datalog programs are often shorter than their Python equivalent, 
 and Datalog statements can be specified in any order, as simply as formula in a spreadsheet.
 
