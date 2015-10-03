@@ -25,17 +25,17 @@ Datalog is a truly declarative language derived from Prolog, with strong academi
 Datalog excels at accelerated development : Datalog programs are often shorter than their Python equivalent, 
 and Datalog statements can be specified in any order, as simply as formula in a spreadsheet.
 
-##2. Please "Read the Docs"
+##2. Quickstart
+
+FIXME
+
+##3. Please "Read the Docs"
 
 Here : http://pydatalog-unofficial.readthedocs.org/
 
-##3. TravisCI
+##4. TravisCI
 
 FIXME : *Here a TravisCI button*
-
-##4. Quickstart
-
-FIXME
 
 ##5. Non-Python dependencies
 
