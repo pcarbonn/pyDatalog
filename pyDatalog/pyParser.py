@@ -476,9 +476,9 @@ class Literal(object):
         self.todo = self
         
         cls_name = self.predicate_name.split('.')[0].replace('~','') if 1< len(self.predicate_name.split('.')) else ''
-        if pyEngine.Class_dict.get(cls_name, None):
-            if 2<=len(self.args) and not isinstance(self.args[1], Term) and cls_name not in [c.__name__ for c in self.args[1].__class__.__mro__]:
-                raise TypeError("Object is incompatible with the class that is queried.") #prefixed
+        if pyEngine.Class_dict.get(cls_name) and 2 <= len(self.args) and not isinstance(self.args[1], Term) \
+                and cls_name not in [c.__name__ for c in self.args[1].__class__.__mro__]:
+            raise TypeError("Object is incompatible with the class that is queried.") #prefixed
 
         self.terms = [] # the list of args converted to Expression
         for arg in self.args:
