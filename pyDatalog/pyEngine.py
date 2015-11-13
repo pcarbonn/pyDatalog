@@ -224,7 +224,7 @@ class VarTuple(Term):
             for e1, e2 in zip(term._id, self._id):
                 if e1.id != e2.id:
                     env = e1.unify(e2, env)
-                    if env == None: return env
+                    if env is None: return env
             return env
         if isinstance(term, Operation):
             return None
@@ -479,7 +479,7 @@ class Literal(object):
             other_i = otherterm if isinstance(otherterm, Const) else otherterm.chase(env)
             if literal_i.id != other_i.id:
                 env = literal_i.unify(other_i, env)
-                if env == None: return env
+                if env is None: return env
         todo = True
         while todo:
             todo = False
@@ -497,7 +497,7 @@ class Literal(object):
         for term, factterm in zip(self.terms, terms):
             if term.id != factterm.id:
                 env = term.match(factterm, env)
-                if env == None: return env
+                if env is None: return env
         return env
 
     def ask(self):
@@ -634,8 +634,8 @@ def relevant_clauses(literal):
     for i, term in enumerate(literal.terms):
         if term.is_const():
             facts = literal.pred.index[i].get(term.id, set()) # default : a set
-            result = facts if result == None else result.intersection(facts)
-    if result == None: # no constants found in literal, thus could not filter literal.pred.deb
+            result = facts if result is None else result.intersection(facts)
+    if result is None: # no constants found in literal, thus could not filter literal.pred.deb
         for v in literal.pred.db.values(): 
             yield v
     else:
@@ -1036,7 +1036,7 @@ class Subgoal(object):
         #TODO check for infinite loops
         # example : p(X) <= ~q(X); q(X) <= ~ p(X); creates an infinite loop
         subgoal = Logic.tl.logic.Subgoals.get(literal.get_tag())
-        if subgoal == None: # selected subgoal does not exist yet
+        if subgoal is None: # selected subgoal does not exist yet
             subgoal = Subgoal(literal)
             self.schedule_search(subgoal)
         else:
