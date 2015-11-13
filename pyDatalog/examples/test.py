@@ -782,7 +782,7 @@ def test():
         def __repr__(self):
             return self.b
         @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
-        def _():
+        def _(self):
             (A.c[X]==N) <= (A.b[X]==N)
             A.d(X, Y) <= (A.c[X]==Y)
             (A.len[X]==len(N)) <= (A.b[X]==N)
@@ -900,7 +900,7 @@ def test():
         def __repr__(self):
             return self.z
         @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
-        def _():
+        def _(self):
             (Z.w[X]==N) <= (Z.z[X]!=N)
         @classmethod
         def _pyD_query(cls, pred_name, args):
@@ -1104,7 +1104,7 @@ def test():
             return "Employee: %s" % self.name
     
         @pyDatalog.program() # --> the following function contains pyDatalog clauses
-        def Employee():
+        def Employee(self):
             (Employee.manager[X]==Y) <= (Employee.manager_name[X]==Z) & (Z==Employee.name[Y])
             # the salary class of employee X is computed as a function of his/her salary
             # this statement is a logic equality, not an assignment !

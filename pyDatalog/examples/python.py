@@ -23,7 +23,7 @@ class Employee(pyDatalog.Mixin):   # --> Employee inherits the pyDatalog capabil
         return self.name
 
     @pyDatalog.program() # indicates that the following method contains pyDatalog clauses
-    def Employee():
+    def Employee(self):
         # the salary class N of employee X is computed as a function of his/her salary
         # this statement is a logic equality, not an assignment !
         Employee.salary_class[X] = Employee.salary[X]//1000
