@@ -465,9 +465,9 @@ class Literal(object):
     created by source code like 'p(a, b)'
     operator '<=' means 'is true if', and creates a Clause
     """
-    def __init__(self, predicate_name, args, kwargs={}, prearity=None, aggregate=None):
+    def __init__(self, predicate_name, args, kwargs, prearity=None, aggregate=None):
         from .Aggregate import Aggregate
-        t = sorted(kwargs.items())
+        t = sorted(kwargs.items()) if kwargs is not None else ()
         self.predicate_name = '_'.join([predicate_name]+[p[0] for p in t])
         self.args = list(args) + [p[1] for p in t]
         self.prearity = len(self.args) if prearity is None else prearity
@@ -501,7 +501,7 @@ class Literal(object):
         # TODO check that l.pred.aggregate is empty
 
     @classmethod
-    def make(cls, predicate_name, terms, kwargs={}, prearity=None, aggregate=None):
+    def make(cls, predicate_name, terms, kwargs=None, prearity=None, aggregate=None):
         """ factory class that creates a Query or HeadLiteral """
         precalculations = pre_calculations(terms)
         if '!' in predicate_name: #pred e.g. aggregation literal
@@ -569,7 +569,7 @@ class Query(Literal, LazyListOfList):
     unary operator '+' means insert it as fact
     binary operator '&' means 'and', and returns a Body
     """
-    def __init__(self, predicate_name, terms, kwargs={}, prearity=None, aggregate=None):
+    def __init__(self, predicate_name, terms, kwargs=None, prearity=None, aggregate=None):
         LazyListOfList.__init__(self)
         Literal.__init__(self, predicate_name, terms, kwargs, prearity, aggregate)
         
