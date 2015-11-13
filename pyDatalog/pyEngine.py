@@ -318,7 +318,7 @@ class Interned(object):
     def __hash__(self): 
         return id(self)
     def __ne__(self, other):
-        return not self is other
+        return self is not other
 
 
 class Pred(Interned):
@@ -820,7 +820,7 @@ class Subgoal(object):
         SLG_ANSWER in the reference article
         """
         all_const = True # Cython equivalent for all(t.is_const() for t in literal.terms)
-        if not literal is True:
+        if literal is not True:
             for t in literal.terms:
                 if not(isinstance(t, Const) or t.is_const()): # use isinstance for speed
                     all_const = False
