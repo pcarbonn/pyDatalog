@@ -29,7 +29,6 @@ import sys
 import time
 import datetime
 
-import sys
 if sys.version < '3':
     import codecs
     def u(x):
@@ -1324,7 +1323,6 @@ if __name__ == "__main__":
     
     # math
     
-    import math
     pyDatalog.create_atoms('math')
     assert (math.cos(0)) == 1
     assert ((X==0) & (Y==math.cos(X)) >= Y) == 1
