@@ -19,7 +19,7 @@ class DatalogError(Exception):
         return "%s\nin line %s of %s" % (self.value, self.lineno, self.function)        
 
 
-class Counter:
+class Counter(object):
     lock = threading.RLock()
     def __init__(self):
         self.i = 0
