@@ -555,7 +555,7 @@ def test():
     
     pyDatalog.clear()
     @pyDatalog.program()
-    def sum(): 
+    def sum_():
         + p(a, c, 1)
         + p(b, b, 4)
         + p(a, b, 1)
@@ -636,7 +636,7 @@ def test():
         assert ask(a_concat3[a]==X) == set([('b-c',)])
 
     @pyDatalog.program()
-    def min(): 
+    def min_():
         assert min(1,2) == 1
         (a_min[X] == min(Y, key=Z)) <= q(X, Y, Z)
         assert ask(a_min[X]==Y) == set([('b', 'b'), ('a', 'c')])
@@ -658,7 +658,7 @@ def test():
         assert ask(a_min1[1]==Y) == set([('a',)])
         
     @pyDatalog.program()
-    def max(): 
+    def max_():
         assert max(1,2) == 2
         (a_max[X] == max(Y, key=-Z)) <= q(X, Y, Z)
         assert ask(a_max[a]==X) == set([('c',)])
