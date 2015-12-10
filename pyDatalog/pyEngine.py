@@ -35,6 +35,7 @@ import weakref
 
 from . import util
 
+Logging = False # True --> Logging is activated.  Kept for performance reason
 
 Auto_print = False # True => automatically prints the result of a query
 Slow_motion = False # True => detail print of the stack of tasks at each step
@@ -45,7 +46,7 @@ Logic = None # place holder for Logic class from Logic module
 # Keep a dictionary of classes with datalog capabilities.  
 Class_dict = {}
 
-logger = logging.getLogger(__name__)
+Logger = logging.getLogger(__name__)
 
 #       DATA TYPES          #####################################
 
@@ -693,7 +694,8 @@ class Subgoal(object):
         
         if class0 and terms[1].is_const() and terms[1].id is None: return self.next_step()
         if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("pyDatalog will search negation of %s" % literal0)
+            if Logging and Logger.isEnabledFor(logging.DEBUG):
+                Logger.debug("pyDatalog will search negation of %s" % literal0)
             base_literal = Literal(literal0.pred.base_pred, terms)
             self.complete(base_literal)
             return self.next_step()
@@ -705,7 +707,8 @@ class Subgoal(object):
                 resolver = literal.pred.id if literal.pred.id in Python_resolvers \
                         else literal.pred.id.replace(r'/', str(literal.pred.arity)+r"/")
                 if resolver in Python_resolvers:
-                    if Logging : logging.debug("pyDatalog uses python resolvers for %s" % literal)
+                    if Logging and Logger.isEnabledFor(logging.DEBUG):
+                        Logger.debug("pyDatalog uses python resolvers for %s" % literal)
                     for result in Python_resolvers[resolver](*terms):
                         self.fact_candidate(class0, result)
                     return self.next_step()
@@ -713,7 +716,8 @@ class Subgoal(object):
                 # TODO add special method for custom comparison
                 method_name = '_pyD_%s%i' % (literal.pred.suffix, int(literal.pred.arity - 1)) #prefixed
                 if literal.pred.suffix and method_name in _class.__dict__:
-                    if Logging : logging.debug("pyDatalog uses class resolvers for %s" % literal)
+                    if Logging and Logger.isEnabledFor(logging.DEBUG):
+                        Logger.debug("pyDatalog uses class resolvers for %s" % literal)
                     for result in getattr(_class, method_name)(*(terms[1:])): 
                         self.fact_candidate(class0, (terms[0],) + result)
                     return self.next_step()
@@ -726,16 +730,19 @@ class Subgoal(object):
                     except AttributeError:
                         pass
                     else:
-                        if logger.isEnabledFor(logging.DEBUG): logger.debug("pyDatalog uses _pyD_query resolvers for %s" % literal)
+                        if Logging and Logger.isEnabledFor(logging.DEBUG):
+                            Logger.debug("pyDatalog uses _pyD_query resolvers for %s" % literal)
                         for result in results:
                             self.fact_candidate(class0, (terms[0],) + result)
                         return self.next_step()
             if literal.pred.prim: # X==Y, X < Y+Z
-                if Logging : logging.debug("pyDatalog uses comparison primitive for %s" % literal)
+                if Logging and Logger.isEnabledFor(logging.DEBUG):
+                    Logger.debug("pyDatalog uses comparison primitive for %s" % literal)
                 literal.pred.prim(literal, self)
                 return self.next_step()
             elif literal.aggregate:
-                if Logging : logging.debug("pyDatalog uses aggregate primitive for %s" % literal)
+                if Logging and Logger.isEnabledFor(logging.DEBUG):
+                    Logger.debug("pyDatalog uses aggregate primitive for %s" % literal)
                 base_terms = list(terms[:-1])
                 for i in literal.aggregate.slice_to_variabilize:
                     base_terms[i] = Fresh_var()
@@ -749,7 +756,8 @@ class Subgoal(object):
                     env = literal.unify(renamed.head)
                     if env != None:
                         clause = renamed.subst(env, class0)
-                        if Logging : logging.debug("pyDatalog will use clause : %s" % clause)
+                        if Logging and Logger.isEnabledFor(logging.DEBUG):
+                            Logger.debug("pyDatalog will use clause : %s" % clause)
                         self.clauses.append((ADD_CLAUSE, (self, clause)))
                 if self.clauses:
                     self.schedule((NEXT_CLAUSE, (self,)))
@@ -765,7 +773,8 @@ class Subgoal(object):
                     env = literal.unify(renamed.head)
                     if env != None:
                         renamed = renamed.subst(env, class0)
-                        if Logging : logging.debug("pyDatalog will use clause for comparison: %s" % renamed)
+                        if Logging and Logger.isEnabledFor(logging.DEBUG):
+                            Logger.debug("pyDatalog will use clause for comparison: %s" % renamed)
                         self.schedule((ADD_CLAUSE, (self, renamed)))
                     return self.next_step()
                 
@@ -778,7 +787,8 @@ class Subgoal(object):
             except AttributeError:
                 pass
             else:
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("pyDatalog uses pyDatalog_search for %s" % literal)
+                if Logging and Logger.isEnabledFor(logging.DEBUG):
+                    Logger.debug("pyDatalog uses pyDatalog_search for %s" % literal)
                 for result in results:
                     self.fact_candidate(class0, result)
                 return self.next_step()
@@ -828,7 +838,8 @@ class Subgoal(object):
                     break
         if literal is True or not all_const:
             if self.facts != True: # if already True, do not advise its waiters again
-                if logger.isEnabledFor(logging.INFO): logger.info("New fact : %s is True" % str(self.literal))
+                if Logging and Logger.isEnabledFor(logging.INFO):
+                    Logger.info("New fact : %s is True" % str(self.literal))
                 self.facts, self.is_done = True, True
                 for subgoal, clause in self.waiters:
                     resolvent = Clause(clause.head, clause.body[1:])
@@ -838,7 +849,8 @@ class Subgoal(object):
             fact_id = literal.get_fact_id()
             if not self.facts.get(fact_id):
                 self.facts[fact_id] = literal
-                if logger.isEnabledFor(logging.INFO): logger.info("New fact : %s" % str(literal))
+                if Logging and Logger.isEnabledFor(logging.INFO):
+                    Logger.info("New fact : %s" % str(literal))
                 for subgoal, clause in self.waiters:
                     # Resolve the selected literal of a clause with a literal.
                     # The selected literal is the first literal in body of a rule.
@@ -1045,7 +1057,8 @@ class Subgoal(object):
         subgoal.on_completion_.append( (ON_COMPLETION, (subgoal, self, aggregate)) )
     
     def on_completion(self, parent, aggregate):
-        if logger.isEnabledFor(logging.DEBUG): logger.debug('Processing aggregate or negation')
+        if Logging and Logger.isEnabledFor(logging.DEBUG):
+            Logger.debug('Processing aggregate or negation')
 
         if aggregate:
             aggregate.complete(self, parent)
