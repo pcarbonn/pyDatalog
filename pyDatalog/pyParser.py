@@ -744,13 +744,20 @@ class _transform_ast(ast.NodeTransformer):
         if not isinstance(node.ops[0], (ast.In, ast.NotIn)): return node
         var = node.left # X, an _ast.Name object
         comparators = node.comparators[0] # (1,2), an _ast.Tuple object
-        newNode = ast.Call(
-                ast.Attribute(var, 'in_' if isinstance(node.ops[0], ast.In) else 'not_in_', var.ctx), # func
-                [comparators], # args
-                [], # keywords
-                None, # starargs
-                None # kwargs
-                )
+        if sys.version_info < (3,5):
+            newNode = ast.Call(
+                    ast.Attribute(var, 'in_' if isinstance(node.ops[0], ast.In) else 'not_in_', var.ctx), # func
+                    [comparators], # args
+                    [], # keywords
+                    None, # starargs
+                    None # kwargs
+                    )
+        else: # only 3 arguments after python 3.5
+            newNode = ast.Call(
+                    ast.Attribute(var, 'in_' if isinstance(node.ops[0], ast.In) else 'not_in_', var.ctx), # func
+                    [comparators], # args
+                    [] # keywords
+                    )
         return ast.fix_missing_locations(newNode)
 
 def load(code, newglobals=None, defined=None, function='load'):
