@@ -1,5 +1,5 @@
 rem verify version in version.py too !
-set version=0.17.0
+set version=0.17.1
 
 set PKG_REPO="C:\Python\GitHub\pyDatalog"
 set ENV27=c:\python27
