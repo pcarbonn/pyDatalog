@@ -1,5 +1,5 @@
 rem verify version in version.py too !
-set version=0.17.0rc1
+set version=0.17.0
 
 set PKG_REPO="C:\Python\GitHub\pyDatalog"
 set ENV27=c:\python27
@@ -45,13 +45,13 @@ call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" x86
 call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.Cmd" /Release /x86
 
 :: Python3.3 32bit
-%ENV33%\scripts\pip.exe  install wheel 
+%ENV33%\scripts\pip.exe  install wheel
 %ENV33%\scripts\pip.exe  wheel --no-deps --wheel-dir=%PKG_REPO%\dist %PKG_REPO%
 %ENV33%\scripts\pip.exe  uninstall -y pyDatalog
 %ENV33%\scripts\pip.exe  install %PKG_REPO%\dist\pyDatalog-%version%-cp33-none-win32.whl
 
 :: Python3.4 32bit
-%ENV34%\scripts\pip.exe  install wheel 
+%ENV34%\scripts\pip.exe  install wheel
 %ENV34%\scripts\pip.exe  wheel --no-deps --wheel-dir=%PKG_REPO%\dist %PKG_REPO%
 %ENV34%\scripts\pip.exe  uninstall -y pyDatalog
 %ENV34%\scripts\pip.exe  install %PKG_REPO%\dist\pyDatalog-%version%-cp34-none-win32.whl
@@ -61,19 +61,19 @@ call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.Cmd" /Release /x86
 ::
 call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.Cmd" /Release /x64
 call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" x64
- 
+
 :: Python3.3 64bit
-%ENV3364%\scripts\pip.exe  install wheel 
+%ENV3364%\scripts\pip.exe  install wheel
 %ENV3364%\scripts\pip.exe  wheel --no-deps --wheel-dir=%PKG_REPO%\dist %PKG_REPO%
 %ENV3364%\scripts\pip.exe  uninstall -y pyDatalog
 %ENV3364%\scripts\pip.exe  install %PKG_REPO%\dist\pyDatalog-%version%-cp33-none-win_amd64.whl
 
 :: Python3.4 64bit
-%ENV3464%\scripts\pip.exe  install wheel 
+%ENV3464%\scripts\pip.exe  install wheel
 %ENV3464%\scripts\pip.exe  wheel --no-deps --wheel-dir=%PKG_REPO%\dist %PKG_REPO%
 %ENV3464%\scripts\pip.exe  uninstall -y pyDatalog
 %ENV3464%\scripts\pip.exe  install %PKG_REPO%\dist\pyDatalog-%version%-cp34-none-win_amd64.whl
- 
+
 
 ::
 :: Visual Studio 15 >> Python 3.5
@@ -83,7 +83,7 @@ set PATH=C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64;%B
 
 :: Python3.5 32bit
 call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86
-%ENV35%\scripts\pip.exe  install wheel 
+%ENV35%\scripts\pip.exe  install wheel
 %ENV35%\scripts\pip.exe  wheel --no-deps --wheel-dir=%PKG_REPO%\dist %PKG_REPO%
 %ENV35%\scripts\pip.exe  uninstall -y pyDatalog
 %ENV35%\scripts\pip.exe  install %PKG_REPO%\dist\pyDatalog-%version%-cp35-none-win32.whl
@@ -91,7 +91,7 @@ call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86
 
 :: Python3.5 64bit
 call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64
-%ENV3564%\scripts\pip.exe  install wheel 
+%ENV3564%\scripts\pip.exe  install wheel
 %ENV3564%\scripts\pip.exe  wheel --no-deps --wheel-dir=%PKG_REPO%\dist %PKG_REPO%
 %ENV3564%\scripts\pip.exe  uninstall -y pyDatalog
 %ENV3564%\scripts\pip.exe  install %PKG_REPO%\dist\pyDatalog-%version%-cp35-none-win_amd64.whl
