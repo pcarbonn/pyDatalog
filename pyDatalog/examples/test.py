@@ -222,7 +222,7 @@ def test():
     @pyDatalog.program()
     def equality2():
         assert ask((X==1) & (X<X+1)) == set([(1,)]) 
-        assert ask((X==1) & (Y==X)) == set([(1,1)]) 
+        assert ask((X==1) & (Y==X)) == set([(1,1)])
         assert ask((X==1) & (Y==X+1)) == set([(1,2)])
         assert ask((X==1) & (Y==X+(2*(X+1)))) == set([(1,5)])
         assert ask((X==1) & (Y==X+1) & (X<Y)) == set([(1,2)])
@@ -230,8 +230,8 @@ def test():
         assert ask((X==1) & (X<=1)) == set([(1,)])
         assert ask((X==1) & (X>1)) == None
         assert ask((X==1) & (X>=1)) == set([(1,)])
-        assert ask(X==(1,2)) == set([((1,2),)]) 
-        assert ask(X in (1,)) == set([(1,)]) 
+        assert ask(X==(1,2)) == set([((1,2),)])
+        assert ask(X in (1,)) == set([(1,)])
         assert ask((X==1) & (X not in (2,))) == set([(1,)])
         assert ask((X==1) & ~(X in (2,))) == set([(1,)])
         assert ask((X==1) & (X not in (1,))) == None
