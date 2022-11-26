@@ -1,3 +1,3 @@
-__version__ = "0.17.2"
+__version__ = "0.17.3"
 
 # change it also in create_dist.bat !
