@@ -9,4 +9,6 @@ requires = [
 
 [tool.cibuildwheel]
 skip = "cp311-*"
+# Disable building PyPy wheels on all platforms
+skip = "pp*"
 build-verbosity = 1
