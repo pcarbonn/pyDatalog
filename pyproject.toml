@@ -8,5 +8,5 @@ requires = [
 
 
 [tool.cibuildwheel]
-skip = ["cp311-*", "pp*"]
+skip = ["cp310-macosx-*", "cp311-*", "pp*"]
 build-verbosity = 1
