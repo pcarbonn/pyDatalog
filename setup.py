@@ -219,7 +219,8 @@ def run_setup(with_cext):
             "Topic :: Software Development :: Libraries :: Python Modules",
             "Topic :: Scientific/Engineering :: Artificial Intelligence",
             ],
-        long_description = _LONG_DESCRIPTION,        
+        long_description = _LONG_DESCRIPTION,
+        long_description_content_type='text/markdown'
      **kwargs
     )
 
