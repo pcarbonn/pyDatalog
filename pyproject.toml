@@ -8,4 +8,5 @@ requires = [
 
 
 [tool.cibuildwheel]
+skip = ["cp311-*"]
 build-verbosity = 1
