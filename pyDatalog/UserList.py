@@ -2,7 +2,7 @@
 
 import collections
 
-class UserList(collections.MutableSequence):
+class UserList(collections.abc.MutableSequence):
     def __init__(self, initlist=None):
         self.data = []
         if initlist is not None:
@@ -15,7 +15,7 @@ class UserList(collections.MutableSequence):
                 self.data = list(initlist)
     def __repr__(self): return repr(self.data)
     def __lt__(self, other): return self.data <  self.__cast(other)
-    def __le__(self, other): 
+    def __le__(self, other):
         return self.data <= self.__cast(other)
     def __eq__(self, other): return self.data == self.__cast(other)
     def __ne__(self, other): return self.data != self.__cast(other)
@@ -34,7 +34,7 @@ class UserList(collections.MutableSequence):
     def __delitem__(self, i): del self.data[i]
     # need to drop this to allow X[:-1] in pyDatalog query / clauses
     # otherwise X[:-1] triggers X.__len__(), which triggers answering the query prematurely !
-    #def __getslice__(self, i, j):  
+    #def __getslice__(self, i, j):
     #    i = max(i, 0); j = max(j, 0)
     #    return self.__class__(self.data[i:j])
     def __setslice__(self, i, j, other):

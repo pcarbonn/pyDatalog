@@ -1,0 +1,11 @@
+[build-system]
+
+requires = [
+     "setuptools",
+     "wheel",
+     "Cython"
+]
+
+
+[tool.cibuildwheel]
+build-verbosity = 1

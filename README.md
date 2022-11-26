@@ -1,3 +1,9 @@
+
+## Warning
+
+This package is not maintained.  Use at your own risk.
+Consider using [IDP-Z3][IDP-Z3] instead.
+
 ## 1. Description
 
 The main goal of **pyDatalog** is to introduce [Datalog] as a [Domain Specific Language (DSL)][dsl] inside Python syntax
@@ -37,3 +43,4 @@ and [Datalog] statements can be specified in any order, as simply as formula in 
 
 [dsl]: https://en.wikipedia.org/wiki/Domain-specific_language
 [Datalog]: https://en.wikipedia.org/wiki/Datalog
+[IDP-Z3]: https://www.idp-z3.be/

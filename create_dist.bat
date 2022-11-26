@@ -1,5 +1,5 @@
 rem verify version in version.py too !
-set version=0.17.1
+set version=0.17.2
 
 set PKG_REPO="C:\Python\GitHub\pyDatalog"
 set ENV27=c:\python27
@@ -15,7 +15,7 @@ set ENV3564=c:\python35-64
 :: delete old files
 set BASEPATH=%PATH%
 cd %PKG_REPO%\dist
-del /Q *.* 
+del /Q *.*
 
 cd %PKG_REPO%\build\lib
 del /Q *.*
