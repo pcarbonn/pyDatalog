@@ -220,7 +220,7 @@ def run_setup(with_cext):
             "Topic :: Scientific/Engineering :: Artificial Intelligence",
             ],
         long_description = _LONG_DESCRIPTION,
-        long_description_content_type='text/markdown'
+        long_description_content_type='text/markdown',
      **kwargs
     )
 
