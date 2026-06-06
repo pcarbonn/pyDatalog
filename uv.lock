@@ -1,0 +1,8 @@
+version = 1
+revision = 3
+requires-python = ">=3.7"
+
+[[package]]
+name = "pydatalog"
+version = "0.17.4"
+source = { editable = "." }

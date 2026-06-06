@@ -1,0 +1,12 @@
+[build-system]
+
+requires = [
+     "setuptools",
+     "wheel",
+     "Cython"
+]
+
+
+[tool.cibuildwheel]
+skip = ["cp310-macosx_*", "cp311-*", "pp*"]
+build-verbosity = 1

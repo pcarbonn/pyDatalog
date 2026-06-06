@@ -164,6 +164,8 @@ def status_msgs(*msgs):
 #
 ############## PREPARING SETUP VALUES
 #
+import sys
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 from pyDatalog import version as VERSION
 _LONG_DESCRIPTION = _read(README, CHANGES, TODO)
 #

@@ -1,11 +1,19 @@
 [build-system]
+requires = ["setuptools", "wheel", "Cython"]
+build-backend = "setuptools.build_meta"
 
-requires = [
-     "setuptools",
-     "wheel",
-     "Cython"
+[project]
+name = "pyDatalog"
+version = "0.17.4"
+description = "A pure-python implementation of Datalog, a truly declarative language derived from Prolog."
+readme = "README.md"
+authors = [
+    { name = "Pierre Carbonnelle", email = "pierre.carbonnelle@gmail.com" }
 ]
-
+requires-python = ">=3.7, <=3.11"
+dependencies = [
+    "sqlalchemy<1.4",
+]
 
 [tool.cibuildwheel]
 skip = ["cp310-macosx_*", "cp311-*", "pp*"]

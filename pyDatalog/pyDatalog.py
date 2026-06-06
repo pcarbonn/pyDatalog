@@ -93,7 +93,7 @@ def predicate():
     return _predicate 
 
 def _predicate(func):
-    arity = len(inspect.getargspec(func)[0])
+    arity = len(inspect.getfullargspec(func)[0])
     pyEngine.Python_resolvers[func.__name__ + '/' + str(arity)] = func
     return func
 
