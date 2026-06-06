@@ -249,10 +249,11 @@ class metaMixin(type):
         when access to an attribute of a subclass of Mixin fails, 
         return an object that responds to () and to [] 
         """
-        if cls in ('Mixin', 'metaMixin') or method in (
+        if cls in ('Mixin', 'metaMixin') or method.startswith('_sa_') or method.startswith('__') or method in (
                 '__mapper_cls__', '_decl_class_registry', '__sa_instrumentation_manager__', 
                 '_sa_instance_state', '_sa_decl_prepare', '__table_cls__', '_pyD_query'):
-            raise AttributeError        return pyParser.Term("%s.%s" % (cls.__name__, method))
+            raise AttributeError
+        return pyParser.Term("%s.%s" % (cls.__name__, method))
 
     def pyDatalog_search(cls, literal):
         """Called by pyEngine to resolve a prefixed literal for a subclass of Mixin."""
