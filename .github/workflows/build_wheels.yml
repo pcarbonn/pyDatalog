@@ -7,7 +7,7 @@ jobs:
     name: Make SDist
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Optional, use if you use setuptools_scm
         submodules: true  # Optional, use if you have submodules
@@ -15,8 +15,9 @@ jobs:
     - name: Build SDist
       run: pipx run build --sdist
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
+        name: cibuildwheel-sdist
         path: dist/*.tar.gz
 
   build_wheels:
@@ -24,36 +25,34 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-2019, macos-11]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.11.2
-        # env:
-        #   CIBW_SOME_OPTION: value
-        #    ...
-        # with:
-        #   package-dir: .
-        #   output-dir: wheelhouse
-        #   config-file: "{package}/pyproject.toml"
+        uses: pypa/cibuildwheel@v2.22.0
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: cibuildwheel-wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
 
   upload_all:
     needs: [build_wheels, make_sdist]
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Mandatory for PyPI OIDC Trusted Publishing
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
-        name: artifact
+        pattern: cibuildwheel-*
         path: dist
+        merge-multiple: true
 
-    - uses: pypa/gh-action-pypi-publish@v1.5.0
-      with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Publish to PyPI
+      run: uv publish

@@ -1,8 +1,20 @@
 
-## Warning
+## Installation
 
-This package is not maintained.  Use at your own risk.
-Consider using [IDP-Z3](https://www.idp-z3.be/) instead.
+You can install `pyDatalog` from PyPI using `pip`:
+
+```bash
+pip install pyDatalog
+```
+
+Or using `uv`:
+
+```bash
+uv add pyDatalog
+```
+
+> [!NOTE]
+> Pre-compiled binary wheels are provided for most common platforms and Python versions. If a compatible wheel is not available, the package manager will fall back to building from the source distribution (sdist), which requires a C compiler to compile the speed-up extension. If compilation fails, it will gracefully fall back to a pure-Python implementation.
 
 ## Description
 

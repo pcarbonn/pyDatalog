@@ -1,8 +1,11 @@
-rem please check version number before uploading on Pypi
+@echo off
+echo Please check the version number in pyproject.toml before uploading to PyPI.
 pause
-cd "C:\Python\GitHub\pyDatalog\build\lib"
-del *.*
-cd "C:\Python\GitHub\pyDatalog"
-c:\python27\python.exe setup.py register sdist upload
-rem c:\python27\python.exe setup.py bdist_wheel upload
+uv build
+if %errorlevel% neq 0 (
+    echo Build failed!
+    exit /b %errorlevel%
+)
+echo Dist built successfully. Publishing to PyPI...
+uv publish
 pause
