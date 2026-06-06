@@ -61,9 +61,12 @@ from . import util
 __version__ = version.__version__
      
 try:
-    from sqlalchemy.ext.declarative import DeclarativeMeta
+    from sqlalchemy.orm import DeclarativeMeta
 except:
-    DeclarativeMeta = object
+    try:
+        from sqlalchemy.ext.declarative import DeclarativeMeta
+    except:
+        DeclarativeMeta = object
 
 class Dummy(object):
     pass
@@ -222,7 +225,9 @@ class metaMixin(type):
         super(metaMixin, cls).__init__(name, bases, dct)
         pyEngine.add_class(cls, name)
         cls.has_SQLAlchemy = any(base.__module__ in ('sqlalchemy.ext.declarative', 
-                            'sqlalchemy.ext.declarative.api') for base in bases)
+                            'sqlalchemy.ext.declarative.api',
+                            'sqlalchemy.orm.decl_api',
+                            'sqlalchemy.orm') for base in bases)
         
         def _getattr(self, attribute):
             """ responds to instance.method by asking datalog engine """
