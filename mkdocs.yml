@@ -1,0 +1,54 @@
+site_name: pyDatalog
+site_description: Logic programming in Python
+site_url: https://pydatalog.readthedocs.io/
+repo_name: pcarbonn/pyDatalog
+repo_url: https://github.com/pcarbonn/pyDatalog
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light / dark mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - tables
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Datalog Tutorial: tutorial.md
+  - Object-oriented Datalog: oo_datalog.md
+  - Data Integration: data_integration.md
+  - Console: console.md
+  - Advanced Topics: advanced.md
+  - Reference: reference.md
+  - Support & Community: support.md

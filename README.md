@@ -1,3 +1,5 @@
+> [!NOTE]
+> In view of the [300 stars on GitHub](https://seladb.github.io/StarTrack-js/#/) (Thanks !!), I have restarted support of this package in June 2026.
 
 ## Installation
 
@@ -45,4 +47,4 @@ Datalog excels at accelerated development: Datalog programs are often shorter th
 and Datalog statements can be specified in any order, as simply as formula in a spreadsheet.
 
 
-[More info](https://sites.google.com/site/pydatalog/home)
+[More info](https://pydatalog.readthedocs.io/)
