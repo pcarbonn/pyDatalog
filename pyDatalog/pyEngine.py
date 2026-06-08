@@ -583,6 +583,7 @@ def add_class(cls, name):
 
 def insert(pred):
     Logic.tl.logic.Db[pred.id] = pred
+    Logic.tl.logic.Pred_registry[pred.id] = pred
     return pred
 
 def remove(pred):
