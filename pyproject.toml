@@ -48,3 +48,4 @@ include = ["pyDatalog", "pyDatalog.examples"]
 [tool.cibuildwheel]
 skip = ["pp*"]
 build-verbosity = 1
+before-build = "pip install --upgrade pip setuptools wheel"
