@@ -6,7 +6,7 @@ on:
 
 jobs:
   make_sdist:
-    name: Make SDist
+    name: Make SDist and Pure Wheel
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -14,13 +14,13 @@ jobs:
         fetch-depth: 0  # Optional, use if you use setuptools_scm
         submodules: true  # Optional, use if you have submodules
 
-    - name: Build SDist
-      run: pipx run build --sdist
+    - name: Build SDist and Pure Wheel
+      run: PYDATALOG_NO_C_EXT=1 pipx run build
 
     - uses: actions/upload-artifact@v4
       with:
         name: cibuildwheel-sdist
-        path: dist/*.tar.gz
+        path: dist/*
 
   build_wheels:
     name: Build wheels on ${{ matrix.os }}

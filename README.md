@@ -24,7 +24,8 @@ uv add pyDatalog
 ```
 
 > [!NOTE]
-> Pre-compiled binary wheels are provided for most common platforms and Python versions. If a compatible wheel is not available, the package manager will fall back to building from the source distribution (sdist), which requires a C compiler to compile the speed-up extension. If compilation fails, it will gracefully fall back to a pure-Python implementation.
+> Pre-compiled binary wheels are provided for most common platforms and Python versions. A **pure Python wheel** is also published on PyPI for universal compatibility. If a platform-specific wheel is not available, your package manager (like `pip` or `micropip`) will automatically install the pure Python wheel, which runs natively on WebAssembly/Pyodide, mobile environments (like Pydroid 3), and all other architectures without requiring a C compiler.
+> If installation is requested from source (instead of from wheels) and fails, the library will gracefully fall back to its pure-Python implementation.
 
 ## Description
 

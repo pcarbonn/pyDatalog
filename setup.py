@@ -38,7 +38,7 @@ class VeBuildExt(build_ext):
                 raise BuildFailed()
             raise BuildFailed()
 
-CPYTHON = platform.python_implementation() == 'CPython'
+CPYTHON = platform.python_implementation() == 'CPython' and not os.environ.get('PYDATALOG_NO_C_EXT')
 
 def run_setup(with_cext):
     ext_modules = [

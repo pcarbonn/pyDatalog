@@ -1,12 +1,12 @@
 # Console
 
-<iframe style="width: 100%; height: 480px; border: none; background: #1e1e1e; border-radius: 4px;" name="embedded_python_anywhere" src="https://www.pythonanywhere.com/embedded3/"></iframe>
+<iframe style="width: 100%; height: 480px; border: none; background: #1e1e1e; border-radius: 4px;" name="embedded_pyodide" src="https://pyodide.org/en/stable/console.html"></iframe>
 
 To start using pyDatalog in this console, please copy-paste and run this setup block first to install and load the library:
 
 ```python
-import subprocess, sys
-subprocess.check_call([sys.executable, "-m", "pip", "install", "--user", "pyDatalog"])
+import micropip
+await micropip.install("pyDatalog")
 from pyDatalog import pyDatalog
 
 ```
