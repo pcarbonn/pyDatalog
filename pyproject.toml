@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools", "wheel", "Cython"]
+requires = ["setuptools>=61.0.0", "wheel>=0.40.0", "Cython>=3.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyDatalog"
-version = "0.20.0"
+version = "0.20.3"
 description = "A pure-python implementation of Datalog, a truly declarative language derived from Prolog."
 readme = "README.md"
 authors = [
