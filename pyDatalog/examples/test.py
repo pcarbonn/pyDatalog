@@ -1388,6 +1388,21 @@ if __name__ == "__main__":
     assert (((X=='pyDatalog') & (Y==hello(X))) >= Y) == 'Hello pyDatalog'
     assert (((X=='pyDatalog') & (Y==hello(X))) >= Y) == 'Hello pyDatalog'
     
+    # test for issue 19 (rule that uses unasserted fact does not blow up)
+    pyDatalog.create_atoms('rule19, unasserted19, asserted19, X19, Y19')
+    rule19(X19, Y19) <= unasserted19(X19) & asserted19(X19, Y19)
+    + asserted19('a', 'b')
+    assert rule19(X19, Y19) == []
+    assert pyDatalog.ask('rule19(X19, Y19)') == None
+    _error = False
+    try:
+        pyDatalog.ask('z19(X19)')
+    except Exception as e:
+        e_message = e.message if hasattr(e, 'message') else e.args[0]
+        if 'Predicate without definition' in e_message:
+            _error = True
+    assert _error
+ 
     print("Test completed successfully.")
 
     print(time.time() - start_time)

@@ -609,6 +609,10 @@ def assert_(clause):
             if any(literal.pred.id == pred.id for literal in clause.body):
                 pred.recursive = True
             pred.clauses[id_] = clause
+            if not pred.name.startswith('_pyD_query'):
+                for literal in clause.body:
+                    if not literal.pred.prim and not literal.pred.prefix and literal.pred.id not in Logic.tl.logic.Db:
+                        insert(literal.pred)
         insert(pred)
     return clause
 
