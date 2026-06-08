@@ -1403,6 +1403,15 @@ if __name__ == "__main__":
             _error = True
     assert _error
  
+    # test for issue 4 (logic function queries by value returning incorrect results)
+    pyDatalog.create_terms("X4,Y4,p4")
+    (p4[X4] == 0) <= (X4 == 0)
+    p4[0] = 1
+    assert (p4[X4] == 0) == []
+    assert ((Y4 == 0) & (p4[X4] == Y4)) == []
+    assert (p4[X4] == 1) == [(0,)]
+    assert (p4[0] == Y4) == [(1,)]
+
     print("Test completed successfully.")
 
     print(time.time() - start_time)

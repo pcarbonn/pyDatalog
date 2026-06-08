@@ -705,6 +705,26 @@ class Subgoal(object):
             self.complete(base_literal)
             return self.next_step()
         
+        # Check if the literal represents a function query where the value is bound (constant)
+        is_function = (literal0.pred.prearity is not None) and (literal0.pred.prearity < len(terms))
+        if is_function and literal0.pred.comparison == "==" and terms[-1].is_const():
+            # Translate to: (literal with last term as Fresh_var) & (Fresh_var == terms[-1])
+            Y1 = Fresh_var()
+            terms1 = list(terms)
+            terms1[-1] = Y1
+            literal1 = Literal(literal0.pred, terms1, prearity=literal0.pred.prearity)
+            literal2 = Literal("==", [Y1, terms[-1]])
+            
+            clause = Clause(literal0, [literal1, literal2])
+            renamed = clause.rename()
+            env = literal0.unify(renamed.head)
+            if env != None:
+                renamed = renamed.subst(env, class0)
+                if Logging and Logger.isEnabledFor(logging.DEBUG):
+                    Logger.debug("pyDatalog will use clause for bound function value: %s" % renamed)
+                self.schedule((ADD_CLAUSE, (self, renamed)))
+            return self.next_step()
+        
         for _class in literal0.pred.parent_classes():
             literal = literal0.rebased(_class)
             

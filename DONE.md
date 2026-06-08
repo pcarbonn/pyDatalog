@@ -15,6 +15,58 @@ We updated the `assert_` function in `pyDatalog/pyEngine.py` to register all unp
 After making this change, we compiled `pyEngine.py` to `pyEngine.c` using Cython, rebuilt the package, and verified it against the test suite, which completed successfully.
 
 
+# Issue # 4
+
+## Problem Description
+
+Consider the following program:
+```python
+(p[X] == 0) <= (X == 0)
+p[0] = 1
+print(p[X] == 0)
+```
+The query should return no results because `p[0]` is uniquely defined as `1` by the last, higher-priority rule. However, pyDatalog incorrectly returned `X = 0` by applying the first, lower-priority rule.
+
+## Root Cause Analysis
+In pyDatalog, functional unicity is enforced in `Subgoal.fact()` by registering facts in a `self.facts` dict using a `fact_id` that only contains the function name and its input arguments (excluding the output value). Subsequent values derived for the same arguments are ignored.
+
+However, if the query itself binds the value argument to a constant (e.g., `p[X] == 0`, internally compiled as the relation query `p[1]==(..., X, 0)`), then:
+1. During subgoal evaluation, the higher-priority rule `p[0] = 1` does not unify with the query because `1 != 0`. So it is ignored and never added to the subgoal's facts list.
+2. The lower-priority rule `(p[X] == 0) <= (X == 0)` matches the query and derives `p[1]==(..., 0, 0)`.
+3. Since the overriding fact `p[0] = 1` was never added to the subgoal's facts list, the list is empty. Therefore, `p[0] == 0` is successfully added as a fact and returned as a solution.
+
+### Solution
+For the query `p[X] == 0`, the engine translates it to:
+```python
+(p[X] == Y1) & (Y1 == 0)
+```
+where `Y1` is a fresh variable.
+
+This resolves the issue because:
+1. Since the value term in the sub-query `p[X] == Y1` is now a variable (`Y1`), the higher-priority fact `p[0] = 1` successfully unifies and matches the subgoal.
+2. This fact is added to the subgoal's facts list first (under the argument key `0`).
+3. When the lower-priority rule `(p[X] == 0) <= (X == 0)` is subsequently evaluated, it attempts to derive `p[0] == 0`. However, because the subgoal's facts list already contains a value for the argument `0` (which is `1`), the engine's functional unicity check is correctly triggered, and the conflicting fact `p[0] == 0` is discarded.
+4. Finally, the conjoined condition `Y1 == 0` is evaluated. Since `Y1` was uniquely resolved to `1`, the equality `1 == 0` fails, and the query correctly returns no results.
+
+## Fix Applied
+We implemented dynamic query translation at execution/search time in `Subgoal.search()` of `pyDatalog/pyEngine.py`. If a subgoal represents a function query, the comparison operator is `==`, and the last term (value) is bound (a constant), we translate it using a temporary clause:
+`literal0 <= [literal1, literal2]`
+where `literal1` replaces the value with a fresh variable `Y1`, and `literal2` is `Y1 == value`.
+
+For example, when resolving the query `p[X] == 0` (internally represented by the literal `p[1]==(..., X, 0)`), the engine dynamically generates and asserts the following temporary clause:
+```python
+p[1]==0 <= p[1]==Y1 & (Y1 == 0)
+```
+This temporary clause only exists dynamically in memory as a task/waiter on the query resolution stack. It is never inserted into the global database (`Logic.tl.logic.Db`), meaning it is automatically garbage-collected as soon as the query evaluation completes.
+
+## Alternatives Considered
+
+1. **Parse-time transformation**: Rewriting `p[X] == 0` to `(p[X] == Y1) & (Y1 == 0)` at parse time.
+   - *Drawback*: This fails when the value is a variable that is bound earlier in a conjoined query, e.g. `(Y == 0) & (p[X] == Y)`. At parse time `Y` is a variable, so it wouldn't be rewritten. At execution time, `Y` gets bound first, reproducing the bug.
+2. **Subgoal caching & unification modification**: Modifying `Literal.get_tag()`, `Subgoal.__init__()`, and core resolution loops to ignore the value term during subgoal caching and filter it in a second step.
+   - *Drawback*: Adding check overhead to the hot path `Literal.get_tag()` would slow down all subgoal lookups (including non-functional ones). Modifying core SLG resolution assertions like `assert env != None` is also more invasive.
+
+
 # Issue # 20
 
 ## Problem Description
