@@ -45,6 +45,9 @@ Download = "http://pypi.python.org/pypi?name=pyDatalog&:action=display"
 [tool.setuptools.packages.find]
 include = ["pyDatalog", "pyDatalog.examples"]
 
+[tool.setuptools]
+license-files = []
+
 [tool.cibuildwheel]
 skip = ["pp*"]
 build-verbosity = 1
