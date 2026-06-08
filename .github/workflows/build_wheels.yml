@@ -43,6 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # Mandatory for PyPI OIDC Trusted Publishing
+      contents: write  # Mandatory for uploading assets to the release
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
     - uses: actions/download-artifact@v4
@@ -50,6 +51,11 @@ jobs:
         pattern: cibuildwheel-*
         path: dist
         merge-multiple: true
+
+    - name: Upload to GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/*
 
     - name: Set up uv
       uses: astral-sh/setup-uv@v5

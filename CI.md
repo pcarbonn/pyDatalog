@@ -37,6 +37,7 @@ Publishing to PyPI is automated and occurs only when a GitHub Release is publish
 ### The Publish Flow:
 Once the release is published, the GitHub Actions workflow triggers the publish step:
 - It downloads all the wheels and the source distribution.
+- It automatically uploads these built binaries (wheels and `.tar.gz`) as assets to the **GitHub Release** page.
 - It leverages **PyPI Trusted Publishing (OIDC)**, authentication is passwordless and secure.
 - It uses `uv publish` to securely upload all compiled wheels and the source package to PyPI.
 
