@@ -19,7 +19,7 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc.  51 Franklin St, Fifth Floor, Boston, MA 02110-1301
 USA
 
-This work is derived from Pythologic, (C) 2004 Shai Berger, 
+This work is derived from Pythologic, (C) 2004 Shai Berger,
 in accordance with the Python Software Foundation licence.
 (See http://code.activestate.com/recipes/303057/ and
 http://www.python.org/download/releases/2.0.1/license/ )
@@ -27,27 +27,27 @@ http://www.python.org/download/releases/2.0.1/license/ )
 
 """
 Design principle:
-Instead of writing our own parser, we use python's parser.  
+Instead of writing our own parser, we use python's parser.
 
 Methods exposed by this file include:
 * load(code)
 * add_program(func)
 * ask(code)
 
-For these methods, the datalog code is first compiled in python byte code, 
-then undefined variables are initialized as instance of Symbol, 
+For these methods, the datalog code is first compiled in python byte code,
+then undefined variables are initialized as instance of Symbol,
 then the code is finally executed to load the clauses.
 This is done in the load() and add_program() method of Parser class.
 
 Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRnMPH
-* LazyList : a subclassable list that is populated when it is accessed. 
+* LazyList : a subclassable list that is populated when it is accessed.
     * LazyListOfList : Mixin for Query and Body
 * Literal : made of a predicate and a list of arguments.  Instantiated when a symbol is called while executing the datalog program
     * HeadLiteral
     * Query
 * Body : a list of literals to be used in a clause. Instantiated when & is executed in the datalog program
 * Expression : base class for objects that can be part of an inequality, operation or slice
-    * Term : represents a constant, a variable, a tuple, or a predicate name 
+    * Term : represents a constant, a variable, a tuple, or a predicate name
     * Function : represents f[X]
     * Operation : made of an operator and 2 operands. Instantiated when an operator is applied to a symbol while executing the datalog program
 * _transform_ast : performs some modifications of the abstract syntax tree of the datalog program
@@ -74,28 +74,28 @@ Thread_storage.variables = set([]) #call list of variables parsed since the last
 
 def clear():
     Thread_storage.variables = set([])
-    
+
 """                             Parser classes                                                   """
 
 class LazyList(UserList.UserList):
     """a subclassable list that is populated when it is accessed """
     """used by Literal, Body, Variable to delay evaluation of datalog queries written in python  """
-    """ during debugging, beware that viewing a Lazylist will force its udpate""" 
+    """ during debugging, beware that viewing a Lazylist will force its udpate"""
     def __init__(self):
         self.todo = None # self.todo.ask() calculates self.data
         self._data = []
-    
+
     @property
     def data(self):
         """ returns the list, after recalculation if needed """
         if self.todo is not None:
-            self.variables = tuple(self.todo._variables().keys()) 
+            self.variables = tuple(self.todo._variables().keys())
             self.todo.ask()
         return self._data
 
     def _value(self): # for backward compatibility ?
         return self.data
-    
+
     def v(self):
         """ returns the first value in the list, or None """
         return True if self.data is True else self._data[0] if 0<len(self._data) else None
@@ -106,13 +106,13 @@ class LazyListOfList(LazyList):
         """ uses set comparison"""
         return other is True if self.data is True \
             else set(self.data) == set(other)
-    
+
     def __ge__(self, variable):
         """ returns the first value of the variable in the result of a query, or None """
         if isinstance(variable, Term) and variable.is_variable():
             return variable.v()
         return variable.__le__(self)
-    
+
     def __unicode__(self):
         """ pretty print the result """
         if self.data in (True, [], [()]): return util.unicode_type(self._data)
@@ -121,15 +121,15 @@ class LazyListOfList(LazyList):
         widths = [max(widths[i], len(util.unicode_type(self.variables[i]))) for i in util.xrange(len(widths))]
         # get the formating string
         fofo = ' | '.join('%%-%ss' % widths[i] for i in util.xrange(len(widths)))
-        return '\n'.join((fofo % self.variables, 
+        return '\n'.join((fofo % self.variables,
                             '-|-'.join( widths[i]*'-' for i in util.xrange(len(widths))),
                             '\n'.join(fofo % s for s in self._data)))
 
     def sort(self):
-        if self.data is not True: 
+        if self.data is not True:
             self.data.sort()
         return self
-    
+
     def __str__(self):
         return util.cast_to_str(self.__unicode__())
 
@@ -146,10 +146,10 @@ class Expression(object):
         if isinstance(operand, slice):
             return Term([operand.start, operand.stop, operand.step])
         return Term(operand, forced_type="constant")
-    
+
     def is_variable(self):
         return False
-    
+
     # handlers of inequality and operations
     def __eq__(self, other):
         if isinstance(self, Operation) and self._pyD_operator in '+-' and self._pyD_lhs._pyD_value == 0:
@@ -173,7 +173,7 @@ class Expression(object):
         """ called when evaluating (X not in (1,2)) """
         return Literal.make_for_comparison(self, '_pyD_not_in', values)
     _not_in = not_in_  # for backward compatibility
-    
+
     def __pos__(self):
         """ called when evaluating -X """
         return 0 + self
@@ -195,7 +195,7 @@ class Expression(object):
         return Operation(self, '//', other)
     def __pow__(self, other):
         return Operation(self, '**', other)
-    
+
     # called by constant + Term (or lambda + symbol)
     def __radd__(self, other):
         return Operation(other, '+', self)
@@ -217,7 +217,7 @@ class Expression(object):
         if isinstance(keys, slice):
             return Operation(self, '[', [keys.start, keys.stop, keys.step])
         return Operation(self, '[', keys)
-    
+
     def __getattr__(self, name):
         """ called when evaluating <expression>.attribute """
         return Operation(self, '.',  Term(name, forced_type='constant'))
@@ -226,20 +226,20 @@ class Expression(object):
         assert not kwargs, "Sorry, key word arguments are not supported yet"
         return Operation(self, '(', args)
 
-    
+
 class Term(threading.local, Expression, LazyList):
     """
     can be constant, list, tuple, variable or predicate name
     ask() creates a query
     """
-    
+
     def __init__(self, name='??', forced_type=None):
         LazyList.__init__(self)
-        
+
         self._pyD_negated = False # for aggregate with sort in descending order
         self._pyD_precalculations = Body() # no precalculations
         self._pyD_atomized = True
-        
+
         if (isinstance(name, util.string_types)):
             name = 'X%i' % id(self) if name =='??' else name
             name = True if name=='True' else False if name =='False' else name
@@ -264,7 +264,7 @@ class Term(threading.local, Expression, LazyList):
             if 0 < index:
                 self._pyD_lua = pyEngine.Operation(pyEngine.Var(name[:index]), '.',  pyEngine.Const(name[index:]))
             else:
-                self._pyD_lua = pyEngine.Var(name) 
+                self._pyD_lua = pyEngine.Var(name)
 
     @classmethod
     def make_for_prefix(cls, name): #prefixed #call
@@ -276,7 +276,7 @@ class Term(threading.local, Expression, LazyList):
 
     def is_variable(self):
         return self._pyD_type == 'variable' and not self._pyD_name.startswith('_pyD_')
-    
+
     def _pyD_variables(self):
         """ returns an ordered dictionary of the variables in the varSymbol """
         if self.is_variable():
@@ -288,7 +288,7 @@ class Term(threading.local, Expression, LazyList):
             return variables
         else:
             return OrderedDict()
-    
+
     def __add__(self, other):
         return Operation(self, '+', other)
     def __radd__(self, other):
@@ -302,7 +302,7 @@ class Term(threading.local, Expression, LazyList):
         expr = 0 - self
         expr._pyD_variable = neg
         return expr
-    
+
     def __getattr__(self, name):
         """ called when evaluating class.attribute """
         if self._pyD_name in Thread_storage.variables: #prefixed
@@ -323,7 +323,7 @@ class Term(threading.local, Expression, LazyList):
             +(function == value)
         else:
             (function == function._pyD_symbol) <= (function._pyD_symbol == value)
-            
+
     def __delitem__(self, keys):
         """  called when evaluating del f[X] """
         function = Function(self._pyD_name, keys)
@@ -341,7 +341,7 @@ class Term(threading.local, Expression, LazyList):
             if 1<len(args):
                 raise RuntimeError('Too many arguments for ask !')
             return Answer.make(args[0].ask())
-        
+
         # manage the aggregate functions
         elif self._pyD_name in ('_sum', 'sum_'):
             if isinstance(args[0], Term):
@@ -373,8 +373,8 @@ class Term(threading.local, Expression, LazyList):
         elif self._pyD_name in ('_len', 'len_'):
             if isinstance(args[0], Term):
                 return Aggregate.Len(args[0])
-            else: 
-                return len(args[0]) 
+            else:
+                return len(args[0])
         elif self._pyD_name == 'range_':
             return Operation(None, '..', args[0])
         elif self._pyD_name == 'format_':
@@ -392,12 +392,12 @@ class Term(threading.local, Expression, LazyList):
         if self._pyD_name in Thread_storage.variables: #prefixed
             return LazyList.__str__(self)
         return util.cast_to_str(self._pyD_name)
-    
+
     def __unicode__(self):
         if self._pyD_name in Thread_storage.variables: #prefixed
             return LazyList.__unicode__(self)
         return util.unicode_type(self._pyD_name)
-    
+
 
 def pre_calculations(args):
     """ collects the pre_calculations of all args"""
@@ -407,23 +407,23 @@ def pre_calculations(args):
             pre_calculations = pre_calculations & arg._pyD_precalculations
     return pre_calculations
 
-        
+
 class Function(Expression):
     """ represents predicate[a, b]"""
     counter = util.Counter() # counter of functions evaluated so far
-        
+
     def __init__(self, name, keys):
         self._pyD_keys = keys if isinstance(keys, tuple) else (keys,)
         self._pyD_name = "%s[%i]" % (name, len(self._pyD_keys))
         self._argument_precalculations = pre_calculations(self._pyD_keys)
-                
+
         self._pyD_symbol = Term('_pyD_X%i' % Function.counter.next())
         self._pyD_lua = self._pyD_symbol._pyD_lua
         self._pyD_precalculations = self._argument_precalculations & (self == self._pyD_symbol)
-    
+
     def __eq__(self, other):
         return Literal.make_for_comparison(self, '==', other)
-    
+
     # following methods are used when the function is used in an expression
     def _pyD_variables(self):
         """ returns an ordered dictionary of the variables in the keys of the function"""
@@ -431,10 +431,10 @@ class Function(Expression):
 
     def __unicode__(self):
         return "%s[%s]" % (self._pyD_name.split('[')[0], ','.join(util.unicode_type(key) for key in self._pyD_keys))
-    
+
     def __str__(self):
         return util.cast_to_str(self.__unicode__())
-    
+
 class Operation(Expression):
     """created when evaluating an operation (+, -, *, /, //) """
     def __init__(self, lhs, operator, rhs):
@@ -443,23 +443,23 @@ class Operation(Expression):
         self._pyD_rhs = Expression._pyD_for(rhs)
         self._pyD_lua = pyEngine.Operation(self._pyD_lhs._pyD_lua, self._pyD_operator, self._pyD_rhs._pyD_lua)
         self._pyD_precalculations = pre_calculations((self._pyD_lhs, self._pyD_rhs)) #TODO test for slice, len
-        
+
     @property
     def _pyD_name(self):
         return util.unicode_type(self)
-    
+
     def _pyD_variables(self):
         """ returns an ordered dictionary of the variables in this Operation"""
         temp = self._pyD_lhs._pyD_variables()
         temp.update(self._pyD_rhs._pyD_variables())
         return temp
-    
+
     def __unicode__(self):
         return '(' + util.unicode_type(self._pyD_lhs._pyD_name) + self._pyD_operator + util.unicode_type(self._pyD_rhs._pyD_name) + ')'
 
     def __str__(self):
         return util.cast_to_str(self.__unicode__())
-    
+
 class Literal(object):
     """
     created by source code like 'p(a, b)'
@@ -472,9 +472,9 @@ class Literal(object):
         self.args = list(args) + [p[1] for p in t]
         self.prearity = len(self.args) if prearity is None else prearity
         self.pre_calculations = Body()
-        
+
         self.todo = self
-        
+
         cls_name = self.predicate_name.split('.')[0].replace('~','') if 1< len(self.predicate_name.split('.')) else ''
         if pyEngine.Class_dict.get(cls_name) and 2 <= len(self.args) and not isinstance(self.args[1], Term) \
                 and cls_name not in [c.__name__ for c in self.args[1].__class__.__mro__]:
@@ -490,11 +490,11 @@ class Literal(object):
                 arg.todo = self
                 arg._data = [] # reset the variable. For use in in-line queries
             self.terms.append(Expression._pyD_for(arg))
-                            
+
         for term in self.terms:
             for var in term._pyD_variables().keys():
                 Thread_storage.variables.add(var) #call update the list of variables since the last clause
-            
+
         tbl = [a._pyD_lua for a in self.terms]
         # now create the literal for the head of a clause
         self.lua = pyEngine.Literal(self.predicate_name, tbl, self.prearity, aggregate)
@@ -508,7 +508,7 @@ class Literal(object):
             return precalculations & HeadLiteral(predicate_name, terms, kwargs, prearity, aggregate)
         else:
             return precalculations & Query(predicate_name, terms, kwargs, prearity, aggregate)
-    
+
     @classmethod
     def make_for_comparison(cls, self, operator, other):
         """ factory of Literal (or Body) for a comparison. """
@@ -533,7 +533,7 @@ class Literal(object):
     @property
     def literals(self):
         return [self]
-    
+
     def _variables(self):
         """ returns an ordered dictionary of the variables in the Literal"""
         if self.predicate_name[0] == '~': #pred ignore variables of negated literals
@@ -542,13 +542,14 @@ class Literal(object):
         for term in self.terms:
             variables.update(term._pyD_variables())
         return variables
-    
+
     def __le__(self, body):
         " head <= body creates a clause"
         Thread_storage.variables = set([]) #call reset the list of variables
         body = body.as_literal if isinstance(body, Call) else body #call
         if body is None:
-            pyEngine.remove(self.lua.pred)
+            for clause in list(self.lua.pred.db.values()):
+                pyEngine.retract(clause)
         elif not isinstance(body, (Literal, Body)):
                 raise util.DatalogError("Invalid body for clause", None, None)
         else:
@@ -572,7 +573,7 @@ class Query(Literal, LazyListOfList):
     def __init__(self, predicate_name, terms, kwargs=None, prearity=None, aggregate=None):
         LazyListOfList.__init__(self)
         Literal.__init__(self, predicate_name, terms, kwargs, prearity, aggregate)
-        
+
     def ask(self):
         self._data = Body(self.pre_calculations, self).ask()
         self.todo = None
@@ -591,18 +592,18 @@ class Query(Literal, LazyListOfList):
             raise util.DatalogError("Cannot retract a fact containing Variables", None, None)
         clause = pyEngine.Clause(self.lua, [])
         pyEngine.retract(clause)
-        
+
     def __invert__(self):
         """unary ~ means negation """
         return Literal.make('~' + self.predicate_name, self.terms) #pred
 
     def __and__(self, other):
-        " literal & literal" 
+        " literal & literal"
         return Body(self, other)
 
     def __unicode__(self):
         return LazyListOfList.__unicode__(self)
-    
+
     def __eq__(self, other):
         return LazyListOfList.__eq__(self, other)
 
@@ -618,11 +619,11 @@ class Call(Operation): #call
     @property
     def literals(self):
         return [self.as_literal]
-    
+
     def __and__(self, other):
         " Call & literal"
         return Body(self.as_literal, other)
-        
+
     def __invert__(self):
         """unary ~ means negation """
         return ~ self.as_literal
@@ -635,7 +636,7 @@ class Call(Operation): #call
 
     def ask(self):
         return Body(self.as_literal).ask()
-        
+
 class Body(LazyListOfList):
     """ created by p(a,b) & q(c,d)  """
     counter = util.Counter()
@@ -644,13 +645,13 @@ class Body(LazyListOfList):
         self.literals = []
         for arg in args:
             self.literals += [arg] if isinstance(arg, Literal) else arg.literals
-            
+
         env = OrderedDict()
         for literal in self.literals:
             for term in literal._variables().values():
                 env[term._pyD_name] = term
         self.__variables = env
-        
+
         self.todo = self
         for variable in env.values():
             variable.todo = self
@@ -662,7 +663,7 @@ class Body(LazyListOfList):
         """ operator '&' means 'and', and returns a Body """
         b = Body(self, body2)
         return b if len(b.literals) != 1 else b.literals[0]
-    
+
     def __unicode__(self):
         if True: # use False for debugging of parser
             return LazyListOfList.__unicode__(self)
@@ -682,7 +683,7 @@ class Body(LazyListOfList):
         literal = Literal.make('_pyD_query' + util.unicode_type(Body.counter.next()), list(self._variables().values()), {}, prearity=prearity)
         literal <= self
         return literal
-        
+
     def __invert__(self):
         """unary ~ means negation """
         return ~(self.literal())
@@ -710,20 +711,20 @@ def add_clause(head,body):
         tbl = [body.lua,]
     clause = pyEngine.Clause(head.lua, tbl)
     result = pyEngine.assert_(clause)
-    if not result: 
+    if not result:
         raise util.DatalogError("Can't create clause", None, None)
     return result
 
 
-        
+
 """                             Parser methods                                                   """
 
 def add_symbols(names, variables):
     """ add the names to the variables dictionary"""
     for name in names:
         if name not in variables.keys():
-            variables[name] = Term(name)            
-    
+            variables[name] = Term(name)
+
 class _transform_ast(ast.NodeTransformer):
     """ does some transformation of the Abstract Syntax Tree of the datalog program """
     def visit_Call(self, node):
@@ -735,12 +736,12 @@ class _transform_ast(ast.NodeTransformer):
             node.func.id = 'min_' if node.func.id == 'min' else node.func.id
             node.func.id = 'max_' if node.func.id == 'max' else node.func.id
         return node
-    
+
     def visit_Compare(self, node):
         """ rename 'in' to allow customization of (X in (1,2))"""
         self.generic_visit(node)
-        if 1 < len(node.comparators): 
-            raise util.DatalogError("Syntax error: please verify parenthesis around (in)equalities", node.lineno, None) 
+        if 1 < len(node.comparators):
+            raise util.DatalogError("Syntax error: please verify parenthesis around (in)equalities", node.lineno, None)
         if not isinstance(node.ops[0], (ast.In, ast.NotIn)): return node
         var = node.left # X, an _ast.Name object
         comparators = node.comparators[0] # (1,2), an _ast.Tuple object
@@ -761,7 +762,7 @@ class _transform_ast(ast.NodeTransformer):
         return ast.fix_missing_locations(newNode)
 
 def load(code, newglobals=None, defined=None, function='load'):
-    """ code : a string or list of string 
+    """ code : a string or list of string
         newglobals : global variables for executing the code
         defined : reserved symbols
     """
@@ -774,7 +775,7 @@ def load(code, newglobals=None, defined=None, function='load'):
         if spaces and line != spaces:
             break
     code = '\n'.join([re.sub('^' + spaces, '', line) for line in lines])
-    
+
     tree = ast.parse(code, function, 'exec')
     try:
         tree = _transform_ast().visit(tree)
@@ -800,11 +801,11 @@ def load(code, newglobals=None, defined=None, function='load'):
                 e.lineno = traceback.tb_lineno
                 break
             elif traceback.tb_next:
-                traceback = traceback.tb_next 
+                traceback = traceback.tb_next
         e.message = e.value
         e.value = "%s\n%s" % (e.value, lines[e.lineno-1])
         util.reraise(*sys.exc_info())
-        
+
 class _NoCallFunction(object):
     """ This class prevents a call to a datalog program created using the 'program' decorator """
     def __call__(self):
@@ -856,15 +857,15 @@ class Answer(object):
             answer = Answer('_pyD_query', len(answers), answers)
         else:
             answer = None
-        if pyEngine.Auto_print: 
+        if pyEngine.Auto_print:
             print(answers)
-        return answer        
+        return answer
 
     def __eq__ (self, other):
         return other == True if self.answers is True \
             else other == set(self.answers) if self.answers \
             else other is None
-            
+
     def __str__(self):
         return 'True' if self.answers is True \
             else util.cast_to_str(util.unicode_type(set(self.answers))) if self.answers is not True \

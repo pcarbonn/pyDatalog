@@ -1,6 +1,22 @@
 (most recent first)
 
 
+# Issue # 31
+
+## Problem Description
+Redefining a predicate to be empty via `B(X) <= None` completely deregistered it, causing `AttributeError: Predicate without definition` when subsequently queried.
+
+## Root Cause Analysis
+In `pyParser.py`, `B(X) <= None` called `pyEngine.remove(self.lua.pred)` which deleted the predicate from both `Logic.tl.logic.Db` (defined database predicates) and `Pred_registry`. Consequently, the predicate was treated as undefined on subsequent queries, raising `AttributeError`.
+
+## Fix Applied
+We modified `__le__` in `pyDatalog/pyParser.py` so that when `body` is `None`, instead of completely removing the predicate from the database, we loop through and retract each fact/rule using `pyEngine.retract(clause)`. This retains the predicate in the database but clears all facts and rules associated with it, defining it as empty. 
+
+We preserved the behavior of `del f[X]` (which clears rules/clauses with bodies while leaving facts intact, as per the documented behavior since version 0.14.0).
+
+### Discussion on Possible Regression
+By keeping the predicate registered in `Db` after clearing it (so it returns `[]` on query instead of raising `AttributeError`), some existing programs that relied on catching `AttributeError` to detect when a predicate was cleared or undefined might change in behavior. However, this is the correct and intended Datalog behavior, treating a cleared predicate as an empty relation rather than raising an exception.
+
 # Issue # 19
 
 ## Problem Description

@@ -4,7 +4,7 @@
 
 ## In-line datalog, datalog program and datalog string
 
-Anin-line datalog statement is [a Python statement](http://www.google.com/url?q=http%3A%2F%2Fdocs.python.org%2Freference%2Fgrammar.html&sa=D&sntz=1&usg=AOvVaw3tm7tmfH85yQAOfK97UBB7):
+An in-line datalog statement is [a Python statement](http://www.google.com/url?q=http%3A%2F%2Fdocs.python.org%2Freference%2Fgrammar.html&sa=D&sntz=1&usg=AOvVaw3tm7tmfH85yQAOfK97UBB7):
 
   * that follows the syntax of a datalog statement (see grammar below),
   * where datalog constants, variables and unprefixed predicates have been previously declared globally using `pyDatalog.create_terms()` (thus not declared in a method or class),
@@ -39,7 +39,7 @@ Please note:
   * the left and right hand sides of `expr1 < expr2` comparisons must be bound (otherwise, an error is raised)
   * an inequality must be surrounded by parenthesis, and can only appear in the body of a clause
   * an aggregate function can only appear in the head of a clause. Note the `` suffix (e.g. `sum`) to differentiate with the python aggregate function
-  * "`=`" defines a logic formula, while "`==`" appears in a fact, clause or query and must always be surrounded by parenthesis
+  * "f[X, Y] = <definition>" defines a logic function, while "f[X, Y] == <value>" is a comparison that appears in a fact, clause or query (and must always be surrounded by parenthesis)
   * comparisons are type-sensitive, without any implicit type conversion.
   * the head of a clause can only contain constant or variable (but no expressions).
 
@@ -64,14 +64,22 @@ Aggregate functions:
 
 The pyDatalog module has the following methods :
 
-     create_terms(args) : adds "logic terms" in the scope of the caller. `create_terms` must be called at module level (thus not in a function or class definition) It can have any number of arguments : each arg is a string containing the names of one or more logic terms to be created, separated by commas. If a term refers to a Python module, class or function, it is given the capability to appear in logic clauses, with pyDatalog.Variable arguments. Otherwise, logic terms are created either as `pyDatalog.Variable` (when they start with an upper case) or as `pyParser.Symbol` (otherwise). create_terms also creates symbols for the aggregate functions (len_, min_, ...).
-     assert_fact(predicate_name, terms) : asserts `predicate_name(terms[0], terms[1], ...)`
-     retract_fact( predicate_name, terms) : retracts `predicate_name(terms[0], terms[1], ...)`
+  * create_terms(args) : adds "logic terms" in the scope of the caller. `create_terms` must be called at module level (thus not in a function or class definition) It can have any number of arguments : each arg is a string containing the names of one or more logic terms to be created, separated by commas. If a term refers to a Python module, class or function, it is given the capability to appear in logic clauses, with pyDatalog.Variable arguments. Otherwise, logic terms are created either as `pyDatalog.Variable` (when they start with an upper case) or as `pyParser.Symbol` (otherwise). create_terms also creates symbols for the aggregate functions (len_, min_, ...).
+  * assert_fact(predicate_name, terms) : asserts `predicate_name(terms[0], terms[1], ...)`
+  * retract_fact(predicate_name, terms) : retracts `predicate_name(terms[0], terms[1], ...)`
   * load(code) : where code is a string containing a set of datalog statements, with identical indentation and separated by line feeds. This method can be used to add facts and clauses to the datalog database.
   * program() : a [function decorator](http://www.google.com/url?q=http%3A%2F%2Fdocs.python.org%2Fglossary.html%23term-decorator&sa=D&sntz=1&usg=AOvVaw3NF8H2xH574Ovf5d9VM1HJ) that loads the datalog program contained in the decorated function.
   * predicate() : a function decorator that declares a custom predicate resolver written in python
   * ask(query) : where query is a string containing a logic query. It returns an instance of `pyDatalog.Answer`, or `None`.
   * clear() : removes all facts and clauses from the datalog database.
+
+The following statements can be used to assert, clear or retract definitions:
+
+  * `+ p(a)` : Asserts `p(a)` as a fact in the database (unary `+`). The fact must contain only constants (no variables).
+  * `- p(a)` : Retracts `p(a)` as a fact from the database (unary `-`). The fact must contain only constants (no variables).
+  * `B(X) <= None` : Clears all facts and clauses associated with the predicate `B` (redefining it as empty) while keeping it registered in the database, so subsequent queries on it return an empty result instead of throwing an `AttributeError`.
+  * `del f[X]` : Clears all rules/clauses (rules with bodies) associated with the logic function `f`.
+  * `del f[constant]` : Clears the specific fact for `f[constant]`.
 
 An instance of the pyDatalog.Variable class has the following attributes and methods:
 

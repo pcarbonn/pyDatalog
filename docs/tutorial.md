@@ -45,7 +45,7 @@ Queries can contain several variables and several criteria ('&' is read 'and'):
 
 ```python
 >>> print((X==True) & (Y==False))
-X    | Y    
+X    | Y
 -----|------
 True | False
 
@@ -69,7 +69,7 @@ Besides numbers and booleans, variables can represent strings. Furthermore, quer
 >>> # give me all the X and Y so that X is a name and Y is 'Hello ' followed by the first letter of X
 >>> print((X==input('Please enter your name : ')) & (Y=='Hello ' + X[0]))
 Please enter your name : World
-X | Y
+X     | Y
 ------|--------
 World | Hello W
 
