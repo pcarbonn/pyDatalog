@@ -238,17 +238,22 @@ wheels = [
 name = "pydatalog"
 version = "0.20.0"
 source = { editable = "." }
-dependencies = [
+
+[package.optional-dependencies]
+mongo = [
     { name = "pymongo", version = "4.10.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "pymongo", version = "4.17.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+]
+sqlalchemy = [
     { name = "sqlalchemy" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "pymongo", specifier = ">=4.10.1" },
-    { name = "sqlalchemy", specifier = ">=2.0" },
+    { name = "pymongo", marker = "extra == 'mongo'", specifier = ">=4.10.1" },
+    { name = "sqlalchemy", marker = "extra == 'sqlalchemy'", specifier = ">=2.0" },
 ]
+provides-extras = ["sqlalchemy", "mongo"]
 
 [[package]]
 name = "pymongo"

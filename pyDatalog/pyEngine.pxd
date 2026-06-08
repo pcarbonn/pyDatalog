@@ -31,8 +31,8 @@ cdef class Const(Term):
     cpdef public dict unify(self, Term term, dict env)
     
 cdef class VarTuple(Term):
-    cpdef public object _id
-    cpdef public object is_constant
+    cdef public object _id
+    cdef public object is_constant
 
     cpdef bool is_const(self)
     cpdef public object get_tag(self, dict env)
@@ -42,11 +42,11 @@ cdef class VarTuple(Term):
     cpdef public dict unify(self, Term term, dict env)
 
 cdef class Operation(Term):
-    cpdef public object operator
-    cpdef public object operator_id
-    cpdef public object lhs
-    cpdef public object rhs
-    cpdef public object is_constant
+    cdef public object operator
+    cdef public object operator_id
+    cdef public object lhs
+    cdef public object rhs
+    cdef public object is_constant
 
     cpdef bool is_const(self)
  
@@ -57,11 +57,11 @@ cdef class Operation(Term):
     cpdef public dict unify(self, Term term, dict env)
 
 cdef class Literal(object):
-    cpdef public list terms
-    cpdef public object pred
-    cpdef public tuple id
-    cpdef public tuple tag
-    cpdef public object aggregate 
+    cdef public list terms
+    cdef public object pred
+    cdef public tuple id
+    cdef public tuple tag
+    cdef public object aggregate 
 
     cpdef public tuple get_tag(self)        
     cpdef public Literal subst(self, dict env)        
@@ -73,19 +73,19 @@ cdef class Literal(object):
     cpdef public dict match(self, list terms)
     
 cdef class Clause(object):
-    cpdef public Literal head
-    cpdef public list body
-    cpdef public tuple id
+    cdef public Literal head
+    cdef public list body
+    cdef public tuple id
 
 cdef class Subgoal(object):
-    cpdef public Literal literal
-    cpdef public object facts
-    cpdef public list waiters
-    cpdef public object tasks
-    cpdef public list clauses
-    cpdef public bool recursive
-    cpdef public bool is_done
-    cpdef public list on_completion_
+    cdef public Literal literal
+    cdef public object facts
+    cdef public list waiters
+    cdef public object tasks
+    cdef public list clauses
+    cdef public bool recursive
+    cdef public bool is_done
+    cdef public list on_completion_
  
     #cpdef public add_clause(self, Clause clause)
     cpdef public fact(self, object literal)

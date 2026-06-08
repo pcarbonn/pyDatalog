@@ -1,3 +1,11 @@
+# pyDatalog
+
+[![Build Status](https://github.com/pcarbonn/pyDatalog/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/pcarbonn/pyDatalog/actions)
+[![Documentation Status](https://img.shields.io/readthedocs/pydatalog)](https://pydatalog.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://img.shields.io/pypi/v/pyDatalog.svg)](https://pypi.org/project/pyDatalog/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/pyDatalog.svg)](https://pypi.org/project/pyDatalog/)
+[![License](https://img.shields.io/pypi/l/pyDatalog.svg)](https://github.com/pcarbonn/pyDatalog/blob/master/LICENCE)
+
 > [!NOTE]
 > In view of the [300 stars on GitHub](https://seladb.github.io/StarTrack-js/#/) (Thanks !!), I have restarted support of this package in June 2026.
 

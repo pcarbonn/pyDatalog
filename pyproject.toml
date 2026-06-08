@@ -11,10 +11,8 @@ authors = [
     { name = "Pierre Carbonnelle", email = "pierre.carbonnelle@gmail.com" }
 ]
 requires-python = ">=3.8"
-dependencies = [
-    "pymongo>=4.10.1",
-    "sqlalchemy>=2.0",
-]
+dependencies = []
+
 keywords = ["prolog", "logic programming", "database", "SQL", "data integration", "expert system", "AI"]
 classifiers = [
     "Programming Language :: Python",
@@ -30,6 +28,14 @@ classifiers = [
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.optional-dependencies]
+sqlalchemy = [
+    "sqlalchemy>=2.0",
+]
+mongo = [
+    "pymongo>=4.10.1",
 ]
 
 [project.urls]

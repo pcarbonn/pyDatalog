@@ -4,8 +4,12 @@ import sys
 import platform
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-from distutils.errors import (CCompilerError, DistutilsExecError,
-                              DistutilsPlatformError)
+try:
+    from setuptools.errors import (CCompilerError, ExecError as DistutilsExecError,
+                                  PlatformError as DistutilsPlatformError)
+except ImportError:
+    from distutils.errors import (CCompilerError, DistutilsExecError,
+                                  DistutilsPlatformError)
 
 EXT_ERRORS = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
 if sys.platform == 'win32':
