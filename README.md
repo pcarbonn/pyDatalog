@@ -54,5 +54,12 @@ very well for:
 Datalog excels at accelerated development: Datalog programs are often shorter than their Python equivalent,
 and Datalog statements can be specified in any order, as simply as formula in a spreadsheet.
 
+## Testimonials
 
-[More info](https://pydatalog.readthedocs.io/)
+pyDatalog is cited in [several scientific papers](https://scholar.google.com/scholar?hl=fr&as_sdt=0%2C5&q=pydatalog&btnG=) !
+
+"Very neat.  Datalog rocks" - Marck Carter.  He has written a nice blog entry on unit conversion with Datalog.
+
+"Congratulations for your wonderful work done in pyDatalog project" - Karamajit Kaur, researcher in India
+
+You are also using pyDatalog ? [Let us know](mailto:pierre.carbonnelle@gmail.com).

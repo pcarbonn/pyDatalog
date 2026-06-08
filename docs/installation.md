@@ -46,7 +46,3 @@ To verify that `pyDatalog` has been installed correctly, open a Python interacti
 
 If it executes without errors, the installation was successful!
 
----
-
-## Development Environments
-Although you can write logic code in Python's standard IDLE, it is highly recommended to use a modern IDE like [PyCharm](https://www.jetbrains.com/pycharm/) or [VS Code](https://code.visualstudio.com/).

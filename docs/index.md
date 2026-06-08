@@ -76,4 +76,13 @@ pyDatalog is a fast and lightweight datalog interpreter written in Python:
 
 The depth of recursion is not limited by the stack size.
 
-pyDatalog has been tested with python 2.7, 3.3, 3.4, pypy 1.9 - 2.0, and SQLAlchemy 0.7 - 0.9, on Windows. (over 4[00 tests](https://www.google.com/url?q=https%3A%2F%2Fbitbucket.org%2Fpcarbonn%2Fpydatalog%2Fsrc%2Fc840ef379a5e0dd8e60fcd312fc9b2aa983d208e%2FpyDatalog%2Fexamples%2Ftest.py%3Fat%3Dtip&sa=D&sntz=1&usg=AOvVaw2KjzO7Bg5cOzCmIGs6VQ5C))
+## Testimonials
+
+pyDatalog is cited in [several scientific papers](https://scholar.google.com/scholar?hl=fr&as_sdt=0%2C5&q=pydatalog&btnG=) !
+
+"Very neat.  Datalog rocks" - Marck Carter.  He has written a nice blog entry on unit conversion with Datalog.
+
+"Congratulations for your wonderful work done in pyDatalog project" - Karamajit Kaur, researcher in India
+
+You are also using pyDatalog ? [Let us know](mailto:pierre.carbonnelle@gmail.com).
+
