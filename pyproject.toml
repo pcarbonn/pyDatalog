@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyDatalog"
-version = "0.20.5"
+version = "0.20.6"
 description = "A pure-python implementation of Datalog, a truly declarative language derived from Prolog."
 readme = "README.md"
 authors = [
@@ -48,4 +48,4 @@ include = ["pyDatalog", "pyDatalog.examples"]
 [tool.cibuildwheel]
 skip = ["pp*"]
 build-verbosity = 1
-before-build = "pip install --upgrade pip setuptools wheel"
+before-build = "{python} -m pip install --upgrade pip setuptools wheel"
