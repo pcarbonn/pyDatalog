@@ -35,7 +35,7 @@ Mary
 
 ```
 
-This fact is stored in pyDatalog's knowledge base (not in the Employee object). All the principles explained in [Tutorial 1](https://sites.google.com/site/pydatalog/Online-datalog-tutorial) apply to such predicates whose terms are python objects.
+This fact is stored in pyDatalog's knowledge base (not in the Employee object). All the principles explained in [Tutorial 1](https://pydatalog.readthedocs.io/en/latest/tutorial/) apply to such predicates whose terms are python objects.
 
 Instead of asserting facts in the pyDatalog knowledge base, it is often more efficient for logic predicates to directly refer to the attribute of an object. For example, we may want to have a clause concerning the salary attribute of Employee instances. This requires 2 things:
 

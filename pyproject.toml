@@ -33,7 +33,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://sites.google.com/site/pydatalog/"
+Homepage = "https://pydatalog.readthedocs.io/en/latest/"
 Download = "http://pypi.python.org/pypi?name=pyDatalog&:action=display"
 
 [tool.setuptools.packages.find]

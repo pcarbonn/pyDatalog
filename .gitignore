@@ -220,3 +220,13 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+# MkDocs build directory
+/site/
+
+# Virtual environment
+.venv/
+
+# Compiled C extensions
+*.so
+
