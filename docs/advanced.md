@@ -202,3 +202,15 @@ A pyDatalog program will never beat the same program written in pure python, but
 Performance tip:
 
   * The results of the evaluation of clauses in a query are memoized only for the duration of the query. For better performance, combine consecutive queries into one using the "&" operator, or create a clause for the combined result.
+
+## Floating Point Precision
+
+In Datalog, tabled logic programming (memoization) is used to prevent infinite loops when evaluating recursive, cyclic rules. However, when these cyclic rules involve floating-point arithmetic (e.g. `X = Y * 0.5`), floating-point inaccuracies could cause the engine to derive values that differ slightly (e.g., `1.0` vs `1.0000000000000002`). Without intervention, PyDatalog would interpret these as distinct facts and fail to terminate, leading to infinite loops.
+
+To circumvent this, PyDatalog provides a configuration variable to enforce canonicalization of floating-point numbers during evaluation. By default, it restricts comparisons to 8 significant digits to ensure that cyclic paths converge and terminate. Alternatively, fractions can be used.
+
+The following Python statements can be used to control this behavior.
+
+* `pyEngine.Float_Precision = N`: (Default: `8`) PyDatalog will aggressively round all floats to `N` significant digits. This breaks the infinite loop by correctly grouping slightly drifted floats into the same memoization bucket. Note that precision beyond `N` digits is destructively truncated. Best for general use, especially when dealing with messy real-world measurements or mathematically inconsistent hardcoded decimals.
+* `pyEngine.Float_Precision = 'Fraction'`: PyDatalog will automatically convert all floats to exact rational `Fraction` objects (`fractions.Fraction`). This preserves perfect accuracy and solves infinite loops without truncating precision. This is highly useful for financial calculations or exact algebraic domains. However, if your starting facts are mathematically inconsistent (e.g. providing slightly rounded conversion rates that don't perfectly cycle back to 1), exact fraction math will faithfully reproduce that inconsistency infinitely and fail to terminate.
+* `pyEngine.Float_Precision = None`: Disables floating-point canonicalization. Floats are handled exactly as Python evaluates them, which may lead to infinite loops in cyclic numeric rules.

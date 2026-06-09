@@ -29,13 +29,16 @@ See also doc.py for additional source code documentation.
 from collections import deque, OrderedDict
 import gc
 import logging
+import math
 import re
 import threading
 import weakref
+from fractions import Fraction
 
 from . import util
 
 Logging = False # True --> Logging is activated.  Kept for performance reason
+Float_Precision = 8 # Number of significant digits to round floats to, or "Fraction", or None
 
 Auto_print = False # True => automatically prints the result of a query
 Slow_motion = False # True => detail print of the stack of tasks at each step
@@ -50,6 +53,15 @@ Logger = logging.getLogger(__name__)
 
 #       DATA TYPES          #####################################
 
+def _canonicalize_float(atom):
+    if Float_Precision == "Fraction":
+        return Fraction(str(atom))
+    elif isinstance(Float_Precision, int):
+        if atom == 0:
+            return 0.0
+        return round(atom, Float_Precision - int(math.floor(math.log10(abs(atom)))) - 1)
+    return atom
+
 def Term_of(atom):
     """ factory function for Term """
     if isinstance(atom, Term):
@@ -57,6 +69,8 @@ def Term_of(atom):
     elif isinstance(atom, (list, tuple, util.xrange)):
         return VarTuple(tuple(map(Term_of, atom)))
     else:
+        if isinstance(atom, float) and Float_Precision is not None:
+            return Const(_canonicalize_float(atom))
         return Const(atom)
 
 

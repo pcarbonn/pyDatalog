@@ -8,9 +8,12 @@ In bold : changes that may impact existing pyDatalog programs
 * fix #4: fix precedence of function rules
 * fix #19: predicates without assertions in body of rules
 * fix #22: support for mod operator (%)
+* fix #25: 8-digit precision for floating point calculations
 * fix #30: improve Python resolvers
 * fix #31: erases rules and facts of a predicate
 * fix #36: allow "p, X = create_terms("p, X")"
+* add Python typing annotations
+
 
   0.20.8 - Jun 2026
 
