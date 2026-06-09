@@ -51,6 +51,10 @@ from collections import defaultdict
 import inspect
 import string
 import weakref
+from typing import Any, Callable, List, Tuple, Union, Optional, overload, TypeVar
+
+F = TypeVar('F', bound=Callable[..., Any])
+P = TypeVar('P', bound=Callable[..., Any])
 
 from . import version
 from . import Logic
@@ -79,28 +83,28 @@ except:
 """ ****************** direct access to datalog knowledge base ***************** """
 DatalogError= util.DatalogError
 
-def assert_fact(predicate_name, *args):
+def assert_fact(predicate_name: str, *args: Any) -> None:
     """ assert predicate_name(args) """
     + pyParser.Literal.make(predicate_name, [pyParser.Expression._pyD_for(arg) for arg in args])
 
-def retract_fact(predicate_name, *args):
+def retract_fact(predicate_name: str, *args: Any) -> None:
     """ retracts predicate_name(args) """
     - pyParser.Literal.make(predicate_name, [pyParser.Expression._pyD_for(arg) for arg in args])
 
-def program():
+def program() -> Callable[[F], Any]:
     """ A decorator for datalog program  """
     return pyParser.add_program
 
-def predicate():
+def predicate() -> Callable[[P], pyParser.Term]:
     """decorator function to create a predicate resolver in python"""
     return _predicate 
 
-def _predicate(func):
+def _predicate(func: P) -> pyParser.Term:
     arity = len(inspect.getfullargspec(func)[0])
     pyEngine.Python_resolvers[func.__name__ + '/' + str(arity)] = func
     return pyParser.Term(func.__name__)
 
-def load(code):
+def load(code: Union[str, List[str]]) -> None:
     """loads the clauses contained in the code string """
     stack = inspect.stack()
     newglobals = {}
@@ -109,11 +113,11 @@ def load(code):
             newglobals[key] = value
     return pyParser.load(code, newglobals=newglobals)
 
-def ask(code):
+def ask(code: str) -> Optional[pyParser.Answer]:
     """returns the result of the query contained in the code string"""
     return pyParser.ask(code)
 
-def clear():
+def clear() -> None:
     """ resets the default datalog database """
     pyParser.clear()
     Logic()
@@ -174,13 +178,22 @@ def _pyD_decorator(arg):
 ATOMS = ['_sum','sum_','_min','min_','_max','max_', '_len','len_','concat','concat_','rank','rank_',
          'running_sum','running_sum_','range_','tuple_', 'format_', 'mean_', 'linear_regression_']
 
-def create_terms(*args):
+@overload
+def create_terms(arg1: str) -> Any: ...
+
+@overload
+def create_terms(arg1: str, arg2: str, *args: str) -> Tuple[pyParser.Term, ...]: ...
+
+def create_terms(*args: str) -> Any:
     """ create terms for in-line clauses and queries """
     stack = inspect.stack()
     try:
         locals_ = stack[1][0].f_locals
         args = [arg.strip() for arglist in args for arg in 
                 (arglist.split(',') if isinstance(arglist, util.string_types) else [arglist])]
+        args = [a for a in args if a]
+        if not args:
+            raise util.DatalogError("create_terms requires at least one argument", None, None)
         resolved_terms = {}
         for arg in set(args + ATOMS):
             assert isinstance(arg, util.string_types)
@@ -213,9 +226,7 @@ def create_terms(*args):
         
         res = [resolved_terms[arg] for arg in args]
                 
-        if len(res) == 0:
-            return None
-        elif len(res) == 1:
+        if len(res) == 1:
             return res[0]
         else:
             return tuple(res)
@@ -224,7 +235,7 @@ def create_terms(*args):
 
 create_atoms = create_terms # for backward compatibility
 
-def variables(n):
+def variables(n: int) -> List[pyParser.Term]:
     """ create variables for in-line clauses and queries """
     return [pyParser.Term('??') for i in range(n)]
 

@@ -60,6 +60,10 @@ import re
 import string
 import sys
 import threading
+from typing import Any, Callable, List, Tuple, Union, Optional
+
+BodyOrQuery = Union['Query', 'Body']
+ExpressionOrConstant = Union['Expression', int, float, str, bool, Tuple[Any, ...], List[Any], None]
 
 PY3 = sys.version_info[0] == 3
 func_code = '__code__' if PY3 else 'func_code'
@@ -151,82 +155,82 @@ class Expression(object):
         return False
 
     # handlers of inequality and operations
-    def __eq__(self, other):
+    def __eq__(self, other: ExpressionOrConstant) -> BodyOrQuery:
         if isinstance(self, Operation) and self._pyD_operator in '+-' and self._pyD_lhs._pyD_value == 0:
             raise util.DatalogError("Did you mean to assert or retract a fact ? Please add parenthesis.", None, None)
         return Literal.make_for_comparison(self, "==", other)
-    def __ne__(self, other):
+    def __ne__(self, other: ExpressionOrConstant) -> BodyOrQuery:
         return Literal.make_for_comparison(self, '!=', other)
-    def __le__(self, other):
+    def __le__(self, other: ExpressionOrConstant) -> BodyOrQuery:
         return Literal.make_for_comparison(self, '<=', other)
-    def __lt__(self, other):
+    def __lt__(self, other: ExpressionOrConstant) -> BodyOrQuery:
         return Literal.make_for_comparison(self, '<', other)
-    def __ge__(self, other):
+    def __ge__(self, other: ExpressionOrConstant) -> BodyOrQuery:
         return Literal.make_for_comparison(self, '>=', other)
-    def __gt__(self, other):
+    def __gt__(self, other: ExpressionOrConstant) -> BodyOrQuery:
         return Literal.make_for_comparison(self, '>', other)
-    def in_(self, values):
+    def in_(self, values: Any) -> BodyOrQuery:
         """ called when evaluating (X in (1,2)) """
         return Literal.make_for_comparison(self, '_pyD_in', values)
     _in = in_ # for backward compatibility
-    def not_in_(self, values):
+    def not_in_(self, values: Any) -> BodyOrQuery:
         """ called when evaluating (X not in (1,2)) """
         return Literal.make_for_comparison(self, '_pyD_not_in', values)
     _not_in = not_in_  # for backward compatibility
 
-    def __pos__(self):
+    def __pos__(self) -> 'Operation':
         """ called when evaluating -X """
         return 0 + self
-    def __neg__(self):
+    def __neg__(self) -> 'Operation':
         """ called when evaluating -X """
         return 0 - self
 
-    def __add__(self, other):
+    def __add__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(self, '+', other)
-    def __sub__(self, other):
+    def __sub__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(self, '-', other)
-    def __mul__(self, other):
+    def __mul__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(self, '*', other)
-    def __div__(self, other):
+    def __div__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(self, '/', other)
-    def __truediv__(self, other):
+    def __truediv__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(self, '/', other)
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(self, '//', other)
-    def __pow__(self, other):
+    def __pow__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(self, '**', other)
-    def __mod__(self, other):
+    def __mod__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(self, '%', other)
 
     # called by constant + Term (or lambda + symbol)
-    def __radd__(self, other):
+    def __radd__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(other, '+', self)
-    def __rsub__(self, other):
+    def __rsub__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(other, '-', self)
-    def __rmul__(self, other):
+    def __rmul__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(other, '*', self)
-    def __rdiv__(self, other):
+    def __rdiv__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(other, '/', self)
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(other, '/', self)
-    def __rfloordiv__(self, other):
+    def __rfloordiv__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(other, '//', self)
-    def __rpow__(self, other):
+    def __rpow__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(other, '**', self)
-    def __rmod__(self, other):
+    def __rmod__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(other, '%', self)
 
-    def __getitem__(self, keys):
+    def __getitem__(self, keys: Any) -> 'Operation':
         """ called when evaluating expression[keys] """
         if isinstance(keys, slice):
             return Operation(self, '[', [keys.start, keys.stop, keys.step])
         return Operation(self, '[', keys)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> 'Operation':
         """ called when evaluating <expression>.attribute """
         return Operation(self, '.',  Term(name, forced_type='constant'))
 
-    def __call__ (self, *args, **kwargs):
+    def __call__ (self, *args: Any, **kwargs: Any) -> 'Operation':
         assert not kwargs, "Sorry, key word arguments are not supported yet"
         return Operation(self, '(', args)
 
@@ -293,16 +297,16 @@ class Term(threading.local, Expression, LazyList):
         else:
             return OrderedDict()
 
-    def __add__(self, other):
+    def __add__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(self, '+', other)
-    def __radd__(self, other):
+    def __radd__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(other, '+', self)
-    def __mod__(self, other):
+    def __mod__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(self, '%', other)
-    def __rmod__(self, other):
+    def __rmod__(self, other: ExpressionOrConstant) -> 'Operation':
         return Operation(other, '%', self)
 
-    def __neg__(self):
+    def __neg__(self) -> 'Operation':
         """ called when evaluating -X. Used in aggregate arguments """
         neg = Term(self._pyD_value)
         neg._pyD_negated = not(self._pyD_negated)
@@ -311,19 +315,19 @@ class Term(threading.local, Expression, LazyList):
         expr._pyD_variable = neg
         return expr
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Union['Operation', 'Term']:
         """ called when evaluating class.attribute """
         if self._pyD_name in Thread_storage.variables: #prefixed
             return Operation(self, '.', Term(name, forced_type='constant'))
         return Term(self._pyD_name + '.' + name)
 
-    def __getitem__(self, keys):
+    def __getitem__(self, keys: Any) -> Union['Operation', 'Function']:
         """ called when evaluating name[keys] """
         if self._pyD_name in Thread_storage.variables: #prefixed
             return Expression.__getitem__(self, keys)
         return Function(self._pyD_name, keys)
 
-    def __setitem__(self, keys, value):
+    def __setitem__(self, keys: Any, value: ExpressionOrConstant) -> None:
         """  called when evaluating f[X] = expression """
         function = Function(self._pyD_name, keys)
         value = Expression._pyD_for(value)
@@ -332,7 +336,7 @@ class Term(threading.local, Expression, LazyList):
         else:
             (function == function._pyD_symbol) <= (function._pyD_symbol == value)
 
-    def __delitem__(self, keys):
+    def __delitem__(self, keys: Any) -> None:
         """  called when evaluating del f[X] """
         function = Function(self._pyD_name, keys)
         Y = Term('??')
@@ -342,7 +346,7 @@ class Term(threading.local, Expression, LazyList):
             literal = (function == Y)
             literal.lua.pred.reset_clauses()
 
-    def __call__ (self, *args, **kwargs):
+    def __call__ (self, *args: Any, **kwargs: Any) -> Union['Answer', 'Query', 'Call', 'Operation', Any]:
         """ called when evaluating p(args) """
         from . import Aggregate
         if self._pyD_name == 'ask': # call ask() and return an answer
@@ -551,7 +555,7 @@ class Literal(object):
             variables.update(term._pyD_variables())
         return variables
 
-    def __le__(self, body):
+    def __le__(self, body: Union[BodyOrQuery, 'Call', None]) -> Any:
         " head <= body creates a clause"
         Thread_storage.variables = set([]) #call reset the list of variables
         body = body.as_literal if isinstance(body, Call) else body #call
@@ -587,32 +591,32 @@ class Query(Literal, LazyListOfList):
         self.todo = None
         return self._data
 
-    def __pos__(self):
+    def __pos__(self) -> None:
         " unary + means insert into database as fact "
         if self._variables():
             raise util.DatalogError("Cannot assert a fact containing Variables", None, None)
         clause = pyEngine.Clause(self.lua, [])
         pyEngine.assert_(clause)
 
-    def __neg__(self):
+    def __neg__(self) -> None:
         " unary - means retract fact from database "
         if self._variables():
             raise util.DatalogError("Cannot retract a fact containing Variables", None, None)
         clause = pyEngine.Clause(self.lua, [])
         pyEngine.retract(clause)
 
-    def __invert__(self):
+    def __invert__(self) -> 'Query':
         """unary ~ means negation """
         return Literal.make('~' + self.predicate_name, self.terms) #pred
 
-    def __and__(self, other):
+    def __and__(self, other: Union[BodyOrQuery, 'Call']) -> 'Body':
         " literal & literal"
         return Body(self, other)
 
-    def __unicode__(self):
+    def __unicode__(self) -> str:
         return LazyListOfList.__unicode__(self)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> Any:
         return LazyListOfList.__eq__(self, other)
 
     def literal(self):
@@ -628,15 +632,15 @@ class Call(Operation): #call
     def literals(self):
         return [self.as_literal]
 
-    def __and__(self, other):
+    def __and__(self, other: Union[BodyOrQuery, 'Call']) -> 'Body':
         " Call & literal"
         return Body(self.as_literal, other)
 
-    def __invert__(self):
+    def __invert__(self) -> 'Query':
         """unary ~ means negation """
         return ~ self.as_literal
 
-    def __le__(self, other):
+    def __le__(self, other: Union[BodyOrQuery, 'Call']) -> Any:
         " head <= other creates a clause or comparison"
         if isinstance(other, (Literal, Body)):
             return self.as_literal <= other
@@ -667,12 +671,12 @@ class Body(LazyListOfList):
     def _variables(self):
         return self.__variables
 
-    def __and__(self, body2):
+    def __and__(self, body2: Union[BodyOrQuery, 'Call']) -> Any:
         """ operator '&' means 'and', and returns a Body """
         b = Body(self, body2)
         return b if len(b.literals) != 1 else b.literals[0]
 
-    def __unicode__(self):
+    def __unicode__(self) -> str:
         if True: # use False for debugging of parser
             return LazyListOfList.__unicode__(self)
         return ' & '.join(list(map (util.unicode_type, self.literals)))
@@ -692,7 +696,7 @@ class Body(LazyListOfList):
         literal <= self
         return literal
 
-    def __invert__(self):
+    def __invert__(self) -> 'Query':
         """unary ~ means negation """
         return ~(self.literal())
 

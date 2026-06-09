@@ -1467,6 +1467,28 @@ if __name__ == "__main__":
     assert p36(X36) == [('a',)]
     - p36('a')
 
+    # test that create_atoms also works (is an alias)
+    A36, B36 = pyDatalog.create_atoms("A36, B36")
+    assert isinstance(A36, pyDatalog.Variable)
+    assert A36._pyD_name == "A36"
+    assert A36._pyD_type == "variable"
+    assert isinstance(B36, pyDatalog.Variable)
+    assert B36._pyD_name == "B36"
+    assert B36._pyD_type == "variable"
+
+    # test that empty create_terms raises DatalogError
+    try:
+        pyDatalog.create_terms()
+        assert False, "Should raise DatalogError on empty create_terms()"
+    except pyDatalog.DatalogError:
+        pass
+
+    try:
+        pyDatalog.create_terms("")
+        assert False, "Should raise DatalogError on empty string create_terms('')"
+    except pyDatalog.DatalogError:
+        pass
+
     print("Test completed successfully.")
 
     print(time.time() - start_time)
