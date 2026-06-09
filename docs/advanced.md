@@ -109,27 +109,40 @@ It can now query the database of facts :
 
 A predicate such as` p(X,Y)` or `(a.p[X]==Y)` can be resolved using a custom-made python method, instead of using logical clauses. Such python resolvers can be used to implement connectors to non-relational databases, or to improve the speed of specific clauses. It has precedence over (and replaces) any clauses in the pyDatalog knowledge base.
 
-Unprefixed resolvers
+### Unprefixed predicates
 
-An unprefixed resolver is used to resolve an unprefixed predicate. It is defined using the `@pyDatalog.predicate()` decorator, and by adding the arity to the predicate name:
+A decorated function can be used to resolve an unprefixed predicate or function. It is defined using the `@pyDatalog.predicate()` decorator:
 
 
 ```python
 >>> @pyDatalog.predicate()
-... def p2(X,Y):
+... def p(X,Y):
 ...     yield (1,2)
 ...     yield (2,3)
 ...
->>> print(pyDatalog.ask('p2(1,Y)'))
+>>> print(pyDatalog.ask('p(1,Y)'))
 {(2,)}
 
+>>> # inline query
+>>> print((p(1, Y) & p(1, Y)).ask())
+[(2,)]
+
+>>> # inline rule
+>>> pyDatalog.create_terms('f_inline')
+>>> f_inline(X) <= p(1, X) & p(1, X)
+>>> print(f_inline(X).ask())
+[(2,)]
 ```
 
-This simple resolver returns all possible results, which pyDatalog further filters to satisfy the query. Often, the resolver will use the value of its X and Y arguments to return a smaller, (if possible exact) set of results. Each argument has a `.is_const()` method : it returns `True `if it is a constant, and `False `if it is an unbound variable. If it is a constant, the value can be obtained with `.id` (e.g. `X.id`).
+Note that this resolver also resolves `p[X] == Y`.
 
-## Prefixed resolvers
+This simple resolver returns all possible results, which pyDatalog further filters to satisfy the query.
 
-A prefixed resolver is defined in a class. The following resolver is equivalent, and replaces, Employee.salary_class[X] = Employee.salary[X]//1000.
+Often, the resolver will use the value of its X and Y arguments, if any, to return a smaller, (if possible exact) set of results. Each argument has a `.is_const()` method : it returns `True `if it is a constant, and `False `if it is an unbound variable. If it is a constant, the value can be obtained with `.id` (e.g. `X.id`).
+
+## Prefixed predicates
+
+The resolver for a prefixed predicate is defined by a method in a class. The following resolver is equivalent, and replaces, Employee.salary_class[X] = Employee.salary[X]//1000.
 
 
 ```python
@@ -146,7 +159,7 @@ A prefixed resolver is defined in a class. The following resolver is equivalent,
 
 ```
 
-This method will be called to resolve `Employee.salary_class(X,Y)` and `(Employee.salary_class[X]==Y)` queries. Each resolver must have the same number of arguments as the arity of its predicate. Note that the arity is appended to the end of the method name.
+The method `_pyD_salary_class2` will be called to resolve `Employee.salary_class(X,Y)` and `(Employee.salary_class[X]==Y)` queries. Note that the method name is suffixed with the arity of the predicate, here, 2 for `X` and `Y`.
 
 The list of instances in a class `cls `is available in pyDatalog.metaMixin._refs_[cls] . For SQLAlchemy classes, queries can be run on `cls.session`.
 

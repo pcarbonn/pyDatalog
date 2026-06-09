@@ -98,7 +98,7 @@ def predicate():
 def _predicate(func):
     arity = len(inspect.getfullargspec(func)[0])
     pyEngine.Python_resolvers[func.__name__ + '/' + str(arity)] = func
-    return func
+    return pyParser.Term(func.__name__)
 
 def load(code):
     """loads the clauses contained in the code string """

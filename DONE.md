@@ -1,6 +1,17 @@
 (most recent first)
 
 
+# Issue # 30
+
+## Problem Description
+When using python resolvers decorated with `@pyDatalog.predicate()`, the function returned was the original Python generator function. When this function was used inside inline rules or queries (e.g. `body = p(1, Y) & p(1, Y)`), it raised a `TypeError: unsupported operand type(s) for &: 'generator' and 'generator'` because Python generators do not support logical operators.
+
+## Root Cause Analysis
+In `pyDatalog/pyDatalog.py`, `_predicate(func)` registered the function in `Python_resolvers` but returned the original generator function `func` to the caller. This bound the variable in the Python local scope to the generator function itself, which does not support the operators `&` and `<=` defined on `Term` and `Literal` classes.
+
+## Fix Applied
+We modified `_predicate(func)` in `pyDatalog/pyDatalog.py` to return `pyParser.Term(func.__name__)` instead of `func`. Because the generator function is still registered in `pyEngine.Python_resolvers` under the key `'func_name/arity'`, the resolver is correctly invoked by the engine during query evaluation. But in the local Python scope, the function name is now bound to a `Term` object, which correctly evaluates to a `Query` (Literal) when called, enabling standard inline logical rules and queries to work.
+
 # Issue # 31
 
 ## Problem Description

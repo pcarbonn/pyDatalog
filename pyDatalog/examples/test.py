@@ -1025,6 +1025,14 @@ def test():
     assert pyDatalog.ask('p(1,Y)') == set([(2,)])
     assert pyDatalog.ask('p(1,2)') == set([()])
 
+    # inline query using resolver (Issue #30)
+    assert (p(1, Y) & p(1, Y)).ask() == [(2,)]
+
+    # inline rule using resolver (Issue #30)
+    f_inline = pyDatalog.Variable()
+    f_inline(X) <= p(1, X) & p(1, X)
+    assert f_inline(X).ask() == [(2,)]
+
     """ error detection                                              """
 
     @pyDatalog.program()
