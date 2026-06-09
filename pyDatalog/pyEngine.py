@@ -284,7 +284,10 @@ class Operation(Term):
                 elif self.operator == '**':
                     return Term_of(lhs.id ** rhs.id)
                 elif self.operator == '%':
-                    return Term_of(lhs.id.format(*(rhs.id)))
+                    if isinstance(lhs.id, util.string_types):
+                        return Term_of(lhs.id.format(*(rhs.id)))
+                    else:
+                        return Term_of(lhs.id % rhs.id)
                 elif isinstance(self.operator, type(util.LAMBDA)):
                     return Term_of(self.operator(*(rhs.id)))
                 elif self.operator == '.':

@@ -195,6 +195,8 @@ class Expression(object):
         return Operation(self, '//', other)
     def __pow__(self, other):
         return Operation(self, '**', other)
+    def __mod__(self, other):
+        return Operation(self, '%', other)
 
     # called by constant + Term (or lambda + symbol)
     def __radd__(self, other):
@@ -211,6 +213,8 @@ class Expression(object):
         return Operation(other, '//', self)
     def __rpow__(self, other):
         return Operation(other, '**', self)
+    def __rmod__(self, other):
+        return Operation(other, '%', self)
 
     def __getitem__(self, keys):
         """ called when evaluating expression[keys] """
@@ -293,6 +297,10 @@ class Term(threading.local, Expression, LazyList):
         return Operation(self, '+', other)
     def __radd__(self, other):
         return Operation(other, '+', self)
+    def __mod__(self, other):
+        return Operation(self, '%', other)
+    def __rmod__(self, other):
+        return Operation(other, '%', self)
 
     def __neg__(self):
         """ called when evaluating -X. Used in aggregate arguments """
