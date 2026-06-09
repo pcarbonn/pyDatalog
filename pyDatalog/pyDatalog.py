@@ -181,6 +181,7 @@ def create_terms(*args):
         locals_ = stack[1][0].f_locals
         args = [arg.strip() for arglist in args for arg in 
                 (arglist.split(',') if isinstance(arglist, util.string_types) else [arglist])]
+        resolved_terms = {}
         for arg in set(args + ATOMS):
             assert isinstance(arg, util.string_types)
             words = arg.split('.')
@@ -190,17 +191,34 @@ def create_terms(*args):
             if words[0] in b: # if it 's a builtin
                 root = b[words[0]]
                 locals_[words[0]] = _pyD_decorator(root) 
+                if len(words) == 2:
+                    resolved_terms[arg] = getattr(locals_[words[0]], words[1])
+                else:
+                    resolved_terms[arg] = locals_[words[0]]
             elif words[0] in locals_:
                 root = locals_[words[0]]
                 if len(words)==2: # e.g. str.split
                     atom = getattr(root, words[1])
-                    setattr(root, words[1], _pyD_decorator(atom))
+                    decorated = _pyD_decorator(atom)
+                    setattr(root, words[1], decorated)
+                    resolved_terms[arg] = decorated
                 else: # e.g. math
                     locals_[arg] = _pyD_decorator(root)
+                    resolved_terms[arg] = locals_[arg]
             else:
                 if len(words)==2: # e.g. kkecxivarenx.len
                     raise util.DatalogError("Unknown variable : %s" % words[0], None, None)
                 locals_[arg] = pyParser.Term(arg)
+                resolved_terms[arg] = locals_[arg]
+        
+        res = [resolved_terms[arg] for arg in args]
+                
+        if len(res) == 0:
+            return None
+        elif len(res) == 1:
+            return res[0]
+        else:
+            return tuple(res)
     finally:
         del stack
 

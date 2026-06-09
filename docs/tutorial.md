@@ -29,6 +29,13 @@ The next step is to declare the variables we'll use. They must start with an upp
 
 ```
 
+To satisfy Python type checkers (like Mypy or Pyright), you can also assign the returned terms directly, at the cost of writing the name twice:
+
+```python
+>>> X, Y = pyDatalog.create_terms('X, Y')
+
+```
+
 Variables appear in logic queries, which return a printable result
 
 ```python

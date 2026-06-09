@@ -10,6 +10,7 @@ In bold : changes that may impact existing pyDatalog programs
 * fix #22: support for mod operator (%)
 * fix #30: improve Python resolvers
 * fix #31: erases rules and facts of a predicate
+* fix #36: allow "p, X = create_terms("p, X")"
 
   0.20.8 - Jun 2026
 

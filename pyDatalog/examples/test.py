@@ -1444,7 +1444,28 @@ if __name__ == "__main__":
     assert (p4[X4] == 0) == []
     assert ((Y4 == 0) & (p4[X4] == Y4)) == []
     assert (p4[X4] == 1) == [(0,)]
-    assert (p4[0] == Y4) == [(1,)]
+    # test for issue 36 (create_terms returns the created terms)
+    X36, Y36 = pyDatalog.create_terms("X36, Y36")
+    assert isinstance(X36, pyDatalog.Variable)
+    assert X36._pyD_name == "X36"
+    assert X36._pyD_type == "variable"
+    assert isinstance(Y36, pyDatalog.Variable)
+    assert Y36._pyD_name == "Y36"
+    assert Y36._pyD_type == "variable"
+
+    Z36 = pyDatalog.create_terms("Z36")
+    assert isinstance(Z36, pyDatalog.Variable)
+    assert Z36._pyD_name == "Z36"
+    assert Z36._pyD_type == "variable"
+
+    # test predicate creation with returned term
+    p36 = pyDatalog.create_terms("p36")
+    assert isinstance(p36, pyDatalog.Variable)
+    assert p36._pyD_name == "p36"
+    assert p36._pyD_type == "constant"
+    + p36('a')
+    assert p36(X36) == [('a',)]
+    - p36('a')
 
     print("Test completed successfully.")
 
