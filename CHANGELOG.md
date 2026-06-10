@@ -2,11 +2,11 @@
 
 In bold : changes that may impact existing pyDatalog programs
 
-  latest
+  0.21.0 - Jun 10, 2026
 
 * **B(X) <= None now clears the predicate without deleting it from Db, returning [] on query instead of raising AttributeError. This change may impact existing pyDatalog programs that expect AttributeError for cleared predicates.** (#31)
 * promote `create_symbols` instead of incorrectly named `create_terms`
-* fix #4: fix precedence of function rules
+* fix #4: fix precedence of rules for functions
 * fix #19: predicates without assertions in body of rules
 * fix #22: support for mod operator (%)
 * fix #25: 8-digit precision for floating point calculations
