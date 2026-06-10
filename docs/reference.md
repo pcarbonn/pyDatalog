@@ -25,9 +25,129 @@ The terminal symbols in this grammar are defined in [BNF](http://www.google.com/
      variable ::= [A-Z_] [0-9a-ZA-Z_], thus starting with an uppercase
   * Note : words starting with `pyD` are reserved for pyDatalog
 
-![](images/grammar1.png)
+<div id="grammar-diagrams-container"></div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  var container = document.getElementById('grammar-diagrams-container');
+  if(!container) return;
 
-![](images/grammar2.png)
+  function drawRule(name, diagram) {
+    var div = document.createElement('div');
+    div.style.marginBottom = "20px";
+    div.innerHTML = '<h4>' + name + '</h4>';
+    diagram.addTo(div);
+    container.appendChild(div);
+  }
+
+  drawRule('constant', Diagram(
+    Choice(0,
+      Sequence(Terminal('[a-f]'), ZeroOrMore(Terminal('[0-9a-fA-F_]'))),
+      Sequence(Choice(0, Terminal('"'), Terminal("'")), NonTerminal('char'), Choice(0, Terminal('"'), Terminal("'")))
+    )
+  ));
+
+  drawRule('variable', Diagram(
+    Sequence(Terminal('[A-F_]'), ZeroOrMore(Terminal('[0-9a-fA-F_]')))
+  ));
+
+  drawRule('simple_predicate', Diagram(
+    Sequence(Terminal('[a-fA-F_]'), ZeroOrMore(Terminal('[0-9a-fA-F_]')))
+  ));
+
+  drawRule('predicate', Diagram(
+    Choice(0,
+      NonTerminal('simple_predicate'),
+      Sequence(NonTerminal('simple_predicate'), Terminal('.'), NonTerminal('simple_predicate'))
+    )
+  ));
+
+  drawRule('literal', Diagram(
+    Sequence(
+      NonTerminal('predicate'), 
+      Terminal('('), 
+      Optional(Sequence(NonTerminal('expression'), ZeroOrMore(Sequence(Terminal(','), NonTerminal('expression'))))),
+      Terminal(')')
+    )
+  ));
+
+  drawRule('function', Diagram(
+    Sequence(
+      NonTerminal('predicate'), 
+      Terminal('['), 
+      NonTerminal('expression'), 
+      ZeroOrMore(Sequence(Terminal(','), NonTerminal('expression'))),
+      Terminal(']')
+    )
+  ));
+
+  drawRule('expression', Diagram(
+    Choice(0,
+      NonTerminal('constant'),
+      NonTerminal('variable'),
+      NonTerminal('function'),
+      Sequence(Terminal('[+-]'), NonTerminal('expression')),
+      Sequence(Terminal('('), NonTerminal('expression'), ZeroOrMore(Sequence(Terminal(','), NonTerminal('expression'))), Terminal(')')),
+      Sequence(NonTerminal('expression'), Terminal('['), NonTerminal('expression'), Optional(Sequence(Terminal(':'), NonTerminal('expression'), Optional(Sequence(Terminal(':'), NonTerminal('expression'))))), Terminal(']')),
+      Sequence(Terminal('('), NonTerminal('lambda-expression'), Terminal(')')),
+      Sequence(NonTerminal('expression'), Choice(0, Terminal('[+*/-]'), Terminal('//'), Terminal('%')), NonTerminal('expression'))
+    )
+  ));
+
+  var bodyCondition = Choice(0,
+    NonTerminal('literal'),
+    Sequence(Terminal('~'), NonTerminal('body')),
+    Sequence(Terminal('('), NonTerminal('body'), Terminal(')')),
+    Sequence(Terminal('('), NonTerminal('expression'), Choice(0, Terminal('<'), Terminal('<='), Terminal('=='), Terminal('!='), Terminal('>='), Terminal('>')), NonTerminal('expression'), Terminal(')')),
+    Sequence(NonTerminal('expression'), Choice(0, Terminal('._in'), Terminal('._not_in')), Terminal('('), NonTerminal('expression'), Terminal(')'))
+  );
+
+  drawRule('body', Diagram(
+    Sequence(
+      bodyCondition,
+      ZeroOrMore(
+        Sequence(
+          Terminal('&'),
+          bodyCondition
+        )
+      )
+    )
+  ));
+
+  drawRule('head_function', Diagram(
+    Sequence(
+      NonTerminal('predicate'),
+      Terminal('['),
+      Choice(0, NonTerminal('constant'), NonTerminal('variable')),
+      ZeroOrMore(Sequence(Terminal(','), Choice(0, NonTerminal('constant'), NonTerminal('variable')))),
+      Terminal(']')
+    )
+  ));
+
+  drawRule('head', Diagram(
+    Choice(0,
+      NonTerminal('literal'),
+      Sequence(Terminal('('), NonTerminal('head_function'), Terminal('=='), Choice(0, NonTerminal('variable'), NonTerminal('constant')), Terminal(')')),
+      Sequence(Terminal('('), NonTerminal('head_function'), Terminal('=='), Choice(0, Terminal('len_'), Terminal('sum_'), Terminal('min_'), Terminal('max_'), Terminal('tuple_'), Terminal('concat_'), Terminal('rank_'), Terminal('running_sum_')), Terminal('('), NonTerminal('arguments'), Terminal(')'), Terminal(')'))
+    )
+  ));
+
+  drawRule('fact', Diagram(
+    Choice(0,
+      Sequence(NonTerminal('predicate'), Terminal('('), Optional(Sequence(NonTerminal('constant'), ZeroOrMore(Sequence(Terminal(','), NonTerminal('constant'))))), Terminal(')')),
+      Sequence(NonTerminal('predicate'), Terminal('['), NonTerminal('constant'), ZeroOrMore(Sequence(Terminal(','), NonTerminal('constant'))), Terminal(']'), Terminal('=='), NonTerminal('constant'))
+    )
+  ));
+
+  drawRule('datalog_statement', Diagram(
+    Choice(0,
+      Sequence(Choice(0, Terminal('+'), Terminal('-')), NonTerminal('fact')),
+      Sequence(Optional(Terminal('-')), NonTerminal('head'), Terminal('<='), NonTerminal('body')),
+      Sequence(Terminal('-'), Terminal('('), NonTerminal('head'), Terminal('<='), NonTerminal('body'), Terminal(')')),
+      Sequence(NonTerminal('head_function'), Terminal('='), NonTerminal('expression'))
+    )
+  ));
+});
+</script>
 
 Please note:
 

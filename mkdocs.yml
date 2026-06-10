@@ -58,3 +58,8 @@ nav:
 plugins:
   - mkdocs-jupyter
 
+extra_css:
+  - css/railroad-diagrams.css
+
+extra_javascript:
+  - js/railroad-diagrams.js
