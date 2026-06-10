@@ -56,7 +56,7 @@ pyDatalog embeds logic programming in Python :
 
 More specifically:
 
-  * you can use [aggregate functions](http://www.google.com/url?q=http%3A%2F%2Fen.wikipedia.org%2Fwiki%2FAggregate_function&sa=D&sntz=1&usg=AOvVaw1gI8iVTehuIhBqGA7G9_Oo) :` len_, sum_, concat_, min_, max_, tuple_, rank_, running_sum_, mean_, linear_regression`
+  * you can use [aggregate functions](http://www.google.com/url?q=http%3A%2F%2Fen.wikipedia.org%2Fwiki%2FAggregate_function&sa=D&sntz=1&usg=AOvVaw1gI8iVTehuIhBqGA7G9_Oo) :` len_, sum_, concat_, min_, max_, tuple_, rank_, running_sum_, mean_, linear_regression_`
   * you can define logic functions (e.g. `p[X]==Y`) , i.e. logic predicate with unicity
   * variables can represent nested lists that you can index and slice
   * you can prefix literals and functions with a Python class name (e.g. `Employee.name[X]==Y`): their first argument refers to instances of the class.

@@ -63,8 +63,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
   drawRule('literal', Diagram(
     Sequence(
-      NonTerminal('predicate'), 
-      Terminal('('), 
+      NonTerminal('predicate'),
+      Terminal('('),
       Optional(Sequence(NonTerminal('expression'), ZeroOrMore(Sequence(Terminal(','), NonTerminal('expression'))))),
       Terminal(')')
     )
@@ -72,9 +72,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
   drawRule('function', Diagram(
     Sequence(
-      NonTerminal('predicate'), 
-      Terminal('['), 
-      NonTerminal('expression'), 
+      NonTerminal('predicate'),
+      Terminal('['),
+      NonTerminal('expression'),
       ZeroOrMore(Sequence(Terminal(','), NonTerminal('expression'))),
       Terminal(']')
     )
@@ -127,7 +127,7 @@ document.addEventListener("DOMContentLoaded", function() {
     Choice(0,
       NonTerminal('literal'),
       Sequence(Terminal('('), NonTerminal('head_function'), Terminal('=='), Choice(0, NonTerminal('variable'), NonTerminal('constant')), Terminal(')')),
-      Sequence(Terminal('('), NonTerminal('head_function'), Terminal('=='), Choice(0, Terminal('len_'), Terminal('sum_'), Terminal('min_'), Terminal('max_'), Terminal('tuple_'), Terminal('concat_'), Terminal('rank_'), Terminal('running_sum_')), Terminal('('), NonTerminal('arguments'), Terminal(')'), Terminal(')'))
+      Sequence(Terminal('('), NonTerminal('head_function'), Terminal('=='), Choice(0, Terminal('len_'), Terminal('sum_'), Terminal('min_'), Terminal('max_'), Terminal('tuple_'), Terminal('concat_'), Terminal('rank_'), Terminal('running_sum_'), Terminal('mean_'), Terminal('linear_regression_')), Terminal('('), NonTerminal('arguments'), Terminal(')'), Terminal(')'))
     )
   ));
 
@@ -178,13 +178,15 @@ Aggregate functions:
   * concat_ `(P[X]==concat_(Y, order_by=Z, sep=',')) <= body`  : same as 'sum' but for string. The strings are sorted by Z, and separated by ','.
   * rank_`(P[X]==rank_(group_by=Y, order_by=Z)) <= body`  : P[X] is the sequence number of X in the list of Y values when the list is sorted by Z.
   * running_sum_`(P[X]==running_sum_(N, group_by=Y, order_by=Z)) <= body`  : P[X] is the sum of the values of N, grouped by Y, that are before or equal to X when N's are sorted by Z.
+  * mean_ `(P[X]==mean_(Y, for_each=Z)) <= body`  : P[X] is the mean of Y for each Z. (Z is used to distinguish possibly identical Y values)
+  * linear_regression_ `(P[X]==linear_regression_(Y, for_each=Z)) <= body`  : P[X] is a tuple (slope, intercept) of the linear regression of Y over Z.
   * The named arguments must be specified in the given order. X and the named arguments can be a list of variables (instead of just one variable), to represent more complex grouping. Variables in `order_by` arguments can be preceded by '-' for descending sort order. If the aggregation function does not depend on a variable, use a constant (e.g. `P[None] == len_(Y)`).
 
 ## Methods and classes
 
 The pyDatalog module has the following methods :
 
-  * create_symbols(args) : adds "logic terms" in the scope of the caller. `create_symbols` must be called at module level (thus not in a function or class definition) It can have any number of arguments : each arg is a string containing the names of one or more logic terms to be created, separated by commas. If a term refers to a Python module, class or function, it is given the capability to appear in logic clauses, with pyDatalog.Variable arguments. Otherwise, logic terms are created either as `pyDatalog.Variable` (when they start with an upper case) or as `pyParser.Symbol` (otherwise). create_symbols also creates symbols for the aggregate functions (len_, min_, ...).
+  * create_symbols(args) : adds symbols in the scope of the caller. `create_symbols` must be called at module level (thus not in a function or class definition). It can have any number of arguments : each arg is a string containing the names of one or more logic symbols to be created, separated by commas. If a symbol refers to a Python module, class or function, it is given the capability to appear in logic clauses. Otherwise, logic symbols are created either as `pyDatalog.Variable` (when they start with an upper case) or as `pyParser.Symbol` (otherwise). `create_symbols` also creates symbols for the aggregate functions (len_, min_, ...).
   * assert_fact(predicate_name, terms) : asserts `predicate_name(terms[0], terms[1], ...)`
   * retract_fact(predicate_name, terms) : retracts `predicate_name(terms[0], terms[1], ...)`
   * load(code) : where code is a string containing a set of datalog statements, with identical indentation and separated by line feeds. This method can be used to add facts and clauses to the datalog database.
