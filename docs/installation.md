@@ -78,12 +78,11 @@ pip install -e .
 To verify that `pyDatalog` has been installed correctly, open a Python interactive shell and run:
 
 ```python
->>> from pyDatalog import pyDatalog
->>> pyDatalog.create_symbols('X, Y')
->>> print(X == Y)
+>>> import pyDatalog
+>>> print(pyDatalog.__version__)
 ```
 
-If it executes without errors, the installation was successful!
+If it executes without errors and prints the version number, the installation was successful!
 
 ### Checking if the C extension is used
 If you installed `pyDatalog` from source and want to verify whether the compiled C speed-up extension is active (instead of the pure Python fallback), import `pyEngine` and check its file path:
