@@ -8,8 +8,8 @@ The first step is to create a `Base` class that combines pyDatalog and SQLAlchem
 
 ```python
 >>> from pyDatalog import pyDatalog, Logic
->>> Logic()  # initialize the pyDatalog engine
->>> from sqlalchemy.ext.declarative import declarative_base
+>>> _ = Logic()  # initialize the pyDatalog engine
+>>> from sqlalchemy.orm import declarative_base
 
 >>> # define a base class with SQLAlchemy and pyDatalog capabilities
 >>> Base = declarative_base(cls=pyDatalog.Mixin, metaclass=pyDatalog.sqlMetaMixin)
@@ -73,7 +73,7 @@ The Employee class can now be defined with logic clauses and used in in-line que
 >>> session.commit()
 
 >>> # who has a salary of 6300 ?
->>> pyDatalog.create_symbols('X')
+>>> X = pyDatalog.create_symbols('X')
 
 >>> (Employee.salary[X] == 6300)
 >>> print(X)
@@ -115,7 +115,7 @@ The first step in the example is to create records in a MongoDB database.
 ...                       {"name": "Mary", "diploma": "EE"},
 ...                       {"name": "Sam", "diploma": "MBA"}]
 
->>> profiles.insert(profiles_to_insert)
+>>> profiles.insert_many(profiles_to_insert)
 
 ```
 

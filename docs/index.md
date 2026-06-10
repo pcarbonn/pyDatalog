@@ -36,13 +36,13 @@ pyDatalog is derived from [previous work by John D. Ramsdell](http://www.google.
 
 ## Core technology
 
+pyDatalog uses a tabled resolution algorithm based on SLG resolution, simplified to support negation as failure on stratified programs only.
+
 Core technology in pyDatalog |  Benefits |  Sample applications
   ---|---|---
 The resolution engine determines the best sequence of clauses to use to reach a goal | Spreadsheet-style programming : faster development; fewer bugs, easier to read afterwards |  Rule-based models with many input and output, e.g. expert system for [price calculation](https://www.google.be/search?q=expert+system+pricing+) or [tax planning](https://www.google.be/search?q=expert+system+tax+) , [access right management](https://www.google.be/search?q=logic+programming+access+control+policy) , [robot control](https://www.google.be/search?q=logic+programming+robot) , [intelligent agent](https://www.google.be/search?q=+intelligent+agent+logic+programming) in games or automated assistants
 The resolution engine can resolve recursive algorithm | Easy to write queries on hierarchical structure | Reporting with hierarchical reference data such as organisational structure
 The same clause can solve various mixes of known and unknown parameters | Maximize code reuse : shorter program, simpler query language than SQL |  Cross-database queries, [data integration](https://www.google.be/search?q=logic+programming+data+integration)
-
-
 Intermediate results are [memoized](https://en.wikipedia.org/wiki/Memoization) .  | Improved speed by avoiding duplicate work. |  Business logic in [3-tier architecture](https://en.wikipedia.org/wiki/Multitier_architecture) .
 
 
@@ -68,7 +68,6 @@ pyDatalog is a fast and lightweight datalog interpreter written in Python:
 
   * it can solve the [8-queen problem](http://www.google.com/url?q=http%3A%2F%2Fen.wikipedia.org%2Fwiki%2FEight_queens_puzzle&sa=D&sntz=1&usg=AOvVaw1cCR1YjdlvHRnEfoMT3TO8) in 0.07 seconds on a PC
   * it is thread safe
-  * it uses SLDNF resolution with tabling
   * it uses indexes for the database of datalog facts
   * it can run on [pypy](http://www.google.com/url?q=http%3A%2F%2Fpypy.org&sa=D&sntz=1&usg=AOvVaw1rFgGtsjIxzn3EFUx3O7Sb) (Python with Just-In-Time compiler)
   * it has hooks to let you rewrite performance-critical clauses in pure Python
