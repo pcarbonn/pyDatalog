@@ -7,7 +7,7 @@
 An in-line datalog statement is [a Python statement](http://www.google.com/url?q=http%3A%2F%2Fdocs.python.org%2Freference%2Fgrammar.html&sa=D&sntz=1&usg=AOvVaw3tm7tmfH85yQAOfK97UBB7):
 
   * that follows the syntax of a datalog statement (see grammar below),
-  * where datalog constants, variables and unprefixed predicates have been previously declared globally using `pyDatalog.create_terms()` (thus not declared in a method or class),
+  * where datalog constants, variables and unprefixed predicates have been previously declared globally using `pyDatalog.create_symbols()` (thus not declared in a method or class),
   * and where the prefix of prefixed predicates is the name of a class inheriting from `pyDatalog.Mixin`.
 
 Similarly, an in-line query is a Python statement that follows the syntax of a body (see grammar below).
@@ -64,7 +64,7 @@ Aggregate functions:
 
 The pyDatalog module has the following methods :
 
-  * create_terms(args) : adds "logic terms" in the scope of the caller. `create_terms` must be called at module level (thus not in a function or class definition) It can have any number of arguments : each arg is a string containing the names of one or more logic terms to be created, separated by commas. If a term refers to a Python module, class or function, it is given the capability to appear in logic clauses, with pyDatalog.Variable arguments. Otherwise, logic terms are created either as `pyDatalog.Variable` (when they start with an upper case) or as `pyParser.Symbol` (otherwise). create_terms also creates symbols for the aggregate functions (len_, min_, ...).
+  * create_symbols(args) : adds "logic terms" in the scope of the caller. `create_symbols` must be called at module level (thus not in a function or class definition) It can have any number of arguments : each arg is a string containing the names of one or more logic terms to be created, separated by commas. If a term refers to a Python module, class or function, it is given the capability to appear in logic clauses, with pyDatalog.Variable arguments. Otherwise, logic terms are created either as `pyDatalog.Variable` (when they start with an upper case) or as `pyParser.Symbol` (otherwise). create_symbols also creates symbols for the aggregate functions (len_, min_, ...).
   * assert_fact(predicate_name, terms) : asserts `predicate_name(terms[0], terms[1], ...)`
   * retract_fact(predicate_name, terms) : retracts `predicate_name(terms[0], terms[1], ...)`
   * load(code) : where code is a string containing a set of datalog statements, with identical indentation and separated by line feeds. This method can be used to add facts and clauses to the datalog database.
@@ -111,7 +111,7 @@ An instance of the pyParser.Query class is returned by an in-line query and has 
   * `_str_(self)` : pretty prints the result of the query, in tabular format
   * the methods inherited from [collections.UserList](http://www.google.com/url?q=http%3A%2F%2Fdocs.python.org%2F3.1%2Flibrary%2Fcollections.html%23collections.UserList&sa=D&sntz=1&usg=AOvVaw1VhA2tBBOGoTaRwuuyE6gi)
 
-The following table shows how to use p(X) as a literal in a clause, or to get the result of the p(X) in-line query.
+The following table shows how to use p(X) as an atom in a clause, or to get the result of the p(X) in-line query.
 
 | p(X) in a clause or query | the result of p(X) (long form) | the result of p(X) (shortcut) | Notes |
 | :--- | :--- | :--- | :--- |

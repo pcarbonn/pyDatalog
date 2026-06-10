@@ -22,7 +22,7 @@ from pyDatalog import pyDatalog
 
 Initialize terms first:
 ```python
-pyDatalog.create_terms('p, q, r, a, b, f, s, X, Y, Z, N')
+pyDatalog.create_symbols('p, q, r, a, b, f, s, X, Y, Z, N')
 
 ```
 

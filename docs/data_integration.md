@@ -73,7 +73,7 @@ The Employee class can now be defined with logic clauses and used in in-line que
 >>> session.commit()
 
 >>> # who has a salary of 6300 ?
->>> pyDatalog.create_terms('X')
+>>> pyDatalog.create_symbols('X')
 
 >>> (Employee.salary[X] == 6300)
 >>> print(X)
@@ -149,7 +149,7 @@ It then becomes easy to query both databases transparently:
 ```python
 >>> from pyDatalog import pyDatalog
 
->>> X, N, Diploma = pyDatalog.variables(3)
+>>> X, N, Diploma = pyDatalog.create_symbols('X, N, Diploma')
 
 >>> # Who has a salary of 6800 and a MSc. diploma
 >>> (Employee.salary[X]==6800) & (Employee.diploma[X]=="MSc.")

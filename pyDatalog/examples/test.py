@@ -42,7 +42,7 @@ print(pyDatalog.__version__)
 
 def todate():
     return(datetime.datetime(2014, 8, 11, 7, 39, 59, 788000))
-pyDatalog.create_terms('todate')
+pyDatalog.create_symbols('todate')
 
 def test():
 
@@ -1395,7 +1395,7 @@ if __name__ == "__main__":
             """ function : two """
             return 4*self.arg
 
-    pyDatalog.create_terms('A,B')
+    pyDatalog.create_symbols('A,B')
     assert str( ((X==8) & (Y==A(X))) >= Y) == "8"
     assert ( ((X==8) & (Y==A(X).two())) >= Y) == 16
     assert ( ((X==8) & (Y==B(X).two())) >= Y) == 32
@@ -1438,14 +1438,14 @@ if __name__ == "__main__":
     assert _error
 
     # test for issue 4 (logic function queries by value returning incorrect results)
-    pyDatalog.create_terms("X4,Y4,p4")
+    pyDatalog.create_symbols("X4,Y4,p4")
     (p4[X4] == 0) <= (X4 == 0)
     p4[0] = 1
     assert (p4[X4] == 0) == []
     assert ((Y4 == 0) & (p4[X4] == Y4)) == []
     assert (p4[X4] == 1) == [(0,)]
-    # test for issue 36 (create_terms returns the created terms)
-    X36, Y36 = pyDatalog.create_terms("X36, Y36")
+    # test for issue 36 (create_symbols returns the created terms)
+    X36, Y36 = pyDatalog.create_symbols("X36, Y36")
     assert isinstance(X36, pyDatalog.Variable)
     assert X36._pyD_name == "X36"
     assert X36._pyD_type == "variable"
@@ -1453,13 +1453,13 @@ if __name__ == "__main__":
     assert Y36._pyD_name == "Y36"
     assert Y36._pyD_type == "variable"
 
-    Z36 = pyDatalog.create_terms("Z36")
+    Z36 = pyDatalog.create_symbols("Z36")
     assert isinstance(Z36, pyDatalog.Variable)
     assert Z36._pyD_name == "Z36"
     assert Z36._pyD_type == "variable"
 
     # test predicate creation with returned term
-    p36 = pyDatalog.create_terms("p36")
+    p36 = pyDatalog.create_symbols("p36")
     assert isinstance(p36, pyDatalog.Variable)
     assert p36._pyD_name == "p36"
     assert p36._pyD_type == "constant"
@@ -1476,16 +1476,16 @@ if __name__ == "__main__":
     assert B36._pyD_name == "B36"
     assert B36._pyD_type == "variable"
 
-    # test that empty create_terms raises DatalogError
+    # test that empty create_symbols raises DatalogError
     try:
-        pyDatalog.create_terms()
-        assert False, "Should raise DatalogError on empty create_terms()"
+        pyDatalog.create_symbols()
+        assert False, "Should raise DatalogError on empty create_symbols()"
     except pyDatalog.DatalogError:
         pass
 
     try:
-        pyDatalog.create_terms("")
-        assert False, "Should raise DatalogError on empty string create_terms('')"
+        pyDatalog.create_symbols("")
+        assert False, "Should raise DatalogError on empty string create_symbols('')"
     except pyDatalog.DatalogError:
         pass
 

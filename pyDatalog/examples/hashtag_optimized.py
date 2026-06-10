@@ -13,9 +13,9 @@ Below is a solution based on pyDatalog
 from pyDatalog import pyDatalog, pyEngine
 import time
 
-pyDatalog.create_terms('solution,move,X,Y,Z, Path,Path1,Path2, Steps,Steps1,Steps2')
+pyDatalog.create_symbols('solution,move,X,Y,Z, Path,Path1,Path2, Steps,Steps1,Steps2')
 
-# valid moves are exchange of 1<->2, 1<->4, ... 
+# valid moves are exchange of 1<->2, 1<->4, ...
 @pyDatalog.predicate()
 def move3(X,N,Y):
     for n1,n2 in ((0,1),(0,3),(1,2),(1,4),(2,5),(3,4),(3,6),(4,5),(4,7),(5,8),(6,7),(7,8)):
@@ -25,7 +25,7 @@ def move3(X,N,Y):
             yield (X.id, '%s-%s,' % (n1+1, n2+1), ''.join(y))
 
 
-# a solution to go from X to Y is a direct move, 
+# a solution to go from X to Y is a direct move,
 # or a solution from X to Z, followed by a direct move from Z to Y
 (solution[X,Y]==(Steps,Path)) <= (  (solution[X,Z]==(Steps1,Path1)) & move(Z,Steps2,Y)
                                   #& (X!=Y) & (X._not_in(Path2)) & (Y._not_in(Path2))

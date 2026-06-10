@@ -1,10 +1,10 @@
 """
-This file shows how to use pyDatalog to query 
+This file shows how to use pyDatalog to query
 a relational database and a noSQL database simultaneously.
 
 It has 3 parts :
     1.initialize the Mongo database
-    2. define a predicate resolver for Employee.diploma 
+    2. define a predicate resolver for Employee.diploma
     3. query data from both Mongo DB and SQLite
 """
 
@@ -40,7 +40,7 @@ Employee._pyD_diploma2 = classmethod(_pyD_diploma2) # attach the resolver to the
 from pyDatalog import pyDatalog
 
 print("\n *** combined SQLite and Mongo query :\n")
-pyDatalog.create_terms('X, N, Diploma')
+pyDatalog.create_symbols('X, N, Diploma')
 
 # Who has a salary of 6800 and a MSc. diploma
 (Employee.salary[X]==6800) & (Employee.diploma[X]=="MSc.")

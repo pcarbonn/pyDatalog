@@ -6,7 +6,7 @@ You can use the Python `input()` function to request data from the user :
 
 ```python
 >>> from pyDatalog import pyDatalog
->>> pyDatalog.create_terms('X,Y, quacks, input')
+>>> pyDatalog.create_symbols('X,Y, quacks, input')
 >>> (quacks(X) <= (input('Does a '+X+' quack ? (Y/N) ')=='Y'))
 
 ```
@@ -17,7 +17,7 @@ You can use the `print()` function to show a result on the console:
 
 ```python
 >>> from pyDatalog import pyDatalog
->>> pyDatalog.create_terms('print, ok')
+>>> pyDatalog.create_symbols('print, ok')
 >>> (ok(X) <= (0 < X) & (Y==print(X)))
 
 ```
@@ -128,7 +128,7 @@ A decorated function can be used to resolve an unprefixed predicate or function.
 [(2,)]
 
 >>> # inline rule
->>> pyDatalog.create_terms('f_inline')
+>>> pyDatalog.create_symbols('f_inline')
 >>> f_inline(X) <= p(1, X) & p(1, X)
 >>> print(f_inline(X).ask())
 [(2,)]

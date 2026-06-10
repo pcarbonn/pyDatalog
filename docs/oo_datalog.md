@@ -26,7 +26,7 @@ We'll use the following class definition of Employee.
 Let's assert the fact that Mary has a car:
 
 ```python
->>> pyDatalog.create_terms('has_car, X, Y, Z')
+>>> pyDatalog.create_symbols('has_car, X, Y, Z')
 >>> + has_car(Mary)
 >>> print(has_car(X))
 X

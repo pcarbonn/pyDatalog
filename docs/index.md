@@ -4,7 +4,7 @@ Logic programming in Python
 
 ```python
 >>> from pyDatalog import pyDatalog
->>> pyDatalog.create_terms('factorial, N')
+>>> pyDatalog.create_symbols('factorial, N')
 >>> factorial[N] = N*factorial[N-1]
 >>> factorial[1] = 1
 >>> print(factorial[3]==N)
@@ -62,7 +62,7 @@ More specifically:
   * you can prefix literals and functions with a Python class name (e.g. `Employee.name[X]==Y`): their first argument refers to instances of the class.
   * prefixed literals and functions can be inherited from parent classes.
   * you can use arithmetic literals `(X == Y+1)`. An expression can contain Python functions and [lambda expressions](http://www.google.com/url?q=http%3A%2F%2Fwww.secnetix.de%2Folli%2FPython%2Flambda_functions.hawk&sa=D&sntz=1&usg=AOvVaw0SKVdXRHmllnIH32LT9Sup)
-  * you can negate a literal in the body of a clause : ~`p(X)`
+  * you can negate an atom in the body of a clause : `~p(X)`
 
 pyDatalog is a fast and lightweight datalog interpreter written in Python:
 

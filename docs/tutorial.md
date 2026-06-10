@@ -25,14 +25,14 @@ The first step is to import pyDatalog:
 The next step is to declare the variables we'll use. They must start with an upper-case letter:
 
 ```python
->>> pyDatalog.create_terms('X,Y')
+>>> pyDatalog.create_symbols('X,Y')
 
 ```
 
 To satisfy Python type checkers (like Mypy or Pyright), you can also assign the returned terms directly, at the cost of writing the name twice:
 
 ```python
->>> X, Y = pyDatalog.create_terms('X, Y')
+>>> X, Y = pyDatalog.create_symbols('X, Y')
 
 ```
 
@@ -108,7 +108,7 @@ To use your own functions in logic expressions, define them in Python, then ask 
 >>> def twice(a):
 ...     return a+a
 ...
->>> pyDatalog.create_terms('twice')
+>>> pyDatalog.create_symbols('twice')
 >>> print((X==1) & (Y==twice(X)))
 
 X | Y
@@ -124,7 +124,7 @@ Similarly, pyDatalog variables can be passed to functions in the Python standard
 ```python
 >>> # give me all the X and Y so that X is 2 and Y is the square root of X
 >>> import math
->>> pyDatalog.create_terms('math')
+>>> pyDatalog.create_symbols('math')
 >>> print((X==2) & (Y==math.sqrt(X)))
 
 X | Y
@@ -143,7 +143,7 @@ A loop can be created by using the .in() method (we'll see that there are other 
 
 ```python
 >>> from pyDatalog import pyDatalog
->>> pyDatalog.create_terms('X,Y,Z')
+>>> pyDatalog.create_symbols('X,Y,Z')
 
 >>> # give me all the X so that X is in the range 0..4
 >>> print(X.in_((0,1,2,3,4)))
@@ -243,7 +243,7 @@ A function can be queried.
 
 ```python
 >>> from pyDatalog import pyDatalog
->>> pyDatalog.create_terms('X,Y,Z, salary, tax_rate, tax_rate_for_salary_above, net_salary')
+>>> pyDatalog.create_symbols('X,Y,Z, salary, tax_rate, tax_rate_for_salary_above, net_salary')
 
 >>> salary['foo'] = 60
 >>> salary['bar'] = 110
@@ -425,7 +425,7 @@ This short notation, together with the fact that functions can be defined in any
 To illustrate the point, this definition of Factorial cannot be any clearer !
 
 ```python
->>> pyDatalog.create_terms('factorial, N')
+>>> pyDatalog.create_symbols('factorial, N')
 >>> factorial[N] = N*factorial[N-1]
 >>> factorial[1] = 1
 >>> print(factorial[3]==N)
@@ -444,7 +444,7 @@ A basic aggregation is to count the number of results, using len_.
 
 ```python
 >>> from pyDatalog import pyDatalog
->>> pyDatalog.create_terms('X,Y,manager, count_of_direct_reports')
+>>> pyDatalog.create_symbols('X,Y,manager, count_of_direct_reports')
 
 >>> # the manager of Mary is John
 >>> +(manager['Mary'] == 'John')
@@ -480,7 +480,7 @@ Here is how you add facts to the set.
 
 ```python
 >>> from pyDatalog import pyDatalog
->>> pyDatalog.create_terms('X,Y,Z, works_in, department_size, manager, indirect_manager, count_of_indirect_reports')
+>>> pyDatalog.create_symbols('X,Y,Z, works_in, department_size, manager, indirect_manager, count_of_indirect_reports')
 
 >>> # Mary works in Production
 >>> + works_in('Mary', 'Production')
@@ -577,7 +577,7 @@ Y
 Trees and graphs can be represented by the links between their nodes :
 
 ```python
->>> pyDatalog.create_terms('link, can_reach')
+>>> pyDatalog.create_symbols('link, can_reach')
 
 >>> # there is a link between node 1 and node 2
 >>> +link(1,2)
@@ -628,8 +628,8 @@ As an example, let's program an efficient solution to the [8-queen puzzle](https
 
 ```python
 >>> from pyDatalog import pyDatalog
->>> pyDatalog.create_terms('N,X0,X1,X2,X3,X4,X5,X6,X7')
->>> pyDatalog.create_terms('ok,queens,next_queen')
+>>> pyDatalog.create_symbols('N,X0,X1,X2,X3,X4,X5,X6,X7')
+>>> pyDatalog.create_symbols('ok,queens,next_queen')
 
 >>> # the queen in the first column can be in any row
 >>> queens(X0) <= (X0._in(range(8)))

@@ -1,10 +1,10 @@
 """
-This file shows how to use pyDatalog using facts stored in a relational database, 
+This file shows how to use pyDatalog using facts stored in a relational database,
 via SQLAlchemy's Object-Relational Mapping (ORM).
 
 It has 4 parts :
     1. initialize the ORM
-    2. define python class and business rules 
+    2. define python class and business rules
     3. create table and rows for 2 employees
     4. Query the objects using the datalog engine
 """
@@ -29,11 +29,11 @@ Base.session = session
 """ 2. define python class and business rules """
 class Employee(Base): # --> Employee inherits from the Base class
     __tablename__ = 'employee'
-    
+
     name = Column(String, primary_key=True)
     manager_name = Column(String, ForeignKey('employee.name'))
     salary = Column(Integer)
-    
+
     def __init__(self, name, manager_name, salary):
         super(Employee, self).__init__()
         self.name = name
@@ -48,17 +48,17 @@ class Employee(Base): # --> Employee inherits from the Base class
         # the salary class of employee X is computed as a function of his/her salary
         # this statement is a logic equality, not an assignment !
         Employee.salary_class[X] = Employee.salary[X]//1000
-        
+
         # all the indirect managers of employee X are derived from his manager, recursively
         Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Y) & (Y != None)
         Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Z) & Employee.indirect_manager(Z,Y) & (Y != None)
-        
+
         # count the number of reports of X
         (Employee.report_count[X] == len(Y)) <= Employee.indirect_manager(Y,X)
 
 """ 3. create table and rows for 2 employees """
 # create table
-Base.metadata.create_all(engine) 
+Base.metadata.create_all(engine)
 
 # create rows for 3 employees
 # John is the manager of Mary, who is the manager of Sam
@@ -72,7 +72,7 @@ session.add(Sam)
 session.commit()
 
 """ 4. Query the objects using the datalog engine """
-pyDatalog.create_terms('X, Y, N, lowest')
+pyDatalog.create_symbols('X, Y, N, lowest')
 
 # the following python statements implicitly use the datalog clauses in the class definition
 
@@ -105,7 +105,7 @@ Employee.report_count[X] == 2
 print(X) # prints [Employee: John]
 
 # what is the total salary of the employees of John ?
-# note : it is better to place aggregation clauses in the class definition 
+# note : it is better to place aggregation clauses in the class definition
 Mary.salary = 6400 # queries use the latest, in-session, data
 (Employee.budget[X] == sum_(N, for_each=Y)) <= (Employee.indirect_manager(Y, X)) & (Employee.salary[Y]==N)
 Employee.budget[John]==X
@@ -113,5 +113,5 @@ print(X) # prints [12300]
 
 # who has the lowest salary ?
 (lowest[1] == min_(X, order_by=N)) <= (Employee.salary[X]==N)
-# must use ask() because inline queries cannot use unprefixed literals 
+# must use ask() because inline queries cannot use unprefixed literals
 print(lowest[1]==X) # Sam is the result

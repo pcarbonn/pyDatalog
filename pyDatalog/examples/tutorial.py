@@ -4,7 +4,7 @@ https://sites.google.com/site/pydatalog/Online-datalog-tutorial
 """
 
 from pyDatalog import pyDatalog
-pyDatalog.create_terms('parent,bill,ancestor,descendents,manager, X,Y,Z,N,N1,F,  factorial, first_remainder, odd,even, _split')
+pyDatalog.create_symbols('parent,bill,ancestor,descendents,manager, X,Y,Z,N,N1,F,  factorial, first_remainder, odd,even, _split')
 
 + parent(bill,'John Adams')
 
@@ -17,7 +17,7 @@ ancestor(X,Y) <= parent(X,Z) & ancestor(Z,Y)
 print(ancestor(bill, X)) # prints [('John Adams',)]
 
 # the manager of bill is John Adams. Bill has only one manager.
-+ (manager[bill]=='John Adams') 
++ (manager[bill]=='John Adams')
 
 print(manager[bill]==X) # prints [('John Adams',)]
 
@@ -36,7 +36,7 @@ print((Y==5) & (X==format_('Y is {}', Y))) # X is 'Y is 5'
 
 # aggregate function
 # calculate the list of descendents, sorted by their name, and separated by ','
-(descendents[X]==concat_(Y, order_by=Y, sep=',')) <= ancestor(X,Y) 
+(descendents[X]==concat_(Y, order_by=Y, sep=',')) <= ancestor(X,Y)
 
 print(descendents[bill]==X) # prints [('John Adams',)]
 
@@ -57,13 +57,13 @@ print(even(20)) # prints [()], i.e. one valid result with 0 variable
 ############################################ python in Datalog
 
 class Employee(pyDatalog.Mixin): # --> Employee inherits the pyDatalog capability to use logic clauses
-    
+
     def __init__(self, name, manager, salary): # method to initialize Employee instances
         super(Employee, self).__init__() # calls the initialization method of the Mixin class
         self.name = name
         self.manager = manager           # direct manager of the employee, or None
         self.salary = salary             # monthly salary of the employee
-    
+
     def __repr__(self): # specifies how to display an Employee
         return self.name
 
@@ -71,7 +71,7 @@ John = Employee('John', None, 6800)
 Mary = Employee('Mary', John, 6300)
 Sam = Employee('Sam', Mary, 5900)
 
-pyDatalog.create_terms('has_car, X')
+pyDatalog.create_symbols('has_car, X')
 + has_car(Mary)
 print(has_car(X)) # prints [(Mary,)]
 
@@ -90,7 +90,7 @@ Employee.salary_class[X] = Employee.salary[X]//1000
 print(John.salary_class) # prints 6
 
 # calculated attribute
-Mary.salary_class = ((Employee.salary_class[Mary]==X) >= X) 
+Mary.salary_class = ((Employee.salary_class[Mary]==X) >= X)
 
 # all the indirect managers Y of employee X are derived from his manager, recursively
 Employee.indirect_manager(X,Y) <= (Employee.manager[X]==Y) & (Y != None)

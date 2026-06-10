@@ -79,7 +79,7 @@ To verify that `pyDatalog` has been installed correctly, open a Python interacti
 
 ```python
 >>> from pyDatalog import pyDatalog
->>> pyDatalog.create_terms('X, Y')
+>>> pyDatalog.create_symbols('X, Y')
 >>> print(X == Y)
 ```
 
