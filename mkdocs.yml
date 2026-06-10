@@ -23,7 +23,10 @@ theme:
         icon: material/weather-night
         name: Switch to light mode
   features:
+    - navigation.footer
     - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
     - navigation.sections
     - search.suggest
     - search.highlight
@@ -45,10 +48,13 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Installation: installation.md
-  - Datalog Tutorial: tutorial.md
-  - Object-oriented Datalog: oo_datalog.md
-  - Data Integration: data_integration.md
-  - Console: console.md
-  - Advanced Topics: advanced.md
+  - Datalog Tutorial: 1_Online_Datalog_tutorial.ipynb
+  - Object-oriented Datalog: 2_oo_datalog.ipynb
+  - Data Integration: 3_data_integration.ipynb
+  - Advanced Topics: 4_advanced.ipynb
   - Reference: reference.md
   - Support & Community: support.md
+
+plugins:
+  - mkdocs-jupyter
+

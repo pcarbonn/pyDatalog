@@ -10,4 +10,4 @@ Please note that it is recommended to [upgrade to the latest release](installati
 
 # Developers
 
-If you are interested to contribute to pyDatalog, please [contact me](https://www.google.com/url?q=https%3A%2F%2Fbitbucket.org%2Faccount%2Fnotifications%2Fsend%2F%3Freceiver%3Dpcarbonn&sa=D&sntz=1&usg=AOvVaw3hXgRE8VfKiEAVkKwu89XT). The latest software version is [on GitHub](https://www.google.com/url?q=https%3A%2F%2Fgithub.com%2Fpcarbonn%2FpyDatalog&sa=D&sntz=1&usg=AOvVaw0y_IhjqYVCQFvhs0BMxvhv).
+If you are interested to contribute to pyDatalog, please [contact me](mailto:pierre.carbonnelle@gmail.com). The latest software version is [on GitHub](https://www.google.com/url?q=https%3A%2F%2Fgithub.com%2Fpcarbonn%2FpyDatalog&sa=D&sntz=1&usg=AOvVaw0y_IhjqYVCQFvhs0BMxvhv).
