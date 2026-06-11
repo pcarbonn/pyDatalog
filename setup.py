@@ -44,6 +44,9 @@ def run_setup(with_cext):
     ext_modules = [
         Extension('pyDatalog.pyEngine',
                   sources=['pyDatalog/pyEngine.c']),
+        Extension('pyDatalog.task_queue',
+                  sources=['pyDatalog/task_queue.pyx'],
+                  language='c++'),
     ]
 
     kwargs = {}

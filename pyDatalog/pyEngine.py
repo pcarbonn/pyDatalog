@@ -26,16 +26,22 @@ from lua to python, with many enhancements.
 See also doc.py for additional source code documentation.
 """
 
-from collections import deque, OrderedDict
+from collections import OrderedDict
 import gc
 import logging
-import math
 import re
+import struct
 import threading
 import weakref
 from fractions import Fraction
 
 from . import util
+try:
+    from .task_queue import TaskList, TaskDeque
+except ImportError:
+    from collections import deque
+    TaskList = list
+    TaskDeque = deque
 
 Logging = False # True --> Logging is activated.  Kept for performance reason
 Float_Precision = 8 # Number of significant digits to round floats to, or "Fraction", or None
@@ -52,8 +58,6 @@ Class_dict = {}
 Logger = logging.getLogger(__name__)
 
 #       DATA TYPES          #####################################
-
-import struct
 
 def _canonicalize_float(atom):
     if Float_Precision == "Fraction":
@@ -537,7 +541,7 @@ class Literal(object):
         """ Invoke the tasks. Each task may append new tasks on the schedule."""
         Ts = Logic.tl.logic
         saved_environment = Ts.Tasks, Ts.Recursive_Tasks, Ts.Recursive, Ts.Subgoals, Ts.Goal
-        Ts.Tasks, Ts.Recursive_Tasks, Ts.Subgoals, Ts.Goal = list(), deque(), {}, Subgoal(self)
+        Ts.Tasks, Ts.Recursive_Tasks, Ts.Subgoals, Ts.Goal = TaskList(), TaskDeque(), {}, Subgoal(self)
         Ts.gc_uncollected, Ts.Recursive = True, False
         todo, arg = (SEARCH, (Ts.Goal, ))
         while todo:
@@ -710,7 +714,7 @@ class Subgoal(object):
         self.facts = {}
         self.waiters = []
         self.recursive = literal.pred.recursive
-        self.tasks = deque() if self.recursive else list()
+        self.tasks = TaskDeque() if self.recursive else TaskList()
         self.clauses = []
         # subgoal is done when a partial literal is true 
         # or when one fact is found for a function of constants
