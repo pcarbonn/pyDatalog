@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyDatalog"
-version = "0.21.0"
+version = "0.22.0"
 description = "A pure-python implementation of Datalog, a truly declarative language derived from Prolog."
 readme = "README.md"
 authors = [
@@ -18,7 +18,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Prolog",
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Other Environment",
     "Intended Audience :: Developers",
     "Intended Audience :: Education",
