@@ -114,8 +114,11 @@ class Fresh_var(Term):
     def shuffle(self, env): #shuffle
         return env.setdefault(self.id, Fresh_var())
     def chase(self, env): #unify
-        # try ... except is not faster
-        return env[self.id].chase(env) if self.id in env else self
+        if self.id in env:
+            res = env[self.id].chase(env)
+            env[self.id] = res
+            return res
+        return self
     
     def match(self, constant, env):
         if self.id not in env:
@@ -516,15 +519,9 @@ class Literal(object):
             if literal_i.id != other_i.id:
                 env = literal_i.unify(other_i, env)
                 if env is None: return env
-        todo = True
-        while todo:
-            todo = False
-            for key, value in env.items(): # 2nd pass for issue #14
-                if not isinstance(value, Const):
-                    new_value = value.chase(env)
-                    if env[key].id != new_value.id:
-                        env[key]= new_value
-                        todo = True
+        for key, value in list(env.items()):
+            if not isinstance(value, Const):
+                env[key]= value.chase(env)
         return env
 
     def match(self, terms):

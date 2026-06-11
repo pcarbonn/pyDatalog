@@ -10,8 +10,8 @@ It has 3 parts :
 
 """ 1.initialize the Mongo database  """
 
-from pymongo import Connection
-connection = Connection()
+from pymongo import MongoClient
+connection = MongoClient()
 db = connection.Employees
 profiles = db.profiles
 
@@ -19,7 +19,7 @@ profiles_to_insert = [{"name": "John", "diploma": "MSc."},
                      {"name": "Mary", "diploma": "EE"},
                      {"name": "Sam", "diploma": "MBA"}]
 
-profiles.insert(profiles_to_insert)
+profiles.insert_many(profiles_to_insert)
 
 """ 2. define a predicate resolver for Employee.diploma """
 

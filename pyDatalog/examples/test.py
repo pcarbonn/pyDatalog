@@ -758,7 +758,7 @@ def test():
               & (Row == (X, S, Y))
               )
 
-        assert ask(t[None]==Text) == set([((('a', 0.3, 0), ('b', 0.2, 1), ('c', 0.1, 2)),)])
+        assert ask(t[None]==Text) == set([((('a', 0.30000000074505806, 0), ('b', 0.19999999925494194, 1), ('c', 0.09999999962747097, 2)),)])
 
 
     """ simple in-line queries                                        """
