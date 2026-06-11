@@ -660,7 +660,8 @@ def retract(clause):
             clause = pred.db[id_] # make sure it is identical to the one in the index
             for i, term in enumerate(clause.head.terms):
                 pred.index[i][term.id].remove(clause)
-                # TODO del pred.index[i][term] if the set is empty
+                if not pred.index[i][term.id]:
+                    del pred.index[i][term.id]
         else:
             del pred.clauses[id_]
         del pred.db[id_]  # remove clause from pred.db
