@@ -6,7 +6,7 @@ This document describes how the build, release, and documentation processes are 
 
 ## 1. Automated Builds (GitHub Actions)
 
-We use GitHub Actions to automate the building of source distributions (`sdist`) and binary wheels. The configuration is defined in [build_wheels.yml](file:///home/pcarbonn/Documents/repos/pyDatalog/.github/workflows/build_wheels.yml).
+We use GitHub Actions to automate the building of source distributions (`sdist`) and binary wheels. The configuration is defined in [build_wheels.yml](.github/workflows/build_wheels.yml).
 
 ### Running on Push and Pull Requests
 
@@ -52,7 +52,7 @@ Once the release is published, the GitHub Actions workflow triggers the publish 
 
 ## 3. Documentation (Read the Docs)
 
-The documentation is built with MkDocs and hosted on Read the Docs. The build environment is configured in [.readthedocs.yaml](file:///home/pcarbonn/Documents/repos/pyDatalog/.readthedocs.yaml).
+The documentation is built with MkDocs and hosted on Read the Docs. The build environment is configured in [.readthedocs.yaml](.readthedocs.yaml).
 
 Updates are triggered automatically via a GitHub webhook:
 
