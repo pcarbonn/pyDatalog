@@ -32,7 +32,7 @@ pyDatalog can be used for:
   * querying complex sets of related information (e.g. in data integration or Natural Language Processing),
   * performing recursive algorithms (e.g. on hierarchical data structure)
 
-pyDatalog is derived from [previous work by John D. Ramsdell](http://www.google.com/url?q=http%3A%2F%2Fwww.ccs.neu.edu%2Fhome%2Framsdell%2Ftools%2Fdatalog%2F&sa=D&sntz=1&usg=AOvVaw04Hlic6GgHqGeOid-4DV2_). It is an open-source project (LGPL) lead by Pierre Carbonnelle (in Belgium). It is inspired by [LogicBlox](http://www.google.com/url?q=http%3A%2F%2Fwww.datalog20.org%2Fslides%2Faref.pdf&sa=D&sntz=1&usg=AOvVaw0kTbpEsZsu_cJb8O8boB9O).
+pyDatalog is derived from [previous work by John D. Ramsdell](http://www.google.com/url?q=http%3A%2F%2Fwww.ccs.neu.edu%2Fhome%2Framsdell%2Ftools%2Fdatalog%2F&sa=D&sntz=1&usg=AOvVaw04Hlic6GgHqGeOid-4DV2_). It is an open-source project (LGPL) lead by Pierre Carbonnelle (in Belgium).
 
 ## Core technology
 

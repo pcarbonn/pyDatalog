@@ -53,13 +53,30 @@ Logger = logging.getLogger(__name__)
 
 #       DATA TYPES          #####################################
 
+import struct
+
 def _canonicalize_float(atom):
     if Float_Precision == "Fraction":
         return Fraction(str(atom))
     elif isinstance(Float_Precision, int):
-        if atom == 0:
+        if atom == 0.0:
             return 0.0
-        return round(atom, Float_Precision - int(math.floor(math.log10(abs(atom)))) - 1)
+        
+        # Convert decimal significant digits to binary mantissa bits (~3.32 bits per decimal digit)
+        # For Float_Precision = 8, this keeps ~27 bits of the 52-bit mantissa.
+        keep_bits = int(Float_Precision * 3.321928094887362)
+        clear_bits = 52 - keep_bits
+        if clear_bits <= 0:
+            return atom
+            
+        mask = (1 << 64) - 1 - ((1 << clear_bits) - 1)
+        half = 1 << (clear_bits - 1)
+        
+        # Binary round-to-nearest
+        i = struct.unpack('>Q', struct.pack('>d', atom))[0]
+        i += half
+        i &= mask
+        return struct.unpack('>d', struct.pack('>Q', i))[0]
     return atom
 
 def Term_of(atom):
