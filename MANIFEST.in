@@ -1,3 +1,6 @@
 include LICENCE
-include pyDatalog\*.c
-include pyDatalog\examples\*.py
+include pyDatalog/*.c
+include pyDatalog/*.cpp
+include pyDatalog/*.pyx
+include pyDatalog/*.pxd
+include pyDatalog/examples/*.py

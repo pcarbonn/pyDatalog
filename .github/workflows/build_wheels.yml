@@ -43,6 +43,7 @@ jobs:
   upload_all:
     needs: [build_wheels, make_sdist]
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       id-token: write  # Mandatory for PyPI OIDC Trusted Publishing
       contents: write  # Mandatory for uploading assets to the release
