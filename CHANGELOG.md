@@ -2,7 +2,7 @@
 
 In bold : changes that may impact existing pyDatalog programs
 
-  0.22.2 - Jun 11, 2026
+  0.22.3 - Jun 12, 2026
 
   Performance improvements
 

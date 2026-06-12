@@ -1,9 +1,9 @@
 # pyDatalog
 
-[![Build Status](https://github.com/pcarbonn/pyDatalog/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/pcarbonn/pyDatalog/actions)
-[![Documentation Status](https://img.shields.io/readthedocs/pydatalog)](https://pydatalog.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://img.shields.io/pypi/v/pyDatalog.svg)](https://pypi.org/project/pyDatalog/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/pyDatalog.svg)](https://pypi.org/project/pyDatalog/)
+[![tests](https://github.com/pcarbonn/pyDatalog/actions/workflows/tests.yml/badge.svg)](https://github.com/pcarbonn/pyDatalog/actions)
+[![Documentation Status](https://img.shields.io/readthedocs/pydatalog)](https://pydatalog.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/pypi/l/pyDatalog.svg)](https://github.com/pcarbonn/pyDatalog/blob/master/LICENCE)
 
 > [!NOTE]
@@ -26,6 +26,10 @@ uv add pyDatalog
 > [!NOTE]
 > Pre-compiled binary wheels are provided for most common platforms and Python versions. A **pure Python wheel** is also published on PyPI for universal compatibility. If a platform-specific wheel is not available, your package manager (like `pip` or `micropip`) will automatically install the pure Python wheel, which runs natively on WebAssembly/Pyodide, mobile environments (like Pydroid 3), and all other architectures without requiring a C compiler.
 > If installation is requested from source (instead of from wheels) and fails, the library will gracefully fall back to its pure-Python implementation.
+
+## Documentation
+
+The official documentation, including tutorials and API references, is available at [pydatalog.readthedocs.io](https://pydatalog.readthedocs.io/).
 
 ## Description
 
