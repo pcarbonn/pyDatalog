@@ -38,11 +38,51 @@ from fractions import Fraction
 
 from . import util
 try:
-    from .task_queue import TaskList, TaskDeque
+    from .task_storage import TaskList, TaskDeque
 except ImportError:
     from collections import deque
     TaskList = list
     TaskDeque = deque
+try:
+    from .fact_storage import FactDb, FactIndex
+except ImportError:
+    class FactDb(object):
+        def __init__(self):
+            self._map = {}
+        def add(self, key_hash, clause):
+            s = self._map.setdefault(key_hash, set())
+            s.add(clause)
+        def remove(self, key_hash, clause):
+            if key_hash in self._map:
+                s = self._map[key_hash]
+                s.discard(clause)
+                if not s:
+                    del self._map[key_hash]
+        def get_candidates(self, key_hash):
+            return self._map.get(key_hash, set())
+        def values(self):
+            result = []
+            for s in self._map.values():
+                result.extend(s)
+            return result
+        def __len__(self):
+            return sum(len(s) for s in self._map.values())
+            
+    class FactIndex(object):
+        def __init__(self, arity):
+            self._indices = [{} for _ in range(arity)]
+        def add(self, index_pos, key_hash, clause):
+            s = self._indices[index_pos].setdefault(key_hash, set())
+            s.add(clause)
+        def remove(self, index_pos, key_hash, clause):
+            idx = self._indices[index_pos]
+            if key_hash in idx:
+                s = idx[key_hash]
+                s.discard(clause)
+                if not s:
+                    del idx[key_hash]
+        def get_candidates(self, index_pos, key_hash):
+            return self._indices[index_pos].get(key_hash, set())
 
 Logging = False # True --> Logging is activated.  Kept for performance reason
 Float_Precision = 8 # Number of significant digits to round floats to, or "Fraction", or None
@@ -384,10 +424,10 @@ class Pred(Interned):
             words = pred_name.split(']')
             o.comparison = words[1] if 1 < len(words) else '' # for f[X]<Y
 
-            o.db = OrderedDict()
-            o.clauses = OrderedDict()
+            o.db = FactDb()
+            o.clauses = FactDb()
             # one index per term. An index is a dictionary of sets
-            o.index = [{} for i in range(int(o.arity))]
+            o.index = FactIndex(int(o.arity))
             o.prim = None
             o.expression = None
             o.recursive = False
@@ -635,15 +675,14 @@ def assert_(clause):
     if not pred.prim:                   # Ignore assertions for primitives.
         id_ = clause.get_id()
         retract(clause) # to ensure unicity of functions
-        pred.db[id_] = clause
+        pred.db.add(hash(id_), clause)
         if not clause.body: # if it is a fact, update indexes
             for i, term in enumerate(clause.head.terms):
-                clauses = pred.index[i].setdefault(term.id, set()) # create a set if needed
-                clauses.add(clause)
+                pred.index.add(i, hash(term.id), clause)
         else:
             if any(literal.pred.id == pred.id for literal in clause.body):
                 pred.recursive = True
-            pred.clauses[id_] = clause
+            pred.clauses.add(hash(id_), clause)
             if not pred.name.startswith('_pyD_query'):
                 for literal in clause.body:
                     if not literal.pred.prim and not literal.pred.prefix and literal.pred.id not in Logic.tl.logic.Db:
@@ -656,16 +695,21 @@ def retract(clause):
     pred = clause.head.pred
     id_ = clause.get_id()
     
-    if id_ in pred.db: 
-        if not clause.body: # if it is a fact, update indexes
-            clause = pred.db[id_] # make sure it is identical to the one in the index
-            for i, term in enumerate(clause.head.terms):
-                pred.index[i][term.id].remove(clause)
-                if not pred.index[i][term.id]:
-                    del pred.index[i][term.id]
+    candidates = pred.db.get_candidates(hash(id_))
+    exact_clause = None
+    for c in candidates:
+        if c.get_id() == id_:
+            exact_clause = c
+            break
+            
+    if exact_clause is not None: 
+        if not exact_clause.body: # if it is a fact, update indexes
+            for i, term in enumerate(exact_clause.head.terms):
+                pred.index.remove(i, hash(term.id), exact_clause)
         else:
-            del pred.clauses[id_]
-        del pred.db[id_]  # remove clause from pred.db
+            pred.clauses.remove(hash(id_), exact_clause)
+        pred.db.remove(hash(id_), exact_clause)
+        
     # delete it completely if it's a temporary query predicate
     if pred.name.startswith('_pyD_query') and len(pred.db) == 0 and pred.prim == None:
         remove(pred)
@@ -676,7 +720,8 @@ def relevant_clauses(literal):
     result = None
     for i, term in enumerate(literal.terms):
         if term.is_const():
-            facts = literal.pred.index[i].get(term.id, set()) # default : a set
+            candidates = literal.pred.index.get_candidates(i, hash(term.id))
+            facts = {c for c in candidates if c.head.terms[i].id == term.id}
             result = facts if result is None else result.intersection(facts)
     if result is None: # no constants found in literal, thus could not filter literal.pred.deb
         for v in literal.pred.db.values(): 

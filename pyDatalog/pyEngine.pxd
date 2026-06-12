@@ -71,6 +71,26 @@ cdef class Literal(object):
     cpdef public tuple get_id(self)
     cpdef public tuple get_fact_id(self)
     cpdef public dict match(self, list terms)
+
+cdef class Interned(object):
+    pass
+
+cdef class Pred(Interned):
+    cdef public object id
+    cdef public object name
+    cdef public object arity
+    cdef public object prearity
+    cdef public object prefix
+    cdef public object suffix
+    cdef public object comparison
+    cdef public object db
+    cdef public object clauses
+    cdef public object index
+    cdef public object prim
+    cdef public object expression
+    cdef public bool recursive
+    cdef public object base_pred
+    cdef public object _cls
     
 cdef class Clause(object):
     cdef public Literal head
