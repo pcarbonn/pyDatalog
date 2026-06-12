@@ -73,6 +73,14 @@ cdef class TaskList:
         for i in range(self.tasks.size()):
             yield <object>self.tasks[i]
 
+    def __getitem__(self, int index):
+        cdef int size = self.tasks.size()
+        if index < 0:
+            index += size
+        if index < 0 or index >= size:
+            raise IndexError("list index out of range")
+        return <object>self.tasks[index]
+
 
 cdef class TaskDeque:
     cdef deque[void*] tasks
@@ -147,3 +155,11 @@ cdef class TaskDeque:
         cdef int i
         for i in range(self.tasks.size()):
             yield <object>self.tasks[i]
+
+    def __getitem__(self, int index):
+        cdef int size = self.tasks.size()
+        if index < 0:
+            index += size
+        if index < 0 or index >= size:
+            raise IndexError("deque index out of range")
+        return <object>self.tasks[index]

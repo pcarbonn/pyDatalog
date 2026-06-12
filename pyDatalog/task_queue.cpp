@@ -1369,7 +1369,7 @@ static const char *__pyx_filename;
 static const char* const __pyx_f[] = {
   "pyDatalog/task_queue.pyx",
   "<stringsource>",
-  "cpython/type.pxd",
+  ".venv/lib/python3.12/site-packages/Cython/Includes/cpython/type.pxd",
 };
 /* #### Code section: utility_code_proto_before_types ### */
 /* Atomics.proto (used by UnpackUnboundCMethod) */
@@ -1567,7 +1567,7 @@ struct __pyx_obj_9pyDatalog_10task_queue_TaskList {
 };
 
 
-/* "pyDatalog/task_queue.pyx":77
+/* "pyDatalog/task_queue.pyx":85
  * 
  * 
  * cdef class TaskDeque:             # <<<<<<<<<<<<<<
@@ -1613,7 +1613,7 @@ struct __pyx_obj_9pyDatalog_10task_queue___pyx_scope_struct_1___iter__ {
 };
 
 
-/* "pyDatalog/task_queue.pyx":130
+/* "pyDatalog/task_queue.pyx":138
  *         return self.tasks.size()
  * 
  *     def __reversed__(self):             # <<<<<<<<<<<<<<
@@ -1628,7 +1628,7 @@ struct __pyx_obj_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__ {
 };
 
 
-/* "pyDatalog/task_queue.pyx":146
+/* "pyDatalog/task_queue.pyx":154
  *         return False
  * 
  *     def __iter__(self):             # <<<<<<<<<<<<<<
@@ -1663,7 +1663,7 @@ struct __pyx_vtabstruct_9pyDatalog_10task_queue_TaskList {
 static struct __pyx_vtabstruct_9pyDatalog_10task_queue_TaskList *__pyx_vtabptr_9pyDatalog_10task_queue_TaskList;
 
 
-/* "pyDatalog/task_queue.pyx":77
+/* "pyDatalog/task_queue.pyx":85
  * 
  * 
  * cdef class TaskDeque:             # <<<<<<<<<<<<<<
@@ -2672,8 +2672,9 @@ static Py_ssize_t __pyx_pf_9pyDatalog_10task_queue_8TaskList_12__len__(struct __
 static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_14__reversed__(struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self); /* proto */
 static int __pyx_pf_9pyDatalog_10task_queue_8TaskList_17__contains__(struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self, PyObject *__pyx_v_task); /* proto */
 static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_19__iter__(struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_22__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_24__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_22__getitem__(struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self, int __pyx_v_index); /* proto */
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_24__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_26__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
 static void __pyx_pf_9pyDatalog_10task_queue_9TaskDeque___dealloc__(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_2append(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self, PyObject *__pyx_v_task); /* proto */
 static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_4appendleft(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self, PyObject *__pyx_v_task); /* proto */
@@ -2685,8 +2686,9 @@ static Py_ssize_t __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_14__len__(struct _
 static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_16__reversed__(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self); /* proto */
 static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self, PyObject *__pyx_v_task); /* proto */
 static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_21__iter__(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_24__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_26__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_24__getitem__(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self, int __pyx_v_index); /* proto */
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_26__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_28__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
 static PyObject *__pyx_tp_new_9pyDatalog_10task_queue_TaskList(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_9pyDatalog_10task_queue_TaskDeque(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_9pyDatalog_10task_queue___pyx_scope_struct____reversed__(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
@@ -2730,7 +2732,7 @@ typedef struct {
   __Pyx_CachedCFunction __pyx_umethod_PyDict_Type_pop;
   __Pyx_CachedCFunction __pyx_umethod_PyDict_Type_values;
   PyObject *__pyx_codeobj_tab[17];
-  PyObject *__pyx_string_tab[77];
+  PyObject *__pyx_string_tab[79];
 /* #### Code section: module_state_contents ### */
 
 #if CYTHON_USE_FREELISTS
@@ -2800,82 +2802,84 @@ static __pyx_mstatetype * const __pyx_mstate_global = &__pyx_mstate_global_stati
 #endif
 /* #### Code section: constant_name_defines ### */
 #define __pyx_kp_u_ __pyx_string_tab[0]
-#define __pyx_kp_u_deque_remove_x_x_not_in_deque __pyx_string_tab[1]
-#define __pyx_kp_u_disable __pyx_string_tab[2]
-#define __pyx_kp_u_enable __pyx_string_tab[3]
-#define __pyx_kp_u_gc __pyx_string_tab[4]
-#define __pyx_kp_u_isenabled __pyx_string_tab[5]
-#define __pyx_kp_u_list_remove_x_x_not_in_list __pyx_string_tab[6]
-#define __pyx_kp_u_pop_from_empty_deque __pyx_string_tab[7]
-#define __pyx_kp_u_pop_from_empty_list __pyx_string_tab[8]
-#define __pyx_kp_u_pyDatalog_task_queue_pyx __pyx_string_tab[9]
-#define __pyx_kp_u_self_tasks_cannot_be_converted_t __pyx_string_tab[10]
-#define __pyx_kp_u_stringsource __pyx_string_tab[11]
-#define __pyx_n_u_Pyx_PyDict_NextRef __pyx_string_tab[12]
-#define __pyx_n_u_TaskDeque __pyx_string_tab[13]
-#define __pyx_n_u_TaskDeque___iter __pyx_string_tab[14]
-#define __pyx_n_u_TaskDeque___reduce_cython __pyx_string_tab[15]
-#define __pyx_n_u_TaskDeque___reversed __pyx_string_tab[16]
-#define __pyx_n_u_TaskDeque___setstate_cython __pyx_string_tab[17]
-#define __pyx_n_u_TaskDeque_append __pyx_string_tab[18]
-#define __pyx_n_u_TaskDeque_appendleft __pyx_string_tab[19]
-#define __pyx_n_u_TaskDeque_pop __pyx_string_tab[20]
-#define __pyx_n_u_TaskDeque_remove __pyx_string_tab[21]
-#define __pyx_n_u_TaskDeque_reverse __pyx_string_tab[22]
-#define __pyx_n_u_TaskList __pyx_string_tab[23]
-#define __pyx_n_u_TaskList___iter __pyx_string_tab[24]
-#define __pyx_n_u_TaskList___reduce_cython __pyx_string_tab[25]
-#define __pyx_n_u_TaskList___reversed __pyx_string_tab[26]
-#define __pyx_n_u_TaskList___setstate_cython __pyx_string_tab[27]
-#define __pyx_n_u_TaskList_append __pyx_string_tab[28]
-#define __pyx_n_u_TaskList_pop __pyx_string_tab[29]
-#define __pyx_n_u_TaskList_remove __pyx_string_tab[30]
-#define __pyx_n_u_TaskList_reverse __pyx_string_tab[31]
-#define __pyx_n_u_append __pyx_string_tab[32]
-#define __pyx_n_u_appendleft __pyx_string_tab[33]
-#define __pyx_n_u_asyncio_coroutines __pyx_string_tab[34]
-#define __pyx_n_u_cline_in_traceback __pyx_string_tab[35]
-#define __pyx_n_u_close __pyx_string_tab[36]
-#define __pyx_n_u_func __pyx_string_tab[37]
-#define __pyx_n_u_getstate __pyx_string_tab[38]
-#define __pyx_n_u_i __pyx_string_tab[39]
-#define __pyx_n_u_is_coroutine __pyx_string_tab[40]
-#define __pyx_n_u_items __pyx_string_tab[41]
-#define __pyx_n_u_iter __pyx_string_tab[42]
-#define __pyx_n_u_main __pyx_string_tab[43]
-#define __pyx_n_u_module __pyx_string_tab[44]
-#define __pyx_n_u_name __pyx_string_tab[45]
-#define __pyx_n_u_next __pyx_string_tab[46]
-#define __pyx_n_u_pop __pyx_string_tab[47]
-#define __pyx_n_u_pyDatalog_task_queue __pyx_string_tab[48]
-#define __pyx_n_u_pyx_state __pyx_string_tab[49]
-#define __pyx_n_u_pyx_vtable __pyx_string_tab[50]
-#define __pyx_n_u_qualname __pyx_string_tab[51]
-#define __pyx_n_u_reduce __pyx_string_tab[52]
-#define __pyx_n_u_reduce_cython __pyx_string_tab[53]
-#define __pyx_n_u_reduce_ex __pyx_string_tab[54]
-#define __pyx_n_u_remove __pyx_string_tab[55]
-#define __pyx_n_u_reverse __pyx_string_tab[56]
-#define __pyx_n_u_reversed __pyx_string_tab[57]
-#define __pyx_n_u_self __pyx_string_tab[58]
-#define __pyx_n_u_send __pyx_string_tab[59]
-#define __pyx_n_u_set_name __pyx_string_tab[60]
-#define __pyx_n_u_setdefault __pyx_string_tab[61]
-#define __pyx_n_u_setstate __pyx_string_tab[62]
-#define __pyx_n_u_setstate_cython __pyx_string_tab[63]
-#define __pyx_n_u_task __pyx_string_tab[64]
-#define __pyx_n_u_test __pyx_string_tab[65]
-#define __pyx_n_u_throw __pyx_string_tab[66]
-#define __pyx_n_u_value __pyx_string_tab[67]
-#define __pyx_n_u_values __pyx_string_tab[68]
-#define __pyx_kp_b_iso88591_A __pyx_string_tab[69]
-#define __pyx_kp_b_iso88591_A_4vV1_AQ_fE_F_1_ha_a_q __pyx_string_tab[70]
-#define __pyx_kp_b_iso88591_A_E_at6_a_V1A_IQ __pyx_string_tab[71]
-#define __pyx_kp_b_iso88591_A_E_at6_a_WAYfD_F_1_IQ __pyx_string_tab[72]
-#define __pyx_kp_b_iso88591_A_G_a_E_at6_a_t6_S_F_V6_Ba_a_E_a __pyx_string_tab[73]
-#define __pyx_kp_b_iso88591_A_a_F_AWKq __pyx_string_tab[74]
-#define __pyx_kp_b_iso88591_A_a_F_Qg __pyx_string_tab[75]
-#define __pyx_kp_b_iso88591_Q __pyx_string_tab[76]
+#define __pyx_kp_u_deque_index_out_of_range __pyx_string_tab[1]
+#define __pyx_kp_u_deque_remove_x_x_not_in_deque __pyx_string_tab[2]
+#define __pyx_kp_u_disable __pyx_string_tab[3]
+#define __pyx_kp_u_enable __pyx_string_tab[4]
+#define __pyx_kp_u_gc __pyx_string_tab[5]
+#define __pyx_kp_u_isenabled __pyx_string_tab[6]
+#define __pyx_kp_u_list_index_out_of_range __pyx_string_tab[7]
+#define __pyx_kp_u_list_remove_x_x_not_in_list __pyx_string_tab[8]
+#define __pyx_kp_u_pop_from_empty_deque __pyx_string_tab[9]
+#define __pyx_kp_u_pop_from_empty_list __pyx_string_tab[10]
+#define __pyx_kp_u_pyDatalog_task_queue_pyx __pyx_string_tab[11]
+#define __pyx_kp_u_self_tasks_cannot_be_converted_t __pyx_string_tab[12]
+#define __pyx_kp_u_stringsource __pyx_string_tab[13]
+#define __pyx_n_u_Pyx_PyDict_NextRef __pyx_string_tab[14]
+#define __pyx_n_u_TaskDeque __pyx_string_tab[15]
+#define __pyx_n_u_TaskDeque___iter __pyx_string_tab[16]
+#define __pyx_n_u_TaskDeque___reduce_cython __pyx_string_tab[17]
+#define __pyx_n_u_TaskDeque___reversed __pyx_string_tab[18]
+#define __pyx_n_u_TaskDeque___setstate_cython __pyx_string_tab[19]
+#define __pyx_n_u_TaskDeque_append __pyx_string_tab[20]
+#define __pyx_n_u_TaskDeque_appendleft __pyx_string_tab[21]
+#define __pyx_n_u_TaskDeque_pop __pyx_string_tab[22]
+#define __pyx_n_u_TaskDeque_remove __pyx_string_tab[23]
+#define __pyx_n_u_TaskDeque_reverse __pyx_string_tab[24]
+#define __pyx_n_u_TaskList __pyx_string_tab[25]
+#define __pyx_n_u_TaskList___iter __pyx_string_tab[26]
+#define __pyx_n_u_TaskList___reduce_cython __pyx_string_tab[27]
+#define __pyx_n_u_TaskList___reversed __pyx_string_tab[28]
+#define __pyx_n_u_TaskList___setstate_cython __pyx_string_tab[29]
+#define __pyx_n_u_TaskList_append __pyx_string_tab[30]
+#define __pyx_n_u_TaskList_pop __pyx_string_tab[31]
+#define __pyx_n_u_TaskList_remove __pyx_string_tab[32]
+#define __pyx_n_u_TaskList_reverse __pyx_string_tab[33]
+#define __pyx_n_u_append __pyx_string_tab[34]
+#define __pyx_n_u_appendleft __pyx_string_tab[35]
+#define __pyx_n_u_asyncio_coroutines __pyx_string_tab[36]
+#define __pyx_n_u_cline_in_traceback __pyx_string_tab[37]
+#define __pyx_n_u_close __pyx_string_tab[38]
+#define __pyx_n_u_func __pyx_string_tab[39]
+#define __pyx_n_u_getstate __pyx_string_tab[40]
+#define __pyx_n_u_i __pyx_string_tab[41]
+#define __pyx_n_u_is_coroutine __pyx_string_tab[42]
+#define __pyx_n_u_items __pyx_string_tab[43]
+#define __pyx_n_u_iter __pyx_string_tab[44]
+#define __pyx_n_u_main __pyx_string_tab[45]
+#define __pyx_n_u_module __pyx_string_tab[46]
+#define __pyx_n_u_name __pyx_string_tab[47]
+#define __pyx_n_u_next __pyx_string_tab[48]
+#define __pyx_n_u_pop __pyx_string_tab[49]
+#define __pyx_n_u_pyDatalog_task_queue __pyx_string_tab[50]
+#define __pyx_n_u_pyx_state __pyx_string_tab[51]
+#define __pyx_n_u_pyx_vtable __pyx_string_tab[52]
+#define __pyx_n_u_qualname __pyx_string_tab[53]
+#define __pyx_n_u_reduce __pyx_string_tab[54]
+#define __pyx_n_u_reduce_cython __pyx_string_tab[55]
+#define __pyx_n_u_reduce_ex __pyx_string_tab[56]
+#define __pyx_n_u_remove __pyx_string_tab[57]
+#define __pyx_n_u_reverse __pyx_string_tab[58]
+#define __pyx_n_u_reversed __pyx_string_tab[59]
+#define __pyx_n_u_self __pyx_string_tab[60]
+#define __pyx_n_u_send __pyx_string_tab[61]
+#define __pyx_n_u_set_name __pyx_string_tab[62]
+#define __pyx_n_u_setdefault __pyx_string_tab[63]
+#define __pyx_n_u_setstate __pyx_string_tab[64]
+#define __pyx_n_u_setstate_cython __pyx_string_tab[65]
+#define __pyx_n_u_task __pyx_string_tab[66]
+#define __pyx_n_u_test __pyx_string_tab[67]
+#define __pyx_n_u_throw __pyx_string_tab[68]
+#define __pyx_n_u_value __pyx_string_tab[69]
+#define __pyx_n_u_values __pyx_string_tab[70]
+#define __pyx_kp_b_iso88591_A __pyx_string_tab[71]
+#define __pyx_kp_b_iso88591_A_4vV1_AQ_fE_F_1_ha_a_q __pyx_string_tab[72]
+#define __pyx_kp_b_iso88591_A_E_at6_a_V1A_IQ __pyx_string_tab[73]
+#define __pyx_kp_b_iso88591_A_E_at6_a_WAYfD_F_1_IQ __pyx_string_tab[74]
+#define __pyx_kp_b_iso88591_A_G_a_E_at6_a_t6_S_F_V6_Ba_a_E_a __pyx_string_tab[75]
+#define __pyx_kp_b_iso88591_A_a_F_AWKq __pyx_string_tab[76]
+#define __pyx_kp_b_iso88591_A_a_F_Qg __pyx_string_tab[77]
+#define __pyx_kp_b_iso88591_Q __pyx_string_tab[78]
 /* #### Code section: module_state_clear ### */
 #if CYTHON_USE_MODULE_STATE
 static CYTHON_SMALL_CODE int __pyx_m_clear(PyObject *m) {
@@ -2904,7 +2908,7 @@ static CYTHON_SMALL_CODE int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__);
   Py_CLEAR(clear_module_state->__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__);
   for (int i=0; i<17; ++i) { Py_CLEAR(clear_module_state->__pyx_codeobj_tab[i]); }
-  for (int i=0; i<77; ++i) { Py_CLEAR(clear_module_state->__pyx_string_tab[i]); }
+  for (int i=0; i<79; ++i) { Py_CLEAR(clear_module_state->__pyx_string_tab[i]); }
 /* #### Code section: module_state_clear_contents ### */
 /* CommonTypesMetaclass.module_state_clear */
 Py_CLEAR(clear_module_state->__pyx_CommonTypesMetaclassType);
@@ -2944,7 +2948,7 @@ static CYTHON_SMALL_CODE int __pyx_m_traverse(PyObject *m, visitproc visit, void
   Py_VISIT(traverse_module_state->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__);
   Py_VISIT(traverse_module_state->__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__);
   for (int i=0; i<17; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_codeobj_tab[i]); }
-  for (int i=0; i<77; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_string_tab[i]); }
+  for (int i=0; i<79; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_string_tab[i]); }
 /* #### Code section: module_state_traverse_contents ### */
 /* CommonTypesMetaclass.module_state_traverse */
 Py_VISIT(traverse_module_state->__pyx_CommonTypesMetaclassType);
@@ -4666,7 +4670,7 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_8TaskList_21generator1(__pyx_C
  *         for i in range(self.tasks.size()):
  *             yield <object>self.tasks[i]             # <<<<<<<<<<<<<<
  * 
- * 
+ *     def __getitem__(self, int index):
 */
     __pyx_t_4 = (__pyx_cur_scope->__pyx_v_self->tasks[__pyx_cur_scope->__pyx_v_i]);
     __Pyx_INCREF(((PyObject *)__pyx_t_4));
@@ -4715,6 +4719,174 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_8TaskList_21generator1(__pyx_C
   return __pyx_r;
 }
 
+/* "pyDatalog/task_queue.pyx":76
+ *             yield <object>self.tasks[i]
+ * 
+ *     def __getitem__(self, int index):             # <<<<<<<<<<<<<<
+ *         cdef int size = self.tasks.size()
+ *         if index < 0:
+*/
+
+/* Python wrapper */
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_8TaskList_23__getitem__(PyObject *__pyx_v_self, PyObject *__pyx_arg_index); /*proto*/
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_8TaskList_23__getitem__(PyObject *__pyx_v_self, PyObject *__pyx_arg_index) {
+  int __pyx_v_index;
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__getitem__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  assert(__pyx_arg_index); {
+    __pyx_v_index = __Pyx_PyLong_As_int(__pyx_arg_index); if (unlikely((__pyx_v_index == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 76, __pyx_L3_error)
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("pyDatalog.task_queue.TaskList.__getitem__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return NULL;
+  __pyx_L4_argument_unpacking_done:;
+  __pyx_r = __pyx_pf_9pyDatalog_10task_queue_8TaskList_22__getitem__(((struct __pyx_obj_9pyDatalog_10task_queue_TaskList *)__pyx_v_self), ((int)__pyx_v_index));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_22__getitem__(struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self, int __pyx_v_index) {
+  int __pyx_v_size;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  int __pyx_t_2;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  size_t __pyx_t_5;
+  void *__pyx_t_6;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__getitem__", 0);
+
+  /* "pyDatalog/task_queue.pyx":77
+ * 
+ *     def __getitem__(self, int index):
+ *         cdef int size = self.tasks.size()             # <<<<<<<<<<<<<<
+ *         if index < 0:
+ *             index += size
+*/
+  __pyx_v_size = __pyx_v_self->tasks.size();
+
+  /* "pyDatalog/task_queue.pyx":78
+ *     def __getitem__(self, int index):
+ *         cdef int size = self.tasks.size()
+ *         if index < 0:             # <<<<<<<<<<<<<<
+ *             index += size
+ *         if index < 0 or index >= size:
+*/
+  __pyx_t_1 = (__pyx_v_index < 0);
+  if (__pyx_t_1) {
+
+    /* "pyDatalog/task_queue.pyx":79
+ *         cdef int size = self.tasks.size()
+ *         if index < 0:
+ *             index += size             # <<<<<<<<<<<<<<
+ *         if index < 0 or index >= size:
+ *             raise IndexError("list index out of range")
+*/
+    __pyx_v_index = (__pyx_v_index + __pyx_v_size);
+
+    /* "pyDatalog/task_queue.pyx":78
+ *     def __getitem__(self, int index):
+ *         cdef int size = self.tasks.size()
+ *         if index < 0:             # <<<<<<<<<<<<<<
+ *             index += size
+ *         if index < 0 or index >= size:
+*/
+  }
+
+  /* "pyDatalog/task_queue.pyx":80
+ *         if index < 0:
+ *             index += size
+ *         if index < 0 or index >= size:             # <<<<<<<<<<<<<<
+ *             raise IndexError("list index out of range")
+ *         return <object>self.tasks[index]
+*/
+  __pyx_t_2 = (__pyx_v_index < 0);
+  if (!__pyx_t_2) {
+  } else {
+    __pyx_t_1 = __pyx_t_2;
+    goto __pyx_L5_bool_binop_done;
+  }
+  __pyx_t_2 = (__pyx_v_index >= __pyx_v_size);
+  __pyx_t_1 = __pyx_t_2;
+  __pyx_L5_bool_binop_done:;
+  if (unlikely(__pyx_t_1)) {
+
+    /* "pyDatalog/task_queue.pyx":81
+ *             index += size
+ *         if index < 0 or index >= size:
+ *             raise IndexError("list index out of range")             # <<<<<<<<<<<<<<
+ *         return <object>self.tasks[index]
+ * 
+*/
+    __pyx_t_4 = NULL;
+    __pyx_t_5 = 1;
+    {
+      PyObject *__pyx_callargs[2] = {__pyx_t_4, __pyx_mstate_global->__pyx_kp_u_list_index_out_of_range};
+      __pyx_t_3 = __Pyx_PyObject_FastCall((PyObject*)(((PyTypeObject*)PyExc_IndexError)), __pyx_callargs+__pyx_t_5, (2-__pyx_t_5) | (__pyx_t_5*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+      __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
+      if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 81, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_3);
+    }
+    __Pyx_Raise(__pyx_t_3, 0, 0, 0);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __PYX_ERR(0, 81, __pyx_L1_error)
+
+    /* "pyDatalog/task_queue.pyx":80
+ *         if index < 0:
+ *             index += size
+ *         if index < 0 or index >= size:             # <<<<<<<<<<<<<<
+ *             raise IndexError("list index out of range")
+ *         return <object>self.tasks[index]
+*/
+  }
+
+  /* "pyDatalog/task_queue.pyx":82
+ *         if index < 0 or index >= size:
+ *             raise IndexError("list index out of range")
+ *         return <object>self.tasks[index]             # <<<<<<<<<<<<<<
+ * 
+ * 
+*/
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_6 = (__pyx_v_self->tasks[__pyx_v_index]);
+  __Pyx_INCREF(((PyObject *)__pyx_t_6));
+  __pyx_r = ((PyObject *)__pyx_t_6);
+  goto __pyx_L0;
+
+  /* "pyDatalog/task_queue.pyx":76
+ *             yield <object>self.tasks[i]
+ * 
+ *     def __getitem__(self, int index):             # <<<<<<<<<<<<<<
+ *         cdef int size = self.tasks.size()
+ *         if index < 0:
+*/
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_AddTraceback("pyDatalog.task_queue.TaskList.__getitem__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
 /* "(tree fragment)":1
  * def __reduce_cython__(self):             # <<<<<<<<<<<<<<
  *     raise TypeError, "self.tasks cannot be converted to a Python object for pickling"
@@ -4722,15 +4894,15 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_8TaskList_21generator1(__pyx_C
 */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9pyDatalog_10task_queue_8TaskList_23__reduce_cython__(PyObject *__pyx_v_self, 
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_8TaskList_25__reduce_cython__(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_9pyDatalog_10task_queue_8TaskList_23__reduce_cython__ = {"__reduce_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_8TaskList_23__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_9pyDatalog_10task_queue_8TaskList_23__reduce_cython__(PyObject *__pyx_v_self, 
+static PyMethodDef __pyx_mdef_9pyDatalog_10task_queue_8TaskList_25__reduce_cython__ = {"__reduce_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_8TaskList_25__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_8TaskList_25__reduce_cython__(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
@@ -4756,14 +4928,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   const Py_ssize_t __pyx_kwds_len = unlikely(__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
   if (unlikely(__pyx_kwds_len < 0)) return NULL;
   if (unlikely(__pyx_kwds_len > 0)) {__Pyx_RejectKeywords("__reduce_cython__", __pyx_kwds); return NULL;}
-  __pyx_r = __pyx_pf_9pyDatalog_10task_queue_8TaskList_22__reduce_cython__(((struct __pyx_obj_9pyDatalog_10task_queue_TaskList *)__pyx_v_self));
+  __pyx_r = __pyx_pf_9pyDatalog_10task_queue_8TaskList_24__reduce_cython__(((struct __pyx_obj_9pyDatalog_10task_queue_TaskList *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_22__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self) {
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_24__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_lineno = 0;
@@ -4803,15 +4975,15 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_22__reduce_cython__(
 */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9pyDatalog_10task_queue_8TaskList_25__setstate_cython__(PyObject *__pyx_v_self, 
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_8TaskList_27__setstate_cython__(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_9pyDatalog_10task_queue_8TaskList_25__setstate_cython__ = {"__setstate_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_8TaskList_25__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_9pyDatalog_10task_queue_8TaskList_25__setstate_cython__(PyObject *__pyx_v_self, 
+static PyMethodDef __pyx_mdef_9pyDatalog_10task_queue_8TaskList_27__setstate_cython__ = {"__setstate_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_8TaskList_27__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_8TaskList_27__setstate_cython__(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
@@ -4877,7 +5049,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_9pyDatalog_10task_queue_8TaskList_24__setstate_cython__(((struct __pyx_obj_9pyDatalog_10task_queue_TaskList *)__pyx_v_self), __pyx_v___pyx_state);
+  __pyx_r = __pyx_pf_9pyDatalog_10task_queue_8TaskList_26__setstate_cython__(((struct __pyx_obj_9pyDatalog_10task_queue_TaskList *)__pyx_v_self), __pyx_v___pyx_state);
 
   /* function exit code */
   for (Py_ssize_t __pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
@@ -4887,7 +5059,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_24__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state) {
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_26__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskList *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_lineno = 0;
@@ -4919,7 +5091,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_8TaskList_24__setstate_cython_
   return __pyx_r;
 }
 
-/* "pyDatalog/task_queue.pyx":80
+/* "pyDatalog/task_queue.pyx":88
  *     cdef deque[void*] tasks
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
@@ -4946,7 +5118,7 @@ static void __pyx_pf_9pyDatalog_10task_queue_9TaskDeque___dealloc__(struct __pyx
   size_t __pyx_t_2;
   int __pyx_t_3;
 
-  /* "pyDatalog/task_queue.pyx":82
+  /* "pyDatalog/task_queue.pyx":90
  *     def __dealloc__(self):
  *         cdef int i
  *         for i in range(self.tasks.size()):             # <<<<<<<<<<<<<<
@@ -4958,7 +5130,7 @@ static void __pyx_pf_9pyDatalog_10task_queue_9TaskDeque___dealloc__(struct __pyx
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
-    /* "pyDatalog/task_queue.pyx":83
+    /* "pyDatalog/task_queue.pyx":91
  *         cdef int i
  *         for i in range(self.tasks.size()):
  *             Py_XDECREF(<PyObject*>self.tasks[i])             # <<<<<<<<<<<<<<
@@ -4968,7 +5140,7 @@ static void __pyx_pf_9pyDatalog_10task_queue_9TaskDeque___dealloc__(struct __pyx
     Py_XDECREF(((PyObject *)(__pyx_v_self->tasks[__pyx_v_i])));
   }
 
-  /* "pyDatalog/task_queue.pyx":80
+  /* "pyDatalog/task_queue.pyx":88
  *     cdef deque[void*] tasks
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
@@ -4979,7 +5151,7 @@ static void __pyx_pf_9pyDatalog_10task_queue_9TaskDeque___dealloc__(struct __pyx
   /* function exit code */
 }
 
-/* "pyDatalog/task_queue.pyx":85
+/* "pyDatalog/task_queue.pyx":93
  *             Py_XDECREF(<PyObject*>self.tasks[i])
  * 
  *     cpdef void append(self, object task):             # <<<<<<<<<<<<<<
@@ -5021,7 +5193,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_append(struct __pyx_obj_9
     if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
       PY_UINT64_T __pyx_typedict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
       #endif
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_mstate_global->__pyx_n_u_append); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 85, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_mstate_global->__pyx_n_u_append); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 93, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       if (!__Pyx_IsSameCFunction(__pyx_t_1, (void(*)(void)) __pyx_pw_9pyDatalog_10task_queue_9TaskDeque_3append)) {
         __pyx_t_3 = NULL;
@@ -5044,7 +5216,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_append(struct __pyx_obj_9
           __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_4, __pyx_callargs+__pyx_t_5, (2-__pyx_t_5) | (__pyx_t_5*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
           __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
           __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 85, __pyx_L1_error)
+          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 93, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_2);
         }
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -5064,7 +5236,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_append(struct __pyx_obj_9
     #endif
   }
 
-  /* "pyDatalog/task_queue.pyx":86
+  /* "pyDatalog/task_queue.pyx":94
  * 
  *     cpdef void append(self, object task):
  *         Py_XINCREF(<PyObject*>task)             # <<<<<<<<<<<<<<
@@ -5073,7 +5245,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_append(struct __pyx_obj_9
 */
   Py_XINCREF(((PyObject *)__pyx_v_task));
 
-  /* "pyDatalog/task_queue.pyx":87
+  /* "pyDatalog/task_queue.pyx":95
  *     cpdef void append(self, object task):
  *         Py_XINCREF(<PyObject*>task)
  *         self.tasks.push_back(<void*><PyObject*>task)             # <<<<<<<<<<<<<<
@@ -5084,10 +5256,10 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_append(struct __pyx_obj_9
     __pyx_v_self->tasks.push_back(((void *)((PyObject *)__pyx_v_task)));
   } catch(...) {
     __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 87, __pyx_L1_error)
+    __PYX_ERR(0, 95, __pyx_L1_error)
   }
 
-  /* "pyDatalog/task_queue.pyx":85
+  /* "pyDatalog/task_queue.pyx":93
  *             Py_XDECREF(<PyObject*>self.tasks[i])
  * 
  *     cpdef void append(self, object task):             # <<<<<<<<<<<<<<
@@ -5146,32 +5318,32 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   {
     PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_task,0};
     const Py_ssize_t __pyx_kwds_len = (__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
-    if (unlikely(__pyx_kwds_len < 0)) __PYX_ERR(0, 85, __pyx_L3_error)
+    if (unlikely(__pyx_kwds_len < 0)) __PYX_ERR(0, 93, __pyx_L3_error)
     if (__pyx_kwds_len > 0) {
       switch (__pyx_nargs) {
         case  1:
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 85, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 93, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  0: break;
         default: goto __pyx_L5_argtuple_error;
       }
       const Py_ssize_t kwd_pos_args = __pyx_nargs;
-      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "append", 0) < (0)) __PYX_ERR(0, 85, __pyx_L3_error)
+      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "append", 0) < (0)) __PYX_ERR(0, 93, __pyx_L3_error)
       for (Py_ssize_t i = __pyx_nargs; i < 1; i++) {
-        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("append", 1, 1, 1, i); __PYX_ERR(0, 85, __pyx_L3_error) }
+        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("append", 1, 1, 1, i); __PYX_ERR(0, 93, __pyx_L3_error) }
       }
     } else if (unlikely(__pyx_nargs != 1)) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 85, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 93, __pyx_L3_error)
     }
     __pyx_v_task = values[0];
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("append", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 85, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("append", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 93, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -5201,8 +5373,8 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_2append(struct __py
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("append", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_f_9pyDatalog_10task_queue_9TaskDeque_append(__pyx_v_self, __pyx_v_task, 1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 85, __pyx_L1_error)
-  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 85, __pyx_L1_error)
+  __pyx_f_9pyDatalog_10task_queue_9TaskDeque_append(__pyx_v_self, __pyx_v_task, 1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 93, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 93, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -5219,7 +5391,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_2append(struct __py
   return __pyx_r;
 }
 
-/* "pyDatalog/task_queue.pyx":89
+/* "pyDatalog/task_queue.pyx":97
  *         self.tasks.push_back(<void*><PyObject*>task)
  * 
  *     cpdef void appendleft(self, object task):             # <<<<<<<<<<<<<<
@@ -5261,7 +5433,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_appendleft(struct __pyx_o
     if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
       PY_UINT64_T __pyx_typedict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
       #endif
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_mstate_global->__pyx_n_u_appendleft); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 89, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_mstate_global->__pyx_n_u_appendleft); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 97, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       if (!__Pyx_IsSameCFunction(__pyx_t_1, (void(*)(void)) __pyx_pw_9pyDatalog_10task_queue_9TaskDeque_5appendleft)) {
         __pyx_t_3 = NULL;
@@ -5284,7 +5456,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_appendleft(struct __pyx_o
           __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_4, __pyx_callargs+__pyx_t_5, (2-__pyx_t_5) | (__pyx_t_5*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
           __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
           __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 89, __pyx_L1_error)
+          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 97, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_2);
         }
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -5304,7 +5476,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_appendleft(struct __pyx_o
     #endif
   }
 
-  /* "pyDatalog/task_queue.pyx":90
+  /* "pyDatalog/task_queue.pyx":98
  * 
  *     cpdef void appendleft(self, object task):
  *         Py_XINCREF(<PyObject*>task)             # <<<<<<<<<<<<<<
@@ -5313,7 +5485,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_appendleft(struct __pyx_o
 */
   Py_XINCREF(((PyObject *)__pyx_v_task));
 
-  /* "pyDatalog/task_queue.pyx":91
+  /* "pyDatalog/task_queue.pyx":99
  *     cpdef void appendleft(self, object task):
  *         Py_XINCREF(<PyObject*>task)
  *         self.tasks.push_front(<void*><PyObject*>task)             # <<<<<<<<<<<<<<
@@ -5324,10 +5496,10 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_appendleft(struct __pyx_o
     __pyx_v_self->tasks.push_front(((void *)((PyObject *)__pyx_v_task)));
   } catch(...) {
     __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 91, __pyx_L1_error)
+    __PYX_ERR(0, 99, __pyx_L1_error)
   }
 
-  /* "pyDatalog/task_queue.pyx":89
+  /* "pyDatalog/task_queue.pyx":97
  *         self.tasks.push_back(<void*><PyObject*>task)
  * 
  *     cpdef void appendleft(self, object task):             # <<<<<<<<<<<<<<
@@ -5386,32 +5558,32 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   {
     PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_task,0};
     const Py_ssize_t __pyx_kwds_len = (__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
-    if (unlikely(__pyx_kwds_len < 0)) __PYX_ERR(0, 89, __pyx_L3_error)
+    if (unlikely(__pyx_kwds_len < 0)) __PYX_ERR(0, 97, __pyx_L3_error)
     if (__pyx_kwds_len > 0) {
       switch (__pyx_nargs) {
         case  1:
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 89, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 97, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  0: break;
         default: goto __pyx_L5_argtuple_error;
       }
       const Py_ssize_t kwd_pos_args = __pyx_nargs;
-      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "appendleft", 0) < (0)) __PYX_ERR(0, 89, __pyx_L3_error)
+      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "appendleft", 0) < (0)) __PYX_ERR(0, 97, __pyx_L3_error)
       for (Py_ssize_t i = __pyx_nargs; i < 1; i++) {
-        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("appendleft", 1, 1, 1, i); __PYX_ERR(0, 89, __pyx_L3_error) }
+        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("appendleft", 1, 1, 1, i); __PYX_ERR(0, 97, __pyx_L3_error) }
       }
     } else if (unlikely(__pyx_nargs != 1)) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 89, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 97, __pyx_L3_error)
     }
     __pyx_v_task = values[0];
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("appendleft", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 89, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("appendleft", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 97, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -5441,8 +5613,8 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_4appendleft(struct 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("appendleft", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_f_9pyDatalog_10task_queue_9TaskDeque_appendleft(__pyx_v_self, __pyx_v_task, 1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 89, __pyx_L1_error)
-  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 89, __pyx_L1_error)
+  __pyx_f_9pyDatalog_10task_queue_9TaskDeque_appendleft(__pyx_v_self, __pyx_v_task, 1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 97, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 97, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -5459,7 +5631,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_4appendleft(struct 
   return __pyx_r;
 }
 
-/* "pyDatalog/task_queue.pyx":93
+/* "pyDatalog/task_queue.pyx":101
  *         self.tasks.push_front(<void*><PyObject*>task)
  * 
  *     cpdef object pop(self):             # <<<<<<<<<<<<<<
@@ -5505,7 +5677,7 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
     if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
       PY_UINT64_T __pyx_typedict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
       #endif
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_mstate_global->__pyx_n_u_pop); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 93, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_mstate_global->__pyx_n_u_pop); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 101, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       if (!__Pyx_IsSameCFunction(__pyx_t_1, (void(*)(void)) __pyx_pw_9pyDatalog_10task_queue_9TaskDeque_7pop)) {
         __Pyx_XDECREF(__pyx_r);
@@ -5529,7 +5701,7 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
           __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_4, __pyx_callargs+__pyx_t_5, (1-__pyx_t_5) | (__pyx_t_5*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
           __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
           __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 93, __pyx_L1_error)
+          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 101, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_2);
         }
         __pyx_r = __pyx_t_2;
@@ -5550,7 +5722,7 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
     #endif
   }
 
-  /* "pyDatalog/task_queue.pyx":94
+  /* "pyDatalog/task_queue.pyx":102
  * 
  *     cpdef object pop(self):
  *         if self.tasks.empty():             # <<<<<<<<<<<<<<
@@ -5560,7 +5732,7 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
   __pyx_t_6 = __pyx_v_self->tasks.empty();
   if (unlikely(__pyx_t_6)) {
 
-    /* "pyDatalog/task_queue.pyx":95
+    /* "pyDatalog/task_queue.pyx":103
  *     cpdef object pop(self):
  *         if self.tasks.empty():
  *             raise IndexError("pop from empty deque")             # <<<<<<<<<<<<<<
@@ -5573,14 +5745,14 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
       PyObject *__pyx_callargs[2] = {__pyx_t_2, __pyx_mstate_global->__pyx_kp_u_pop_from_empty_deque};
       __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)(((PyTypeObject*)PyExc_IndexError)), __pyx_callargs+__pyx_t_5, (2-__pyx_t_5) | (__pyx_t_5*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
       __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-      if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 95, __pyx_L1_error)
+      if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 103, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
     }
     __Pyx_Raise(__pyx_t_1, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __PYX_ERR(0, 95, __pyx_L1_error)
+    __PYX_ERR(0, 103, __pyx_L1_error)
 
-    /* "pyDatalog/task_queue.pyx":94
+    /* "pyDatalog/task_queue.pyx":102
  * 
  *     cpdef object pop(self):
  *         if self.tasks.empty():             # <<<<<<<<<<<<<<
@@ -5589,7 +5761,7 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
 */
   }
 
-  /* "pyDatalog/task_queue.pyx":96
+  /* "pyDatalog/task_queue.pyx":104
  *         if self.tasks.empty():
  *             raise IndexError("pop from empty deque")
  *         cdef void* item = self.tasks.back()             # <<<<<<<<<<<<<<
@@ -5598,7 +5770,7 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
 */
   __pyx_v_item = __pyx_v_self->tasks.back();
 
-  /* "pyDatalog/task_queue.pyx":97
+  /* "pyDatalog/task_queue.pyx":105
  *             raise IndexError("pop from empty deque")
  *         cdef void* item = self.tasks.back()
  *         self.tasks.pop_back()             # <<<<<<<<<<<<<<
@@ -5607,7 +5779,7 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
 */
   __pyx_v_self->tasks.pop_back();
 
-  /* "pyDatalog/task_queue.pyx":98
+  /* "pyDatalog/task_queue.pyx":106
  *         cdef void* item = self.tasks.back()
  *         self.tasks.pop_back()
  *         cdef object py_item = <object>item             # <<<<<<<<<<<<<<
@@ -5619,7 +5791,7 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
   __pyx_v_py_item = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "pyDatalog/task_queue.pyx":99
+  /* "pyDatalog/task_queue.pyx":107
  *         self.tasks.pop_back()
  *         cdef object py_item = <object>item
  *         Py_XDECREF(<PyObject*>item)             # <<<<<<<<<<<<<<
@@ -5628,7 +5800,7 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
 */
   Py_XDECREF(((PyObject *)__pyx_v_item));
 
-  /* "pyDatalog/task_queue.pyx":100
+  /* "pyDatalog/task_queue.pyx":108
  *         cdef object py_item = <object>item
  *         Py_XDECREF(<PyObject*>item)
  *         return py_item             # <<<<<<<<<<<<<<
@@ -5640,7 +5812,7 @@ static PyObject *__pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(struct __pyx_obj
   __pyx_r = __pyx_v_py_item;
   goto __pyx_L0;
 
-  /* "pyDatalog/task_queue.pyx":93
+  /* "pyDatalog/task_queue.pyx":101
  *         self.tasks.push_front(<void*><PyObject*>task)
  * 
  *     cpdef object pop(self):             # <<<<<<<<<<<<<<
@@ -5714,7 +5886,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_6pop(struct __pyx_o
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("pop", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(__pyx_v_self, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 93, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_9pyDatalog_10task_queue_9TaskDeque_pop(__pyx_v_self, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 101, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -5731,7 +5903,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_6pop(struct __pyx_o
   return __pyx_r;
 }
 
-/* "pyDatalog/task_queue.pyx":102
+/* "pyDatalog/task_queue.pyx":110
  *         return py_item
  * 
  *     cpdef void remove(self, object task):             # <<<<<<<<<<<<<<
@@ -5779,7 +5951,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
     if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
       PY_UINT64_T __pyx_typedict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
       #endif
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_mstate_global->__pyx_n_u_remove); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 102, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_mstate_global->__pyx_n_u_remove); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 110, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       if (!__Pyx_IsSameCFunction(__pyx_t_1, (void(*)(void)) __pyx_pw_9pyDatalog_10task_queue_9TaskDeque_9remove)) {
         __pyx_t_3 = NULL;
@@ -5802,7 +5974,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
           __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_4, __pyx_callargs+__pyx_t_5, (2-__pyx_t_5) | (__pyx_t_5*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
           __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
           __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 102, __pyx_L1_error)
+          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 110, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_2);
         }
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -5822,7 +5994,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
     #endif
   }
 
-  /* "pyDatalog/task_queue.pyx":104
+  /* "pyDatalog/task_queue.pyx":112
  *     cpdef void remove(self, object task):
  *         cdef int i
  *         cdef void* p_task = <void*><PyObject*>task             # <<<<<<<<<<<<<<
@@ -5831,7 +6003,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
 */
   __pyx_v_p_task = ((void *)((PyObject *)__pyx_v_task));
 
-  /* "pyDatalog/task_queue.pyx":105
+  /* "pyDatalog/task_queue.pyx":113
  *         cdef int i
  *         cdef void* p_task = <void*><PyObject*>task
  *         for i in range(self.tasks.size()):             # <<<<<<<<<<<<<<
@@ -5843,7 +6015,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
   for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
     __pyx_v_i = __pyx_t_7;
 
-    /* "pyDatalog/task_queue.pyx":106
+    /* "pyDatalog/task_queue.pyx":114
  *         cdef void* p_task = <void*><PyObject*>task
  *         for i in range(self.tasks.size()):
  *             if self.tasks[i] == p_task:             # <<<<<<<<<<<<<<
@@ -5853,7 +6025,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
     __pyx_t_8 = ((__pyx_v_self->tasks[__pyx_v_i]) == __pyx_v_p_task);
     if (__pyx_t_8) {
 
-      /* "pyDatalog/task_queue.pyx":107
+      /* "pyDatalog/task_queue.pyx":115
  *         for i in range(self.tasks.size()):
  *             if self.tasks[i] == p_task:
  *                 self.tasks.erase(self.tasks.begin() + i)             # <<<<<<<<<<<<<<
@@ -5864,10 +6036,10 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
         __pyx_v_self->tasks.erase((__pyx_v_self->tasks.begin() + __pyx_v_i));
       } catch(...) {
         __Pyx_CppExn2PyErr();
-        __PYX_ERR(0, 107, __pyx_L1_error)
+        __PYX_ERR(0, 115, __pyx_L1_error)
       }
 
-      /* "pyDatalog/task_queue.pyx":108
+      /* "pyDatalog/task_queue.pyx":116
  *             if self.tasks[i] == p_task:
  *                 self.tasks.erase(self.tasks.begin() + i)
  *                 Py_XDECREF(<PyObject*>p_task)             # <<<<<<<<<<<<<<
@@ -5876,7 +6048,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
 */
       Py_XDECREF(((PyObject *)__pyx_v_p_task));
 
-      /* "pyDatalog/task_queue.pyx":109
+      /* "pyDatalog/task_queue.pyx":117
  *                 self.tasks.erase(self.tasks.begin() + i)
  *                 Py_XDECREF(<PyObject*>p_task)
  *                 return             # <<<<<<<<<<<<<<
@@ -5885,7 +6057,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
 */
       goto __pyx_L0;
 
-      /* "pyDatalog/task_queue.pyx":106
+      /* "pyDatalog/task_queue.pyx":114
  *         cdef void* p_task = <void*><PyObject*>task
  *         for i in range(self.tasks.size()):
  *             if self.tasks[i] == p_task:             # <<<<<<<<<<<<<<
@@ -5895,7 +6067,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
     }
   }
 
-  /* "pyDatalog/task_queue.pyx":110
+  /* "pyDatalog/task_queue.pyx":118
  *                 Py_XDECREF(<PyObject*>p_task)
  *                 return
  *         for i in range(self.tasks.size()):             # <<<<<<<<<<<<<<
@@ -5907,7 +6079,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
   for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
     __pyx_v_i = __pyx_t_7;
 
-    /* "pyDatalog/task_queue.pyx":111
+    /* "pyDatalog/task_queue.pyx":119
  *                 return
  *         for i in range(self.tasks.size()):
  *             if <object>self.tasks[i] == task:             # <<<<<<<<<<<<<<
@@ -5915,12 +6087,12 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
  *                 self.tasks.erase(self.tasks.begin() + i)
 */
     __pyx_t_9 = (__pyx_v_self->tasks[__pyx_v_i]);
-    __pyx_t_1 = PyObject_RichCompare(((PyObject *)__pyx_t_9), __pyx_v_task, Py_EQ); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 111, __pyx_L1_error)
-    __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_8 < 0))) __PYX_ERR(0, 111, __pyx_L1_error)
+    __pyx_t_1 = PyObject_RichCompare(((PyObject *)__pyx_t_9), __pyx_v_task, Py_EQ); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 119, __pyx_L1_error)
+    __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_8 < 0))) __PYX_ERR(0, 119, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     if (__pyx_t_8) {
 
-      /* "pyDatalog/task_queue.pyx":112
+      /* "pyDatalog/task_queue.pyx":120
  *         for i in range(self.tasks.size()):
  *             if <object>self.tasks[i] == task:
  *                 Py_XDECREF(<PyObject*>self.tasks[i])             # <<<<<<<<<<<<<<
@@ -5929,7 +6101,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
 */
       Py_XDECREF(((PyObject *)(__pyx_v_self->tasks[__pyx_v_i])));
 
-      /* "pyDatalog/task_queue.pyx":113
+      /* "pyDatalog/task_queue.pyx":121
  *             if <object>self.tasks[i] == task:
  *                 Py_XDECREF(<PyObject*>self.tasks[i])
  *                 self.tasks.erase(self.tasks.begin() + i)             # <<<<<<<<<<<<<<
@@ -5940,10 +6112,10 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
         __pyx_v_self->tasks.erase((__pyx_v_self->tasks.begin() + __pyx_v_i));
       } catch(...) {
         __Pyx_CppExn2PyErr();
-        __PYX_ERR(0, 113, __pyx_L1_error)
+        __PYX_ERR(0, 121, __pyx_L1_error)
       }
 
-      /* "pyDatalog/task_queue.pyx":114
+      /* "pyDatalog/task_queue.pyx":122
  *                 Py_XDECREF(<PyObject*>self.tasks[i])
  *                 self.tasks.erase(self.tasks.begin() + i)
  *                 return             # <<<<<<<<<<<<<<
@@ -5952,7 +6124,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
 */
       goto __pyx_L0;
 
-      /* "pyDatalog/task_queue.pyx":111
+      /* "pyDatalog/task_queue.pyx":119
  *                 return
  *         for i in range(self.tasks.size()):
  *             if <object>self.tasks[i] == task:             # <<<<<<<<<<<<<<
@@ -5962,7 +6134,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
     }
   }
 
-  /* "pyDatalog/task_queue.pyx":115
+  /* "pyDatalog/task_queue.pyx":123
  *                 self.tasks.erase(self.tasks.begin() + i)
  *                 return
  *         raise ValueError("deque.remove(x): x not in deque")             # <<<<<<<<<<<<<<
@@ -5975,14 +6147,14 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(struct __pyx_obj_9
     PyObject *__pyx_callargs[2] = {__pyx_t_2, __pyx_mstate_global->__pyx_kp_u_deque_remove_x_x_not_in_deque};
     __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)(((PyTypeObject*)PyExc_ValueError)), __pyx_callargs+__pyx_t_5, (2-__pyx_t_5) | (__pyx_t_5*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
     __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 115, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 123, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
   }
   __Pyx_Raise(__pyx_t_1, 0, 0, 0);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __PYX_ERR(0, 115, __pyx_L1_error)
+  __PYX_ERR(0, 123, __pyx_L1_error)
 
-  /* "pyDatalog/task_queue.pyx":102
+  /* "pyDatalog/task_queue.pyx":110
  *         return py_item
  * 
  *     cpdef void remove(self, object task):             # <<<<<<<<<<<<<<
@@ -6040,32 +6212,32 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   {
     PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_task,0};
     const Py_ssize_t __pyx_kwds_len = (__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
-    if (unlikely(__pyx_kwds_len < 0)) __PYX_ERR(0, 102, __pyx_L3_error)
+    if (unlikely(__pyx_kwds_len < 0)) __PYX_ERR(0, 110, __pyx_L3_error)
     if (__pyx_kwds_len > 0) {
       switch (__pyx_nargs) {
         case  1:
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 102, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 110, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  0: break;
         default: goto __pyx_L5_argtuple_error;
       }
       const Py_ssize_t kwd_pos_args = __pyx_nargs;
-      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "remove", 0) < (0)) __PYX_ERR(0, 102, __pyx_L3_error)
+      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "remove", 0) < (0)) __PYX_ERR(0, 110, __pyx_L3_error)
       for (Py_ssize_t i = __pyx_nargs; i < 1; i++) {
-        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("remove", 1, 1, 1, i); __PYX_ERR(0, 102, __pyx_L3_error) }
+        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("remove", 1, 1, 1, i); __PYX_ERR(0, 110, __pyx_L3_error) }
       }
     } else if (unlikely(__pyx_nargs != 1)) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 102, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 110, __pyx_L3_error)
     }
     __pyx_v_task = values[0];
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("remove", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 102, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("remove", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 110, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -6095,8 +6267,8 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_8remove(struct __py
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("remove", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(__pyx_v_self, __pyx_v_task, 1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 102, __pyx_L1_error)
-  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 102, __pyx_L1_error)
+  __pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove(__pyx_v_self, __pyx_v_task, 1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 110, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 110, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -6113,7 +6285,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_8remove(struct __py
   return __pyx_r;
 }
 
-/* "pyDatalog/task_queue.pyx":117
+/* "pyDatalog/task_queue.pyx":125
  *         raise ValueError("deque.remove(x): x not in deque")
  * 
  *     cpdef void reverse(self):             # <<<<<<<<<<<<<<
@@ -6159,7 +6331,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_reverse(struct __pyx_obj_
     if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
       PY_UINT64_T __pyx_typedict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
       #endif
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_mstate_global->__pyx_n_u_reverse); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 117, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_mstate_global->__pyx_n_u_reverse); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 125, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       if (!__Pyx_IsSameCFunction(__pyx_t_1, (void(*)(void)) __pyx_pw_9pyDatalog_10task_queue_9TaskDeque_11reverse)) {
         __pyx_t_3 = NULL;
@@ -6182,7 +6354,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_reverse(struct __pyx_obj_
           __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_4, __pyx_callargs+__pyx_t_5, (1-__pyx_t_5) | (__pyx_t_5*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
           __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
           __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 117, __pyx_L1_error)
+          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 125, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_2);
         }
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -6202,7 +6374,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_reverse(struct __pyx_obj_
     #endif
   }
 
-  /* "pyDatalog/task_queue.pyx":120
+  /* "pyDatalog/task_queue.pyx":128
  *         cdef deque[void*] new_tasks
  *         cdef int i
  *         for i in range(self.tasks.size()):             # <<<<<<<<<<<<<<
@@ -6214,7 +6386,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_reverse(struct __pyx_obj_
   for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
     __pyx_v_i = __pyx_t_7;
 
-    /* "pyDatalog/task_queue.pyx":121
+    /* "pyDatalog/task_queue.pyx":129
  *         cdef int i
  *         for i in range(self.tasks.size()):
  *             new_tasks.push_front(self.tasks[i])             # <<<<<<<<<<<<<<
@@ -6225,11 +6397,11 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_reverse(struct __pyx_obj_
       __pyx_v_new_tasks.push_front((__pyx_v_self->tasks[__pyx_v_i]));
     } catch(...) {
       __Pyx_CppExn2PyErr();
-      __PYX_ERR(0, 121, __pyx_L1_error)
+      __PYX_ERR(0, 129, __pyx_L1_error)
     }
   }
 
-  /* "pyDatalog/task_queue.pyx":122
+  /* "pyDatalog/task_queue.pyx":130
  *         for i in range(self.tasks.size()):
  *             new_tasks.push_front(self.tasks[i])
  *         self.tasks = new_tasks             # <<<<<<<<<<<<<<
@@ -6238,7 +6410,7 @@ static void __pyx_f_9pyDatalog_10task_queue_9TaskDeque_reverse(struct __pyx_obj_
 */
   __pyx_v_self->tasks = __pyx_v_new_tasks;
 
-  /* "pyDatalog/task_queue.pyx":117
+  /* "pyDatalog/task_queue.pyx":125
  *         raise ValueError("deque.remove(x): x not in deque")
  * 
  *     cpdef void reverse(self):             # <<<<<<<<<<<<<<
@@ -6309,8 +6481,8 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_10reverse(struct __
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("reverse", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_f_9pyDatalog_10task_queue_9TaskDeque_reverse(__pyx_v_self, 1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 117, __pyx_L1_error)
-  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 117, __pyx_L1_error)
+  __pyx_f_9pyDatalog_10task_queue_9TaskDeque_reverse(__pyx_v_self, 1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 125, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 125, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -6327,7 +6499,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_10reverse(struct __
   return __pyx_r;
 }
 
-/* "pyDatalog/task_queue.pyx":124
+/* "pyDatalog/task_queue.pyx":132
  *         self.tasks = new_tasks
  * 
  *     def __bool__(self):             # <<<<<<<<<<<<<<
@@ -6353,7 +6525,7 @@ static int __pyx_pw_9pyDatalog_10task_queue_9TaskDeque_13__bool__(PyObject *__py
 static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_12__bool__(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self) {
   int __pyx_r;
 
-  /* "pyDatalog/task_queue.pyx":125
+  /* "pyDatalog/task_queue.pyx":133
  * 
  *     def __bool__(self):
  *         return not self.tasks.empty()             # <<<<<<<<<<<<<<
@@ -6363,7 +6535,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_12__bool__(struct __pyx_o
   __pyx_r = (!__pyx_v_self->tasks.empty());
   goto __pyx_L0;
 
-  /* "pyDatalog/task_queue.pyx":124
+  /* "pyDatalog/task_queue.pyx":132
  *         self.tasks = new_tasks
  * 
  *     def __bool__(self):             # <<<<<<<<<<<<<<
@@ -6376,7 +6548,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_12__bool__(struct __pyx_o
   return __pyx_r;
 }
 
-/* "pyDatalog/task_queue.pyx":127
+/* "pyDatalog/task_queue.pyx":135
  *         return not self.tasks.empty()
  * 
  *     def __len__(self):             # <<<<<<<<<<<<<<
@@ -6402,7 +6574,7 @@ static Py_ssize_t __pyx_pw_9pyDatalog_10task_queue_9TaskDeque_15__len__(PyObject
 static Py_ssize_t __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_14__len__(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self) {
   Py_ssize_t __pyx_r;
 
-  /* "pyDatalog/task_queue.pyx":128
+  /* "pyDatalog/task_queue.pyx":136
  * 
  *     def __len__(self):
  *         return self.tasks.size()             # <<<<<<<<<<<<<<
@@ -6412,7 +6584,7 @@ static Py_ssize_t __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_14__len__(struct _
   __pyx_r = __pyx_v_self->tasks.size();
   goto __pyx_L0;
 
-  /* "pyDatalog/task_queue.pyx":127
+  /* "pyDatalog/task_queue.pyx":135
  *         return not self.tasks.empty()
  * 
  *     def __len__(self):             # <<<<<<<<<<<<<<
@@ -6426,7 +6598,7 @@ static Py_ssize_t __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_14__len__(struct _
 }
 static PyObject *__pyx_gb_9pyDatalog_10task_queue_9TaskDeque_18generator2(__pyx_CoroutineObject *__pyx_generator, CYTHON_UNUSED PyThreadState *__pyx_tstate, PyObject *__pyx_sent_value); /* proto */
 
-/* "pyDatalog/task_queue.pyx":130
+/* "pyDatalog/task_queue.pyx":138
  *         return self.tasks.size()
  * 
  *     def __reversed__(self):             # <<<<<<<<<<<<<<
@@ -6488,7 +6660,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_16__reversed__(stru
   if (unlikely(!__pyx_cur_scope)) {
     __pyx_cur_scope = ((struct __pyx_obj_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__ *)Py_None);
     __Pyx_INCREF(Py_None);
-    __PYX_ERR(0, 130, __pyx_L1_error)
+    __PYX_ERR(0, 138, __pyx_L1_error)
   } else {
     __Pyx_GOTREF((PyObject *)__pyx_cur_scope);
   }
@@ -6496,7 +6668,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_16__reversed__(stru
   __Pyx_INCREF((PyObject *)__pyx_cur_scope->__pyx_v_self);
   __Pyx_GIVEREF((PyObject *)__pyx_cur_scope->__pyx_v_self);
   {
-    __pyx_CoroutineObject *gen = __Pyx_Generator_New((__pyx_coroutine_body_t) __pyx_gb_9pyDatalog_10task_queue_9TaskDeque_18generator2, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[2]), (PyObject *) __pyx_cur_scope, __pyx_mstate_global->__pyx_n_u_reversed, __pyx_mstate_global->__pyx_n_u_TaskDeque___reversed, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue); if (unlikely(!gen)) __PYX_ERR(0, 130, __pyx_L1_error)
+    __pyx_CoroutineObject *gen = __Pyx_Generator_New((__pyx_coroutine_body_t) __pyx_gb_9pyDatalog_10task_queue_9TaskDeque_18generator2, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[2]), (PyObject *) __pyx_cur_scope, __pyx_mstate_global->__pyx_n_u_reversed, __pyx_mstate_global->__pyx_n_u_TaskDeque___reversed, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue); if (unlikely(!gen)) __PYX_ERR(0, 138, __pyx_L1_error)
     __Pyx_DECREF(__pyx_cur_scope);
     __Pyx_RefNannyFinishContext();
     return (PyObject *) gen;
@@ -6533,10 +6705,10 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_9TaskDeque_18generator2(__pyx_
   __pyx_L3_first_run:;
   if (unlikely(__pyx_sent_value != Py_None)) {
     if (unlikely(__pyx_sent_value)) PyErr_SetString(PyExc_TypeError, "can't send non-None value to a just-started generator");
-    __PYX_ERR(0, 130, __pyx_L1_error)
+    __PYX_ERR(0, 138, __pyx_L1_error)
   }
 
-  /* "pyDatalog/task_queue.pyx":132
+  /* "pyDatalog/task_queue.pyx":140
  *     def __reversed__(self):
  *         cdef int i
  *         for i in range(self.tasks.size() - 1, -1, -1):             # <<<<<<<<<<<<<<
@@ -6546,7 +6718,7 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_9TaskDeque_18generator2(__pyx_
   for (__pyx_t_1 = (__pyx_cur_scope->__pyx_v_self->tasks.size() - 1); __pyx_t_1 > -1; __pyx_t_1-=1) {
     __pyx_cur_scope->__pyx_v_i = __pyx_t_1;
 
-    /* "pyDatalog/task_queue.pyx":133
+    /* "pyDatalog/task_queue.pyx":141
  *         cdef int i
  *         for i in range(self.tasks.size() - 1, -1, -1):
  *             yield <object>self.tasks[i]             # <<<<<<<<<<<<<<
@@ -6565,11 +6737,11 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_9TaskDeque_18generator2(__pyx_
     return __pyx_r;
     __pyx_L6_resume_from_yield:;
     __pyx_t_1 = __pyx_cur_scope->__pyx_t_0;
-    if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 133, __pyx_L1_error)
+    if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 141, __pyx_L1_error)
   }
   CYTHON_MAYBE_UNUSED_VAR(__pyx_cur_scope);
 
-  /* "pyDatalog/task_queue.pyx":130
+  /* "pyDatalog/task_queue.pyx":138
  *         return self.tasks.size()
  * 
  *     def __reversed__(self):             # <<<<<<<<<<<<<<
@@ -6596,7 +6768,7 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_9TaskDeque_18generator2(__pyx_
   return __pyx_r;
 }
 
-/* "pyDatalog/task_queue.pyx":135
+/* "pyDatalog/task_queue.pyx":143
  *             yield <object>self.tasks[i]
  * 
  *     def __contains__(self, object task):             # <<<<<<<<<<<<<<
@@ -6635,7 +6807,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__contains__", 0);
 
-  /* "pyDatalog/task_queue.pyx":137
+  /* "pyDatalog/task_queue.pyx":145
  *     def __contains__(self, object task):
  *         cdef int i
  *         cdef void* p_task = <void*><PyObject*>task             # <<<<<<<<<<<<<<
@@ -6644,7 +6816,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
 */
   __pyx_v_p_task = ((void *)((PyObject *)__pyx_v_task));
 
-  /* "pyDatalog/task_queue.pyx":138
+  /* "pyDatalog/task_queue.pyx":146
  *         cdef int i
  *         cdef void* p_task = <void*><PyObject*>task
  *         for i in range(self.tasks.size()):             # <<<<<<<<<<<<<<
@@ -6656,7 +6828,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
-    /* "pyDatalog/task_queue.pyx":139
+    /* "pyDatalog/task_queue.pyx":147
  *         cdef void* p_task = <void*><PyObject*>task
  *         for i in range(self.tasks.size()):
  *             if self.tasks[i] == p_task:             # <<<<<<<<<<<<<<
@@ -6666,7 +6838,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
     __pyx_t_4 = ((__pyx_v_self->tasks[__pyx_v_i]) == __pyx_v_p_task);
     if (__pyx_t_4) {
 
-      /* "pyDatalog/task_queue.pyx":140
+      /* "pyDatalog/task_queue.pyx":148
  *         for i in range(self.tasks.size()):
  *             if self.tasks[i] == p_task:
  *                 return True             # <<<<<<<<<<<<<<
@@ -6676,7 +6848,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
       __pyx_r = 1;
       goto __pyx_L0;
 
-      /* "pyDatalog/task_queue.pyx":139
+      /* "pyDatalog/task_queue.pyx":147
  *         cdef void* p_task = <void*><PyObject*>task
  *         for i in range(self.tasks.size()):
  *             if self.tasks[i] == p_task:             # <<<<<<<<<<<<<<
@@ -6686,7 +6858,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
     }
   }
 
-  /* "pyDatalog/task_queue.pyx":141
+  /* "pyDatalog/task_queue.pyx":149
  *             if self.tasks[i] == p_task:
  *                 return True
  *         for i in range(self.tasks.size()):             # <<<<<<<<<<<<<<
@@ -6698,7 +6870,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
-    /* "pyDatalog/task_queue.pyx":142
+    /* "pyDatalog/task_queue.pyx":150
  *                 return True
  *         for i in range(self.tasks.size()):
  *             if <object>self.tasks[i] == task:             # <<<<<<<<<<<<<<
@@ -6706,12 +6878,12 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
  *         return False
 */
     __pyx_t_5 = (__pyx_v_self->tasks[__pyx_v_i]);
-    __pyx_t_6 = PyObject_RichCompare(((PyObject *)__pyx_t_5), __pyx_v_task, Py_EQ); __Pyx_XGOTREF(__pyx_t_6); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 142, __pyx_L1_error)
-    __pyx_t_4 = __Pyx_PyObject_IsTrue(__pyx_t_6); if (unlikely((__pyx_t_4 < 0))) __PYX_ERR(0, 142, __pyx_L1_error)
+    __pyx_t_6 = PyObject_RichCompare(((PyObject *)__pyx_t_5), __pyx_v_task, Py_EQ); __Pyx_XGOTREF(__pyx_t_6); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 150, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_IsTrue(__pyx_t_6); if (unlikely((__pyx_t_4 < 0))) __PYX_ERR(0, 150, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
     if (__pyx_t_4) {
 
-      /* "pyDatalog/task_queue.pyx":143
+      /* "pyDatalog/task_queue.pyx":151
  *         for i in range(self.tasks.size()):
  *             if <object>self.tasks[i] == task:
  *                 return True             # <<<<<<<<<<<<<<
@@ -6721,7 +6893,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
       __pyx_r = 1;
       goto __pyx_L0;
 
-      /* "pyDatalog/task_queue.pyx":142
+      /* "pyDatalog/task_queue.pyx":150
  *                 return True
  *         for i in range(self.tasks.size()):
  *             if <object>self.tasks[i] == task:             # <<<<<<<<<<<<<<
@@ -6731,7 +6903,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
     }
   }
 
-  /* "pyDatalog/task_queue.pyx":144
+  /* "pyDatalog/task_queue.pyx":152
  *             if <object>self.tasks[i] == task:
  *                 return True
  *         return False             # <<<<<<<<<<<<<<
@@ -6741,7 +6913,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
   __pyx_r = 0;
   goto __pyx_L0;
 
-  /* "pyDatalog/task_queue.pyx":135
+  /* "pyDatalog/task_queue.pyx":143
  *             yield <object>self.tasks[i]
  * 
  *     def __contains__(self, object task):             # <<<<<<<<<<<<<<
@@ -6760,7 +6932,7 @@ static int __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_19__contains__(struct __p
 }
 static PyObject *__pyx_gb_9pyDatalog_10task_queue_9TaskDeque_23generator3(__pyx_CoroutineObject *__pyx_generator, CYTHON_UNUSED PyThreadState *__pyx_tstate, PyObject *__pyx_sent_value); /* proto */
 
-/* "pyDatalog/task_queue.pyx":146
+/* "pyDatalog/task_queue.pyx":154
  *         return False
  * 
  *     def __iter__(self):             # <<<<<<<<<<<<<<
@@ -6795,7 +6967,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_21__iter__(struct _
   if (unlikely(!__pyx_cur_scope)) {
     __pyx_cur_scope = ((struct __pyx_obj_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__ *)Py_None);
     __Pyx_INCREF(Py_None);
-    __PYX_ERR(0, 146, __pyx_L1_error)
+    __PYX_ERR(0, 154, __pyx_L1_error)
   } else {
     __Pyx_GOTREF((PyObject *)__pyx_cur_scope);
   }
@@ -6803,7 +6975,7 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_21__iter__(struct _
   __Pyx_INCREF((PyObject *)__pyx_cur_scope->__pyx_v_self);
   __Pyx_GIVEREF((PyObject *)__pyx_cur_scope->__pyx_v_self);
   {
-    __pyx_CoroutineObject *gen = __Pyx_Generator_New((__pyx_coroutine_body_t) __pyx_gb_9pyDatalog_10task_queue_9TaskDeque_23generator3, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[3]), (PyObject *) __pyx_cur_scope, __pyx_mstate_global->__pyx_n_u_iter, __pyx_mstate_global->__pyx_n_u_TaskDeque___iter, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue); if (unlikely(!gen)) __PYX_ERR(0, 146, __pyx_L1_error)
+    __pyx_CoroutineObject *gen = __Pyx_Generator_New((__pyx_coroutine_body_t) __pyx_gb_9pyDatalog_10task_queue_9TaskDeque_23generator3, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[3]), (PyObject *) __pyx_cur_scope, __pyx_mstate_global->__pyx_n_u_iter, __pyx_mstate_global->__pyx_n_u_TaskDeque___iter, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue); if (unlikely(!gen)) __PYX_ERR(0, 154, __pyx_L1_error)
     __Pyx_DECREF(__pyx_cur_scope);
     __Pyx_RefNannyFinishContext();
     return (PyObject *) gen;
@@ -6842,24 +7014,27 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_9TaskDeque_23generator3(__pyx_
   __pyx_L3_first_run:;
   if (unlikely(__pyx_sent_value != Py_None)) {
     if (unlikely(__pyx_sent_value)) PyErr_SetString(PyExc_TypeError, "can't send non-None value to a just-started generator");
-    __PYX_ERR(0, 146, __pyx_L1_error)
+    __PYX_ERR(0, 154, __pyx_L1_error)
   }
 
-  /* "pyDatalog/task_queue.pyx":148
+  /* "pyDatalog/task_queue.pyx":156
  *     def __iter__(self):
  *         cdef int i
  *         for i in range(self.tasks.size()):             # <<<<<<<<<<<<<<
  *             yield <object>self.tasks[i]
+ * 
 */
   __pyx_t_1 = __pyx_cur_scope->__pyx_v_self->tasks.size();
   __pyx_t_2 = __pyx_t_1;
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_cur_scope->__pyx_v_i = __pyx_t_3;
 
-    /* "pyDatalog/task_queue.pyx":149
+    /* "pyDatalog/task_queue.pyx":157
  *         cdef int i
  *         for i in range(self.tasks.size()):
  *             yield <object>self.tasks[i]             # <<<<<<<<<<<<<<
+ * 
+ *     def __getitem__(self, int index):
 */
     __pyx_t_4 = (__pyx_cur_scope->__pyx_v_self->tasks[__pyx_cur_scope->__pyx_v_i]);
     __Pyx_INCREF(((PyObject *)__pyx_t_4));
@@ -6877,11 +7052,11 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_9TaskDeque_23generator3(__pyx_
     __pyx_t_1 = __pyx_cur_scope->__pyx_t_0;
     __pyx_t_2 = __pyx_cur_scope->__pyx_t_1;
     __pyx_t_3 = __pyx_cur_scope->__pyx_t_2;
-    if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 149, __pyx_L1_error)
+    if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 157, __pyx_L1_error)
   }
   CYTHON_MAYBE_UNUSED_VAR(__pyx_cur_scope);
 
-  /* "pyDatalog/task_queue.pyx":146
+  /* "pyDatalog/task_queue.pyx":154
  *         return False
  * 
  *     def __iter__(self):             # <<<<<<<<<<<<<<
@@ -6908,6 +7083,171 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_9TaskDeque_23generator3(__pyx_
   return __pyx_r;
 }
 
+/* "pyDatalog/task_queue.pyx":159
+ *             yield <object>self.tasks[i]
+ * 
+ *     def __getitem__(self, int index):             # <<<<<<<<<<<<<<
+ *         cdef int size = self.tasks.size()
+ *         if index < 0:
+*/
+
+/* Python wrapper */
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_25__getitem__(PyObject *__pyx_v_self, PyObject *__pyx_arg_index); /*proto*/
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_25__getitem__(PyObject *__pyx_v_self, PyObject *__pyx_arg_index) {
+  int __pyx_v_index;
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__getitem__ (wrapper)", 0);
+  __pyx_kwvalues = __Pyx_KwValues_VARARGS(__pyx_args, __pyx_nargs);
+  assert(__pyx_arg_index); {
+    __pyx_v_index = __Pyx_PyLong_As_int(__pyx_arg_index); if (unlikely((__pyx_v_index == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 159, __pyx_L3_error)
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("pyDatalog.task_queue.TaskDeque.__getitem__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return NULL;
+  __pyx_L4_argument_unpacking_done:;
+  __pyx_r = __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_24__getitem__(((struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *)__pyx_v_self), ((int)__pyx_v_index));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_24__getitem__(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self, int __pyx_v_index) {
+  int __pyx_v_size;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  int __pyx_t_2;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  size_t __pyx_t_5;
+  void *__pyx_t_6;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__getitem__", 0);
+
+  /* "pyDatalog/task_queue.pyx":160
+ * 
+ *     def __getitem__(self, int index):
+ *         cdef int size = self.tasks.size()             # <<<<<<<<<<<<<<
+ *         if index < 0:
+ *             index += size
+*/
+  __pyx_v_size = __pyx_v_self->tasks.size();
+
+  /* "pyDatalog/task_queue.pyx":161
+ *     def __getitem__(self, int index):
+ *         cdef int size = self.tasks.size()
+ *         if index < 0:             # <<<<<<<<<<<<<<
+ *             index += size
+ *         if index < 0 or index >= size:
+*/
+  __pyx_t_1 = (__pyx_v_index < 0);
+  if (__pyx_t_1) {
+
+    /* "pyDatalog/task_queue.pyx":162
+ *         cdef int size = self.tasks.size()
+ *         if index < 0:
+ *             index += size             # <<<<<<<<<<<<<<
+ *         if index < 0 or index >= size:
+ *             raise IndexError("deque index out of range")
+*/
+    __pyx_v_index = (__pyx_v_index + __pyx_v_size);
+
+    /* "pyDatalog/task_queue.pyx":161
+ *     def __getitem__(self, int index):
+ *         cdef int size = self.tasks.size()
+ *         if index < 0:             # <<<<<<<<<<<<<<
+ *             index += size
+ *         if index < 0 or index >= size:
+*/
+  }
+
+  /* "pyDatalog/task_queue.pyx":163
+ *         if index < 0:
+ *             index += size
+ *         if index < 0 or index >= size:             # <<<<<<<<<<<<<<
+ *             raise IndexError("deque index out of range")
+ *         return <object>self.tasks[index]
+*/
+  __pyx_t_2 = (__pyx_v_index < 0);
+  if (!__pyx_t_2) {
+  } else {
+    __pyx_t_1 = __pyx_t_2;
+    goto __pyx_L5_bool_binop_done;
+  }
+  __pyx_t_2 = (__pyx_v_index >= __pyx_v_size);
+  __pyx_t_1 = __pyx_t_2;
+  __pyx_L5_bool_binop_done:;
+  if (unlikely(__pyx_t_1)) {
+
+    /* "pyDatalog/task_queue.pyx":164
+ *             index += size
+ *         if index < 0 or index >= size:
+ *             raise IndexError("deque index out of range")             # <<<<<<<<<<<<<<
+ *         return <object>self.tasks[index]
+*/
+    __pyx_t_4 = NULL;
+    __pyx_t_5 = 1;
+    {
+      PyObject *__pyx_callargs[2] = {__pyx_t_4, __pyx_mstate_global->__pyx_kp_u_deque_index_out_of_range};
+      __pyx_t_3 = __Pyx_PyObject_FastCall((PyObject*)(((PyTypeObject*)PyExc_IndexError)), __pyx_callargs+__pyx_t_5, (2-__pyx_t_5) | (__pyx_t_5*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+      __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
+      if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 164, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_3);
+    }
+    __Pyx_Raise(__pyx_t_3, 0, 0, 0);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __PYX_ERR(0, 164, __pyx_L1_error)
+
+    /* "pyDatalog/task_queue.pyx":163
+ *         if index < 0:
+ *             index += size
+ *         if index < 0 or index >= size:             # <<<<<<<<<<<<<<
+ *             raise IndexError("deque index out of range")
+ *         return <object>self.tasks[index]
+*/
+  }
+
+  /* "pyDatalog/task_queue.pyx":165
+ *         if index < 0 or index >= size:
+ *             raise IndexError("deque index out of range")
+ *         return <object>self.tasks[index]             # <<<<<<<<<<<<<<
+*/
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_6 = (__pyx_v_self->tasks[__pyx_v_index]);
+  __Pyx_INCREF(((PyObject *)__pyx_t_6));
+  __pyx_r = ((PyObject *)__pyx_t_6);
+  goto __pyx_L0;
+
+  /* "pyDatalog/task_queue.pyx":159
+ *             yield <object>self.tasks[i]
+ * 
+ *     def __getitem__(self, int index):             # <<<<<<<<<<<<<<
+ *         cdef int size = self.tasks.size()
+ *         if index < 0:
+*/
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_AddTraceback("pyDatalog.task_queue.TaskDeque.__getitem__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
 /* "(tree fragment)":1
  * def __reduce_cython__(self):             # <<<<<<<<<<<<<<
  *     raise TypeError, "self.tasks cannot be converted to a Python object for pickling"
@@ -6915,15 +7255,15 @@ static PyObject *__pyx_gb_9pyDatalog_10task_queue_9TaskDeque_23generator3(__pyx_
 */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_25__reduce_cython__(PyObject *__pyx_v_self, 
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_27__reduce_cython__(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_25__reduce_cython__ = {"__reduce_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_25__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_25__reduce_cython__(PyObject *__pyx_v_self, 
+static PyMethodDef __pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_27__reduce_cython__ = {"__reduce_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_27__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_27__reduce_cython__(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
@@ -6949,14 +7289,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   const Py_ssize_t __pyx_kwds_len = unlikely(__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
   if (unlikely(__pyx_kwds_len < 0)) return NULL;
   if (unlikely(__pyx_kwds_len > 0)) {__Pyx_RejectKeywords("__reduce_cython__", __pyx_kwds); return NULL;}
-  __pyx_r = __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_24__reduce_cython__(((struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *)__pyx_v_self));
+  __pyx_r = __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_26__reduce_cython__(((struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_24__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self) {
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_26__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_lineno = 0;
@@ -6996,15 +7336,15 @@ static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_24__reduce_cython__
 */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_27__setstate_cython__(PyObject *__pyx_v_self, 
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_29__setstate_cython__(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_27__setstate_cython__ = {"__setstate_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_27__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_27__setstate_cython__(PyObject *__pyx_v_self, 
+static PyMethodDef __pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_29__setstate_cython__ = {"__setstate_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_29__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_29__setstate_cython__(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
@@ -7070,7 +7410,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_26__setstate_cython__(((struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *)__pyx_v_self), __pyx_v___pyx_state);
+  __pyx_r = __pyx_pf_9pyDatalog_10task_queue_9TaskDeque_28__setstate_cython__(((struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *)__pyx_v_self), __pyx_v___pyx_state);
 
   /* function exit code */
   for (Py_ssize_t __pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
@@ -7080,7 +7420,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_26__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state) {
+static PyObject *__pyx_pf_9pyDatalog_10task_queue_9TaskDeque_28__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_lineno = 0;
@@ -7157,10 +7497,22 @@ static void __pyx_tp_dealloc_9pyDatalog_10task_queue_TaskList(PyObject *o) {
   #endif
 }
 
+static PyObject *__pyx_sq_item_9pyDatalog_10task_queue_TaskList(PyObject *o, Py_ssize_t i) {
+  PyObject *r;
+  PyObject *x = PyLong_FromSsize_t(i); if(!x) return 0;
+  #if CYTHON_USE_TYPE_SLOTS || (!CYTHON_USE_TYPE_SPECS && __PYX_LIMITED_VERSION_HEX < 0x030A0000)
+  r = Py_TYPE(o)->tp_as_mapping->mp_subscript(o, x);
+  #else
+  r = ((binaryfunc)PyType_GetSlot(Py_TYPE(o), Py_mp_subscript))(o, x);
+  #endif
+  Py_DECREF(x);
+  return r;
+}
+
 static PyMethodDef __pyx_methods_9pyDatalog_10task_queue_TaskList[] = {
   {"__reversed__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_8TaskList_15__reversed__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
-  {"__reduce_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_8TaskList_23__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
-  {"__setstate_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_8TaskList_25__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
+  {"__reduce_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_8TaskList_25__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
+  {"__setstate_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_8TaskList_27__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
   {0, 0, 0, 0}
 };
 #if CYTHON_USE_TYPE_SPECS
@@ -7168,8 +7520,10 @@ static PyType_Slot __pyx_type_9pyDatalog_10task_queue_TaskList_slots[] = {
   {Py_tp_dealloc, (void *)__pyx_tp_dealloc_9pyDatalog_10task_queue_TaskList},
   {Py_nb_bool, (void *)__pyx_pw_9pyDatalog_10task_queue_8TaskList_11__bool__},
   {Py_sq_length, (void *)__pyx_pw_9pyDatalog_10task_queue_8TaskList_13__len__},
+  {Py_sq_item, (void *)__pyx_sq_item_9pyDatalog_10task_queue_TaskList},
   {Py_sq_contains, (void *)__pyx_pw_9pyDatalog_10task_queue_8TaskList_18__contains__},
   {Py_mp_length, (void *)__pyx_pw_9pyDatalog_10task_queue_8TaskList_13__len__},
+  {Py_mp_subscript, (void *)__pyx_pw_9pyDatalog_10task_queue_8TaskList_23__getitem__},
   {Py_tp_iter, (void *)__pyx_pw_9pyDatalog_10task_queue_8TaskList_20__iter__},
   {Py_tp_methods, (void *)__pyx_methods_9pyDatalog_10task_queue_TaskList},
   {Py_tp_new, (void *)__pyx_tp_new_9pyDatalog_10task_queue_TaskList},
@@ -7227,7 +7581,7 @@ static PySequenceMethods __pyx_tp_as_sequence_TaskList = {
   __pyx_pw_9pyDatalog_10task_queue_8TaskList_13__len__, /*sq_length*/
   0, /*sq_concat*/
   0, /*sq_repeat*/
-  0, /*sq_item*/
+  __pyx_sq_item_9pyDatalog_10task_queue_TaskList, /*sq_item*/
   0, /*sq_slice*/
   0, /*sq_ass_item*/
   0, /*sq_ass_slice*/
@@ -7238,7 +7592,7 @@ static PySequenceMethods __pyx_tp_as_sequence_TaskList = {
 
 static PyMappingMethods __pyx_tp_as_mapping_TaskList = {
   __pyx_pw_9pyDatalog_10task_queue_8TaskList_13__len__, /*mp_length*/
-  0, /*mp_subscript*/
+  __pyx_pw_9pyDatalog_10task_queue_8TaskList_23__getitem__, /*mp_subscript*/
   0, /*mp_ass_subscript*/
 };
 
@@ -7359,10 +7713,22 @@ static void __pyx_tp_dealloc_9pyDatalog_10task_queue_TaskDeque(PyObject *o) {
   #endif
 }
 
+static PyObject *__pyx_sq_item_9pyDatalog_10task_queue_TaskDeque(PyObject *o, Py_ssize_t i) {
+  PyObject *r;
+  PyObject *x = PyLong_FromSsize_t(i); if(!x) return 0;
+  #if CYTHON_USE_TYPE_SLOTS || (!CYTHON_USE_TYPE_SPECS && __PYX_LIMITED_VERSION_HEX < 0x030A0000)
+  r = Py_TYPE(o)->tp_as_mapping->mp_subscript(o, x);
+  #else
+  r = ((binaryfunc)PyType_GetSlot(Py_TYPE(o), Py_mp_subscript))(o, x);
+  #endif
+  Py_DECREF(x);
+  return r;
+}
+
 static PyMethodDef __pyx_methods_9pyDatalog_10task_queue_TaskDeque[] = {
   {"__reversed__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_17__reversed__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
-  {"__reduce_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_25__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
-  {"__setstate_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_27__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
+  {"__reduce_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_27__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
+  {"__setstate_cython__", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_29__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
   {0, 0, 0, 0}
 };
 #if CYTHON_USE_TYPE_SPECS
@@ -7370,8 +7736,10 @@ static PyType_Slot __pyx_type_9pyDatalog_10task_queue_TaskDeque_slots[] = {
   {Py_tp_dealloc, (void *)__pyx_tp_dealloc_9pyDatalog_10task_queue_TaskDeque},
   {Py_nb_bool, (void *)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_13__bool__},
   {Py_sq_length, (void *)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_15__len__},
+  {Py_sq_item, (void *)__pyx_sq_item_9pyDatalog_10task_queue_TaskDeque},
   {Py_sq_contains, (void *)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_20__contains__},
   {Py_mp_length, (void *)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_15__len__},
+  {Py_mp_subscript, (void *)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_25__getitem__},
   {Py_tp_iter, (void *)__pyx_pw_9pyDatalog_10task_queue_9TaskDeque_22__iter__},
   {Py_tp_methods, (void *)__pyx_methods_9pyDatalog_10task_queue_TaskDeque},
   {Py_tp_new, (void *)__pyx_tp_new_9pyDatalog_10task_queue_TaskDeque},
@@ -7429,7 +7797,7 @@ static PySequenceMethods __pyx_tp_as_sequence_TaskDeque = {
   __pyx_pw_9pyDatalog_10task_queue_9TaskDeque_15__len__, /*sq_length*/
   0, /*sq_concat*/
   0, /*sq_repeat*/
-  0, /*sq_item*/
+  __pyx_sq_item_9pyDatalog_10task_queue_TaskDeque, /*sq_item*/
   0, /*sq_slice*/
   0, /*sq_ass_item*/
   0, /*sq_ass_slice*/
@@ -7440,7 +7808,7 @@ static PySequenceMethods __pyx_tp_as_sequence_TaskDeque = {
 
 static PyMappingMethods __pyx_tp_as_mapping_TaskDeque = {
   __pyx_pw_9pyDatalog_10task_queue_9TaskDeque_15__len__, /*mp_length*/
-  0, /*mp_subscript*/
+  __pyx_pw_9pyDatalog_10task_queue_9TaskDeque_25__getitem__, /*mp_subscript*/
   0, /*mp_ass_subscript*/
 };
 
@@ -8241,15 +8609,15 @@ static int __Pyx_modinit_type_init_code(__pyx_mstatetype *__pyx_mstate) {
   __pyx_vtable_9pyDatalog_10task_queue_TaskDeque.remove = (void (*)(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *, PyObject *, int __pyx_skip_dispatch))__pyx_f_9pyDatalog_10task_queue_9TaskDeque_remove;
   __pyx_vtable_9pyDatalog_10task_queue_TaskDeque.reverse = (void (*)(struct __pyx_obj_9pyDatalog_10task_queue_TaskDeque *, int __pyx_skip_dispatch))__pyx_f_9pyDatalog_10task_queue_9TaskDeque_reverse;
   #if CYTHON_USE_TYPE_SPECS
-  __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_9pyDatalog_10task_queue_TaskDeque_spec, NULL); if (unlikely(!__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque)) __PYX_ERR(0, 77, __pyx_L1_error)
-  if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_9pyDatalog_10task_queue_TaskDeque_spec, __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 77, __pyx_L1_error)
+  __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_9pyDatalog_10task_queue_TaskDeque_spec, NULL); if (unlikely(!__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque)) __PYX_ERR(0, 85, __pyx_L1_error)
+  if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_9pyDatalog_10task_queue_TaskDeque_spec, __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 85, __pyx_L1_error)
   #else
   __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque = &__pyx_type_9pyDatalog_10task_queue_TaskDeque;
   #endif
   #if !CYTHON_COMPILING_IN_LIMITED_API
   #endif
   #if !CYTHON_USE_TYPE_SPECS
-  if (__Pyx_PyType_Ready(__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 77, __pyx_L1_error)
+  if (__Pyx_PyType_Ready(__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 85, __pyx_L1_error)
   #endif
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount((PyObject*)__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque);
@@ -8259,10 +8627,10 @@ static int __Pyx_modinit_type_init_code(__pyx_mstatetype *__pyx_mstate) {
     __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque->tp_getattro = PyObject_GenericGetAttr;
   }
   #endif
-  if (__Pyx_SetVtable(__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_vtabptr_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 77, __pyx_L1_error)
-  if (__Pyx_MergeVtables(__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 77, __pyx_L1_error)
-  if (PyObject_SetAttr(__pyx_m, __pyx_mstate_global->__pyx_n_u_TaskDeque, (PyObject *) __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 77, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject *) __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 77, __pyx_L1_error)
+  if (__Pyx_SetVtable(__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_vtabptr_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 85, __pyx_L1_error)
+  if (__Pyx_MergeVtables(__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 85, __pyx_L1_error)
+  if (PyObject_SetAttr(__pyx_m, __pyx_mstate_global->__pyx_n_u_TaskDeque, (PyObject *) __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 85, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject *) __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque) < (0)) __PYX_ERR(0, 85, __pyx_L1_error)
   #if CYTHON_USE_TYPE_SPECS
   __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct____reversed__ = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct____reversed___spec, NULL); if (unlikely(!__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct____reversed__)) __PYX_ERR(0, 55, __pyx_L1_error)
   if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct____reversed___spec, __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct____reversed__) < (0)) __PYX_ERR(0, 55, __pyx_L1_error)
@@ -8302,15 +8670,15 @@ static int __Pyx_modinit_type_init_code(__pyx_mstatetype *__pyx_mstate) {
   }
   #endif
   #if CYTHON_USE_TYPE_SPECS
-  __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__ = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed___spec, NULL); if (unlikely(!__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__)) __PYX_ERR(0, 130, __pyx_L1_error)
-  if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed___spec, __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__) < (0)) __PYX_ERR(0, 130, __pyx_L1_error)
+  __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__ = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed___spec, NULL); if (unlikely(!__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__)) __PYX_ERR(0, 138, __pyx_L1_error)
+  if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed___spec, __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__) < (0)) __PYX_ERR(0, 138, __pyx_L1_error)
   #else
   __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__ = &__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__;
   #endif
   #if !CYTHON_COMPILING_IN_LIMITED_API
   #endif
   #if !CYTHON_USE_TYPE_SPECS
-  if (__Pyx_PyType_Ready(__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__) < (0)) __PYX_ERR(0, 130, __pyx_L1_error)
+  if (__Pyx_PyType_Ready(__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__) < (0)) __PYX_ERR(0, 138, __pyx_L1_error)
   #endif
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount((PyObject*)__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_2___reversed__);
@@ -8321,15 +8689,15 @@ static int __Pyx_modinit_type_init_code(__pyx_mstatetype *__pyx_mstate) {
   }
   #endif
   #if CYTHON_USE_TYPE_SPECS
-  __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__ = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_3___iter___spec, NULL); if (unlikely(!__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__)) __PYX_ERR(0, 146, __pyx_L1_error)
-  if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_3___iter___spec, __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__) < (0)) __PYX_ERR(0, 146, __pyx_L1_error)
+  __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__ = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(__pyx_m, &__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_3___iter___spec, NULL); if (unlikely(!__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__)) __PYX_ERR(0, 154, __pyx_L1_error)
+  if (__Pyx_fix_up_extension_type_from_spec(&__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_3___iter___spec, __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__) < (0)) __PYX_ERR(0, 154, __pyx_L1_error)
   #else
   __pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__ = &__pyx_type_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__;
   #endif
   #if !CYTHON_COMPILING_IN_LIMITED_API
   #endif
   #if !CYTHON_USE_TYPE_SPECS
-  if (__Pyx_PyType_Ready(__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__) < (0)) __PYX_ERR(0, 146, __pyx_L1_error)
+  if (__Pyx_PyType_Ready(__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__) < (0)) __PYX_ERR(0, 154, __pyx_L1_error)
   #endif
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount((PyObject*)__pyx_mstate->__pyx_ptype_9pyDatalog_10task_queue___pyx_scope_struct_3___iter__);
@@ -8739,7 +9107,7 @@ __Pyx_RefNannySetupContext("PyInit_task_queue", 0);
  *     raise TypeError, "self.tasks cannot be converted to a Python object for pickling"
  * def __setstate_cython__(self, __pyx_state):
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_8TaskList_23__reduce_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskList___reduce_cython, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[8])); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 1, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_8TaskList_25__reduce_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskList___reduce_cython, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[8])); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
@@ -8753,7 +9121,7 @@ __Pyx_RefNannySetupContext("PyInit_task_queue", 0);
  * def __setstate_cython__(self, __pyx_state):             # <<<<<<<<<<<<<<
  *     raise TypeError, "self.tasks cannot be converted to a Python object for pickling"
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_8TaskList_25__setstate_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskList___setstate_cython, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[9])); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 3, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_8TaskList_27__setstate_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskList___setstate_cython, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[9])); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 3, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
@@ -8761,94 +9129,94 @@ __Pyx_RefNannySetupContext("PyInit_task_queue", 0);
   if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_setstate_cython, __pyx_t_2) < (0)) __PYX_ERR(1, 3, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pyDatalog/task_queue.pyx":85
+  /* "pyDatalog/task_queue.pyx":93
  *             Py_XDECREF(<PyObject*>self.tasks[i])
  * 
  *     cpdef void append(self, object task):             # <<<<<<<<<<<<<<
  *         Py_XINCREF(<PyObject*>task)
  *         self.tasks.push_back(<void*><PyObject*>task)
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_3append, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque_append, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[10])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 85, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_3append, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque_append, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[10])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 93, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
-  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_append, __pyx_t_2) < (0)) __PYX_ERR(0, 85, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_append, __pyx_t_2) < (0)) __PYX_ERR(0, 93, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pyDatalog/task_queue.pyx":89
+  /* "pyDatalog/task_queue.pyx":97
  *         self.tasks.push_back(<void*><PyObject*>task)
  * 
  *     cpdef void appendleft(self, object task):             # <<<<<<<<<<<<<<
  *         Py_XINCREF(<PyObject*>task)
  *         self.tasks.push_front(<void*><PyObject*>task)
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_5appendleft, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque_appendleft, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[11])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 89, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_5appendleft, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque_appendleft, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[11])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 97, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
-  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_appendleft, __pyx_t_2) < (0)) __PYX_ERR(0, 89, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_appendleft, __pyx_t_2) < (0)) __PYX_ERR(0, 97, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pyDatalog/task_queue.pyx":93
+  /* "pyDatalog/task_queue.pyx":101
  *         self.tasks.push_front(<void*><PyObject*>task)
  * 
  *     cpdef object pop(self):             # <<<<<<<<<<<<<<
  *         if self.tasks.empty():
  *             raise IndexError("pop from empty deque")
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_7pop, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque_pop, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[12])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 93, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_7pop, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque_pop, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[12])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 101, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
-  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_pop, __pyx_t_2) < (0)) __PYX_ERR(0, 93, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_pop, __pyx_t_2) < (0)) __PYX_ERR(0, 101, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pyDatalog/task_queue.pyx":102
+  /* "pyDatalog/task_queue.pyx":110
  *         return py_item
  * 
  *     cpdef void remove(self, object task):             # <<<<<<<<<<<<<<
  *         cdef int i
  *         cdef void* p_task = <void*><PyObject*>task
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_9remove, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque_remove, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[13])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 102, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_9remove, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque_remove, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[13])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 110, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
-  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_remove, __pyx_t_2) < (0)) __PYX_ERR(0, 102, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_remove, __pyx_t_2) < (0)) __PYX_ERR(0, 110, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pyDatalog/task_queue.pyx":117
+  /* "pyDatalog/task_queue.pyx":125
  *         raise ValueError("deque.remove(x): x not in deque")
  * 
  *     cpdef void reverse(self):             # <<<<<<<<<<<<<<
  *         cdef deque[void*] new_tasks
  *         cdef int i
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_11reverse, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque_reverse, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[14])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 117, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_11reverse, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque_reverse, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[14])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 125, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
-  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_reverse, __pyx_t_2) < (0)) __PYX_ERR(0, 117, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_reverse, __pyx_t_2) < (0)) __PYX_ERR(0, 125, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "pyDatalog/task_queue.pyx":130
+  /* "pyDatalog/task_queue.pyx":138
  *         return self.tasks.size()
  * 
  *     def __reversed__(self):             # <<<<<<<<<<<<<<
  *         cdef int i
  *         for i in range(self.tasks.size() - 1, -1, -1):
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_17__reversed__, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque___reversed, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[2])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 130, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_17__reversed__, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque___reversed, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[2])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 138, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
-  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_reversed, __pyx_t_2) < (0)) __PYX_ERR(0, 130, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict(__pyx_mstate_global->__pyx_ptype_9pyDatalog_10task_queue_TaskDeque, __pyx_mstate_global->__pyx_n_u_reversed, __pyx_t_2) < (0)) __PYX_ERR(0, 138, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "(tree fragment)":1
@@ -8856,7 +9224,7 @@ __Pyx_RefNannySetupContext("PyInit_task_queue", 0);
  *     raise TypeError, "self.tasks cannot be converted to a Python object for pickling"
  * def __setstate_cython__(self, __pyx_state):
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_25__reduce_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque___reduce_cython, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[15])); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 1, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_27__reduce_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque___reduce_cython, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[15])); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
@@ -8870,7 +9238,7 @@ __Pyx_RefNannySetupContext("PyInit_task_queue", 0);
  * def __setstate_cython__(self, __pyx_state):             # <<<<<<<<<<<<<<
  *     raise TypeError, "self.tasks cannot be converted to a Python object for pickling"
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_27__setstate_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque___setstate_cython, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[16])); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 3, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9pyDatalog_10task_queue_9TaskDeque_29__setstate_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_mstate_global->__pyx_n_u_TaskDeque___setstate_cython, NULL, __pyx_mstate_global->__pyx_n_u_pyDatalog_task_queue, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[16])); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 3, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
@@ -8948,34 +9316,34 @@ static int __Pyx_InitCachedConstants(__pyx_mstatetype *__pyx_mstate) {
 static int __Pyx_InitConstants(__pyx_mstatetype *__pyx_mstate) {
   CYTHON_UNUSED_VAR(__pyx_mstate);
   {
-    const struct { const unsigned int length: 8; } index[] = {{1},{31},{7},{6},{2},{9},{29},{20},{19},{24},{62},{14},{20},{9},{18},{27},{22},{29},{16},{20},{13},{16},{17},{8},{17},{26},{21},{28},{15},{12},{15},{16},{6},{10},{18},{18},{5},{8},{12},{1},{13},{5},{8},{8},{10},{8},{4},{3},{20},{11},{14},{12},{10},{17},{13},{6},{7},{12},{4},{4},{12},{10},{12},{19},{4},{8},{5},{5},{6},{2},{63},{43},{49},{158},{26},{26},{9}};
-    #if (CYTHON_COMPRESS_STRINGS) == 2 /* compression: bz2 (746 bytes) */
-const char* const cstring = "BZh91AY&SY\202J\rx\000\000`\177\373\345\177\376\025my\245\035\267\255}\250\277\377\377\340@@@@@@@@\000@@\000@\000@\002\274\000\001\020\224T\312\000\311\352\036\325\r\032z\203!\220\031\001\211\223#\324\006\231\003G\223P\364\320\340\3104h\003&\230\206\232\014\203\020\302\006\200\321\211\210\320\000\001\301\220h\320\006M1\r4\031\006!\204\r\001\243\023\021\240\000\001\"\202h\023M\006\224\364\310)\352d\320\000\000\032\000\003\324\000\375\023I\372)\023\345A\346\362\366\250vC\315\306]\344\004\273\335\245\371\242\206\226\0034\021\025\345\331^\357\242\244\010\223Q;\202\001\022k\356\376\373;:\277\336<\t\365\214\224\270\220\355\376\2763\025\254\357zZ\313\002\322\245\336\343\231\266\333m\350pcm\276\034\035wZYd\021#\340\"\242_K\177^\231\247[F\363Y\332!\312\360\265\253\212\253\211* \360\236\353\242\250\320\352\3150\312{e\2523\t\316etN\261\302\244\024\312\002\017\257o%\316\016\016H:\345\033\201\265\3449\240\240X\310V;bU\2424\232V\217\313\005&\2460V5Hi\234kwvtq\250\356*X\3473\274x$\024GP\305\267`o\332\266\213yv\277?\304\030\307-H\224\272a\277n\372\367\354\276\250\212\026\r3W\347BR\030\260\307~\343\024\215\316\006~',\363I\306\250F2\213m\273\245\0162\212\252\231!\365\363\301YQ4bW\034zH5o:V\264\312\226p-\204\350\271\032\202\270Yp\246\031\214\024 O\227-\205'\355Bx\000\351\247M\307,\257\240\360\331-p\340)\264\314&\271=\014\204\212\017)+\007B|\362\300\301J\2205\232\340\235`s\022Cc\201\204\260\247\216b\251I\225\354\270\267T\343\315y\254\342\226\177\002<P'r\312\205hw\205h\266\374\375$3\242\252\312K\022\255U\241D\360\355\262J\231R\203+\0109\270)\351(j\251/\006l\210\350\251\243\307l\354\202/\320\222:&\"\314\305MD\376*\235\333Y\261\005\367\302[aWMe\375Z\313(*T-\030\005{\322{\r\325\347rv#q\311\350\243\273\235\r)\260l\324\307\034\370\344\252\357\202 .\214\327K9\324i\243L\236\343\023\267K\334&\322Xo\355\366r\213j\335s\264T;\237>\226\000\361HUM\037d\270_\210\341\274%\035\300\2616\017rj\314;\377\334A\302\002;\372\033\037\212D\220\355\303$F\027X\212\014\217\241\311\217%\247\336\014\362Is\353k$r""\362$u\333\214a\204\376\220\237\265\216\366\354\341G\032i\251B\274\334\241T\033\306\203\232\377\305\334\221N\024$ \222\203^\000";
-    PyObject *data = __Pyx_DecompressString(cstring, 746, 2);
+    const struct { const unsigned int length: 8; } index[] = {{1},{24},{31},{7},{6},{2},{9},{23},{29},{20},{19},{24},{62},{14},{20},{9},{18},{27},{22},{29},{16},{20},{13},{16},{17},{8},{17},{26},{21},{28},{15},{12},{15},{16},{6},{10},{18},{18},{5},{8},{12},{1},{13},{5},{8},{8},{10},{8},{4},{3},{20},{11},{14},{12},{10},{17},{13},{6},{7},{12},{4},{4},{12},{10},{12},{19},{4},{8},{5},{5},{6},{2},{63},{43},{49},{158},{26},{26},{9}};
+    #if (CYTHON_COMPRESS_STRINGS) == 2 /* compression: bz2 (764 bytes) */
+const char* const cstring = "BZh91AY&SY\017\031[N\000\000d\177\373\345\177\376\025my\245\035\267\255}\250\277\377\377\340@@@@@@@@\000@@\000@\000@\002\334\005\000#\tE\010@\311\345<I\351=G\250\304\000\000\00044\007\250\003G\224\365\017MC\203 \321\240\014\232b\032h2\014C\010\032\003F&#@\000\007\006A\243@\0314\3044\320d\030\206\0204\006\214LF\200\000\004\212\002\002h'\250\320\nz\2324\000\000\006\200\000\365\001\352<M'\350\244O\231\007\233\313\334\241\333\0176\351x\020\022\360w\030c\0244\264\014\324DX\027\347\203\302\252\260\"MD\357\010\004I\257\277\253\267\267\247\375\335\326O\260d\334\347\270\204H\035\335GW\312jY\236\017c[\370\227\024^\01686\333m\275n\014m\267\327\213\262\373\213m\202$|$TL+w\355\3214\354h\3437\216\341\016X\005\315^R\310\222\252\017\021\357:\252\032\2351\230g=\262\331\031\204\3472\312\247`\341D\025\316\002\017\263o\r\356\016\016H;%\033\301\265\3449`\240Z\310X;\242STk4\256\037\226\nML`\255j\260\3278\330\357\355\347\335C\274\242\241\247#'\247\255 \261\035#\026\332\341\014\t\000\220\230oZ\315\007\031q\324\032j\313\020\301\016\0045\361)\262#\030\"\242\216\306\315BD\030\305\243O\036\\CH\342p2\334rO\0318\322\021\214\242\333n\371Ct\242\267\253fh}\234\320WT\255\021\250\266Z\272\0105}\334\3116\231E\244\013\341:\253\332\202\274U3\353\2633-\006J\020)\311\277B\263g\266\347\220\016\272\365\336rJ\006\025\036[\363\323\tu\211\264\315\023\\>\216bEG\234\225\243\251>iG\023B\235`o\033\320N\200r\222Cc\201\242Z+\343\230PcRv\r\357\336]\262q\345f\006\361\271,\270\021\350@\235\353;\013\013P\360\013Q,2\350!\222)aYi)\262\301(\236-\266\311V\363;,\031hA\321\301SYa\262\211ph\314\216\2524x\356\235\260F\032\322G<\322-\304\243Q?\232N\375\254\337\3264\030\343\t\355\205z-1\351\314\266\242\255\005\257 \263\215'\240\340\263''j8\216\037I\035\374\310`M\203f\3068\345\2474S\302\010\200\271\361\276Y\023:Mpi\223\3424\235\332\337\020\234W\317/\233\257\355\213s\243\214\351\025\016\253\247\302\310\035\251*\250\357\242F^\230\325\363\023G89lI\352XZ\307_\363h6HO{\033/\351I\222[R\3211}\347\321A\371\367\233\255\022\\\273\0208QV""\337\024)=Z\224<\364o\276_?h-\331\247\026~H\243l\262\313\002\304\323\002\2505I\205\244\237\305\334\221N\024$\003\306V\323\200";
+    PyObject *data = __Pyx_DecompressString(cstring, 764, 2);
     if (unlikely(!data)) __PYX_ERR(0, 1, __pyx_L1_error)
     const char* const bytes = __Pyx_PyBytes_AsString(data);
     #if !CYTHON_ASSUME_SAFE_MACROS
     if (likely(bytes)); else { Py_DECREF(data); __PYX_ERR(0, 1, __pyx_L1_error) }
     #endif
-    #elif (CYTHON_COMPRESS_STRINGS) != 0 /* compression: zlib (668 bytes) */
-const char* const cstring = "x\332uSMo\3230\030&\322\204\n\014\266\302v\231\020\312441&\025MB;0\004*\352\206\020\023Z\031\332\204v\260\\\347M\227-\265\323\330)\351\255\307\034s\3641\307\034s\334O\311\221\237\300O\300N\323\264\353\272H\211\337\317\307\217\037\277\371lA?\200\206\017=6\2007\341\316\00734)\023\246C\315\"c9\034w\\\000\252\277]\342\360\261e\271\016\027\013\273t\302c\236i\373\254gB\317\023\3031\320\\\254(\033\266\260\300.\353\276\023\230_#U\244\230x\303\220\203k7t\210\233\004S\215\333\001\2230:\000_\200e\nfb\363d(.\0315Y\347\n\2100m\346\233\236C\256]\207v?r\341\253\205\263\300'\360\t\241\223a\250\336\226C\004\372\001\241\370\t\366/\005\335\322\234*\243\201\220#\300Gh6\342\203\025\020@\244\330i>\245\270p\260nG9\010.\260X\324\202=\017\2505\357\273`\213iL)4u\306\322\316\372\305\216:p\254\244\233\254\267\210\227\201\005\274\253\314,\3552\270\220u\221\233\222.\334\222\337\361\364\346g\334\002x\3340=\033\346CJ\034\326 \314g\201p(p\242n\010\220C\221\3601\201\016&\327\304e\034\020\262\003J\220z\272\0236\310A\016GU\247:e\217O\016\213P\017+\014\2752+pA[\024\367\324J\325\r+\236\325d5\246\223\205\220\032-T\202ks \364$\353\336~\200\335q\177\245\036\272\243c\025\200P\233\372\374\345\261g\205\325\263\253\376\221\302\022%)eY`\343\300\0253j\243\005\312\027d\221\000\256\n\305\245\317\376\014\260\033@\361\341\243\346\250\231\327\236D\357\243A|&\367\362\345\347\361[\331\224\355\274\266!_K;9L\353ym9:\212wT\262\366J^&8\257=\2177\343\003\251\214\225\250?j\376{\370\340\321\323\3500^\217q,\344~\262\256J\226\327\343\213\304H\326\222\263t/mj\204oq\373\336\322s\265\343\357\304N[\331Rvt\263y\263W5\374\255\275\224_\223\203\024\353\310\\\337J$\342}Y\227[\36241\362\325\265\370Hn\227{\356g/\262/\031\316W7\344\246<P\305\253\365\205\000a\341\324\223\255\34445&\325V\272\235\031Y\375\036D\005\364,\272\222\206\254k\341*%\264DZ\270\363\344{\332\277\223\331\225m\331M.2cd\344K\217\243\335\270\375\037\0270\004\257";
-    PyObject *data = __Pyx_DecompressString(cstring, 668, 1);
+    #elif (CYTHON_COMPRESS_STRINGS) != 0 /* compression: zlib (687 bytes) */
+const char* const cstring = "x\332uSAo\3230\024\246\322\204\n\014\266\302v\231\020\362441&\025MB;0\004*\352\206\020\023Z\031\332\204v\260\\\347\245\313\226\332m\354\224\364\326c\2169\372\230c\2169\356\247\344\310O\340'`\247i\332u]\245\306\317\337{\357\363\347//\237-\350\373\200\034fA\200\270/\021\267\221GX\007r\274\356A\227\017\340M\260\363\001\005\210q\251\013Q\236\261\034A\332.\0003\317\016u\3048\262\\G\310\005l\006^Hf\022=\336C\266\307\273\010\272=9\034\363\317ay\331\260I$qy\347\235$\342\032\353\"-\2607\014\004\270v\335@\002Q\302\014o\033\020\345l\000\236\004\013I\216\010:\031\312K\316\020o_\001\225\310\346\036\3529\364\332uX\347\243\220\236^\004\367=\n\2370>\031\006\372\337t\250\304? \220?\301\376\245\251\233FS\031\3241v$x\030\317\"\036X>\005L\363\223\346SZ\213\000\3536*@\nI\344\242\026\322\353\001\263\346\367.\330r\212i\207\246\233\261\265\263\373\374D\003\034k\353&\353-\341\005\260@w\231\231\225]\200\013U\347\271\251\350|[\350;\236\276\371\231mN<n\230\336\215\210!\243\016\257S\356\351\331q\030\010\252\337\020`\207a\351\021\nmB\257\251\313\005`l\373\214b\375\353L\324`\007;\002\227\235\372\226]1\271,\306]\2429\314\312-\337\005\0231\322\325+\323oX\353,'\253>\235,\214\365h\341\202\334\204\003i\006\334\364\366}\342\216\373K\367\360\035\037K\000\002\023\232\373\027\327\2365\326\314\256\376t\362H\026\242td\201M|W\316\270\215\0278\237\213\305\022\204.\224\227\036\3773 \256\017\371C\214\032\243FV}\022\276\017\007\321\231\332\313\226\237GoUC\265\262\352\206z\255\354\3700\251e\325\345\360(\332\321\311\352+u\031\223\254\372<\332\214\016\224\016V\302\376\250\361\357\341\203GO\303\303h=\"\221T\373\361\272.Y^\217.\342J\274\026\237%{I\3030|\213Z\367\226\236\353\023\177\307v\322L\227\322\243\233\315\233\275\262\341o\365\245\372\032\037$\304 s}+\241\214\366UMm\251\323\270\222\255\256EGj\2738s?}\221~II\266\272\2416\325\201.^\255-$\010\362M-\336\212O\223\312\244\332J\266\323JZ\273\207Q\023=\013\257TE\325\214q\245\023\306\"c\334y\374=\351\337\311\354\252\226\352\304\027ieT\311\226\036\207\273Q\353?D\367\026#";
+    PyObject *data = __Pyx_DecompressString(cstring, 687, 1);
     if (unlikely(!data)) __PYX_ERR(0, 1, __pyx_L1_error)
     const char* const bytes = __Pyx_PyBytes_AsString(data);
     #if !CYTHON_ASSUME_SAFE_MACROS
     if (likely(bytes)); else { Py_DECREF(data); __PYX_ERR(0, 1, __pyx_L1_error) }
     #endif
-    #else /* compression: none (1313 bytes) */
-const char* const bytes = "?deque.remove(x): x not in dequedisableenablegcisenabledlist.remove(x): x not in listpop from empty dequepop from empty listpyDatalog/task_queue.pyxself.tasks cannot be converted to a Python object for pickling<stringsource>__Pyx_PyDict_NextRefTaskDequeTaskDeque.__iter__TaskDeque.__reduce_cython__TaskDeque.__reversed__TaskDeque.__setstate_cython__TaskDeque.appendTaskDeque.appendleftTaskDeque.popTaskDeque.removeTaskDeque.reverseTaskListTaskList.__iter__TaskList.__reduce_cython__TaskList.__reversed__TaskList.__setstate_cython__TaskList.appendTaskList.popTaskList.removeTaskList.reverseappendappendleftasyncio.coroutinescline_in_tracebackclose__func____getstate__i_is_coroutineitems__iter____main____module____name__nextpoppyDatalog.task_queue__pyx_state__pyx_vtable____qualname____reduce____reduce_cython____reduce_ex__removereverse__reversed__selfsend__set_name__setdefault__setstate____setstate_cython__task__test__throwvaluevalues\200A\200A\330\010\013\2104\210v\220V\2301\330\014\022\220*\230A\230Q\330\010\032\230$\230f\240E\250\021\330\010\014\210F\220)\2301\330\010\036\230h\240a\330\010\022\220!\220;\230a\330\010\017\210q\200A\360\006\000\t\r\210E\220\025\220a\220t\2306\240\025\240a\330\014\025\220[\240\001\240\024\240V\2501\250A\330\010\014\210I\220Q\200A\360\006\000\t\r\210E\220\025\220a\220t\2306\240\025\240a\330\014\025\220W\230A\230Y\240f\250D\260\004\260F\270!\2701\330\010\014\210I\220Q\200A\340\010\034\230G\240;\250a\330\010\014\210E\220\025\220a\220t\2306\240\025\240a\330\014\017\210t\2206\230\021\230#\230S\240\001\330\020\024\220F\230&\240\001\240\024\240V\2506\260\023\260B\260a\330\020\032\230!\230;\240a\330\020\021\330\010\014\210E\220\025\220a\220t\2306\240\025\240a\330\014\017\210x\220t\2306\240\021\240#\240S\250\001\330\020\032\230!\230;\240d\250&\260\001\260\021\330\020\024\220F\230&\240\001\240\024\240V\2506\260\023\260B\260a\330\020\021\330\010\016\210j\230\001\230\021\200A\330\010\022\220!\220;\230a\330\010\014\210F\220*\230A\230W\240K\250q\200A\330""\010\022\220!\220;\230a\330\010\014\210F\220+\230Q\230g\240[\260\001\200\001\330\004\n\210+\220Q";
+    #else /* compression: none (1360 bytes) */
+const char* const bytes = "?deque index out of rangedeque.remove(x): x not in dequedisableenablegcisenabledlist index out of rangelist.remove(x): x not in listpop from empty dequepop from empty listpyDatalog/task_queue.pyxself.tasks cannot be converted to a Python object for pickling<stringsource>__Pyx_PyDict_NextRefTaskDequeTaskDeque.__iter__TaskDeque.__reduce_cython__TaskDeque.__reversed__TaskDeque.__setstate_cython__TaskDeque.appendTaskDeque.appendleftTaskDeque.popTaskDeque.removeTaskDeque.reverseTaskListTaskList.__iter__TaskList.__reduce_cython__TaskList.__reversed__TaskList.__setstate_cython__TaskList.appendTaskList.popTaskList.removeTaskList.reverseappendappendleftasyncio.coroutinescline_in_tracebackclose__func____getstate__i_is_coroutineitems__iter____main____module____name__nextpoppyDatalog.task_queue__pyx_state__pyx_vtable____qualname____reduce____reduce_cython____reduce_ex__removereverse__reversed__selfsend__set_name__setdefault__setstate____setstate_cython__task__test__throwvaluevalues\200A\200A\330\010\013\2104\210v\220V\2301\330\014\022\220*\230A\230Q\330\010\032\230$\230f\240E\250\021\330\010\014\210F\220)\2301\330\010\036\230h\240a\330\010\022\220!\220;\230a\330\010\017\210q\200A\360\006\000\t\r\210E\220\025\220a\220t\2306\240\025\240a\330\014\025\220[\240\001\240\024\240V\2501\250A\330\010\014\210I\220Q\200A\360\006\000\t\r\210E\220\025\220a\220t\2306\240\025\240a\330\014\025\220W\230A\230Y\240f\250D\260\004\260F\270!\2701\330\010\014\210I\220Q\200A\340\010\034\230G\240;\250a\330\010\014\210E\220\025\220a\220t\2306\240\025\240a\330\014\017\210t\2206\230\021\230#\230S\240\001\330\020\024\220F\230&\240\001\240\024\240V\2506\260\023\260B\260a\330\020\032\230!\230;\240a\330\020\021\330\010\014\210E\220\025\220a\220t\2306\240\025\240a\330\014\017\210x\220t\2306\240\021\240#\240S\250\001\330\020\032\230!\230;\240d\250&\260\001\260\021\330\020\024\220F\230&\240\001\240\024\240V\2506\260\023\260B\260a\330\020\021\330\010\016\210j\230\001\230\021\200A\330\010\022\220!\220;\230a\330""\010\014\210F\220*\230A\230W\240K\250q\200A\330\010\022\220!\220;\230a\330\010\014\210F\220+\230Q\230g\240[\260\001\200\001\330\004\n\210+\220Q";
     PyObject *data = NULL;
     CYTHON_UNUSED_VAR(__Pyx_DecompressString);
     #endif
     PyObject **stringtab = __pyx_mstate->__pyx_string_tab;
     Py_ssize_t pos = 0;
-    for (int i = 0; i < 69; i++) {
+    for (int i = 0; i < 71; i++) {
       Py_ssize_t bytes_length = index[i].length;
       PyObject *string = PyUnicode_DecodeUTF8(bytes + pos, bytes_length, NULL);
-      if (likely(string) && i >= 12) PyUnicode_InternInPlace(&string);
+      if (likely(string) && i >= 14) PyUnicode_InternInPlace(&string);
       if (unlikely(!string)) {
         Py_XDECREF(data);
         __PYX_ERR(0, 1, __pyx_L1_error)
@@ -8983,7 +9351,7 @@ const char* const bytes = "?deque.remove(x): x not in dequedisableenablegcisenab
       stringtab[i] = string;
       pos += bytes_length;
     }
-    for (int i = 69; i < 77; i++) {
+    for (int i = 71; i < 79; i++) {
       Py_ssize_t bytes_length = index[i].length;
       PyObject *string = PyBytes_FromStringAndSize(bytes + pos, bytes_length);
       stringtab[i] = string;
@@ -8994,14 +9362,14 @@ const char* const bytes = "?deque.remove(x): x not in dequedisableenablegcisenab
       }
     }
     Py_XDECREF(data);
-    for (Py_ssize_t i = 0; i < 77; i++) {
+    for (Py_ssize_t i = 0; i < 79; i++) {
       if (unlikely(PyObject_Hash(stringtab[i]) == -1)) {
         __PYX_ERR(0, 1, __pyx_L1_error)
       }
     }
     #if CYTHON_IMMORTAL_CONSTANTS
     {
-      PyObject **table = stringtab + 69;
+      PyObject **table = stringtab + 71;
       for (Py_ssize_t i=0; i<8; ++i) {
         #if CYTHON_COMPILING_IN_CPYTHON_FREETHREADING
         #if PY_VERSION_HEX < 0x030E0000
@@ -9057,12 +9425,12 @@ static int __Pyx_CreateCodeObjects(__pyx_mstatetype *__pyx_mstate) {
     __pyx_mstate_global->__pyx_codeobj_tab[1] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_pyDatalog_task_queue_pyx, __pyx_mstate->__pyx_n_u_iter, __pyx_mstate->__pyx_kp_b_iso88591_A, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[1])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS|CO_GENERATOR), 130};
+    const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS|CO_GENERATOR), 138};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_self, __pyx_mstate->__pyx_n_u_i};
     __pyx_mstate_global->__pyx_codeobj_tab[2] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_pyDatalog_task_queue_pyx, __pyx_mstate->__pyx_n_u_reversed, __pyx_mstate->__pyx_kp_b_iso88591_A, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[2])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS|CO_GENERATOR), 146};
+    const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS|CO_GENERATOR), 154};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_self, __pyx_mstate->__pyx_n_u_i};
     __pyx_mstate_global->__pyx_codeobj_tab[3] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_pyDatalog_task_queue_pyx, __pyx_mstate->__pyx_n_u_iter, __pyx_mstate->__pyx_kp_b_iso88591_A, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[3])) goto bad;
   }
@@ -9097,27 +9465,27 @@ static int __Pyx_CreateCodeObjects(__pyx_mstatetype *__pyx_mstate) {
     __pyx_mstate_global->__pyx_codeobj_tab[9] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_stringsource, __pyx_mstate->__pyx_n_u_setstate_cython, __pyx_mstate->__pyx_kp_b_iso88591_Q, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[9])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {2, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 85};
+    const __Pyx_PyCode_New_function_description descr = {2, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 93};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_self, __pyx_mstate->__pyx_n_u_task};
     __pyx_mstate_global->__pyx_codeobj_tab[10] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_pyDatalog_task_queue_pyx, __pyx_mstate->__pyx_n_u_append, __pyx_mstate->__pyx_kp_b_iso88591_A_a_F_AWKq, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[10])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {2, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 89};
+    const __Pyx_PyCode_New_function_description descr = {2, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 97};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_self, __pyx_mstate->__pyx_n_u_task};
     __pyx_mstate_global->__pyx_codeobj_tab[11] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_pyDatalog_task_queue_pyx, __pyx_mstate->__pyx_n_u_appendleft, __pyx_mstate->__pyx_kp_b_iso88591_A_a_F_Qg, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[11])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 1, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 93};
+    const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 1, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 101};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_self};
     __pyx_mstate_global->__pyx_codeobj_tab[12] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_pyDatalog_task_queue_pyx, __pyx_mstate->__pyx_n_u_pop, __pyx_mstate->__pyx_kp_b_iso88591_A_4vV1_AQ_fE_F_1_ha_a_q, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[12])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {2, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 102};
+    const __Pyx_PyCode_New_function_description descr = {2, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 110};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_self, __pyx_mstate->__pyx_n_u_task};
     __pyx_mstate_global->__pyx_codeobj_tab[13] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_pyDatalog_task_queue_pyx, __pyx_mstate->__pyx_n_u_remove, __pyx_mstate->__pyx_kp_b_iso88591_A_G_a_E_at6_a_t6_S_F_V6_Ba_a_E_a, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[13])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 1, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 117};
+    const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 1, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 125};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_self};
     __pyx_mstate_global->__pyx_codeobj_tab[14] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_pyDatalog_task_queue_pyx, __pyx_mstate->__pyx_n_u_reverse, __pyx_mstate->__pyx_kp_b_iso88591_A_E_at6_a_V1A_IQ, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[14])) goto bad;
   }

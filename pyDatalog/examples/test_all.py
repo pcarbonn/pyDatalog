@@ -45,6 +45,7 @@ def todate():
 pyDatalog.create_symbols('todate')
 
 def test():
+    pyDatalog.clear()
 
     # test of expressions
     pyDatalog.load("""

@@ -25,4 +25,4 @@ jobs:
         run: uv pip install --system -e .[sqlalchemy,mongo] pytest
 
       - name: Run tests
-        run: pytest
+        run: uv run pytest
