@@ -1,6 +1,21 @@
 (most recent first)
 
 
+# Thread Safety and Concurrency Optimization
+
+## Problem Description
+Deployments in concurrent multi-threaded environments (such as Flask, FastAPI, Django) suffered from correctness and performance issues:
+1. **Unnecessary Lock Contention on Counters**: Every logical step (derived facts, lambdas, queries) incremented global class-level locks in the `Counter` class, causing serialization and contention across threads.
+2. **Unnecessary Lock Contention on Predicates**: `Pred.lock` was a class-level global lock acquired in `Pred.__new__` during predicate retrieval/creation, serializing all predicate instantiations.
+3. **Shared Mutable State (Database Races)**: Calling `Logic(logic)` to share rule snapshots across request threads performed a shallow copy, leaving the `Db` and `Pred_registry` dictionaries shared by reference. Concurrently mutating these dictionaries during query resolution (due to temporary `_pyD_query*` predicates) caused data races and `RuntimeError: dictionary changed size during iteration`.
+
+## Fixes Applied
+1. **Removed `Counter` Class & Replaced with `itertools.count(1)`**
+2. **Isolated Database and Registry Containers via Custom `__copy__`**: We implemented a custom `__copy__` method on the `Logic` class in `Logic.py`. When a thread copies the parent logic (`Logic(logic)`), it now creates shallow copies of the `Db` dictionary container and the `Pred_registry` `WeakValueDictionary` container. This isolates query-specific temporary predicates (`_pyD_query*`) to the thread-local state.
+3. **Removed `Pred.lock` completely**: Since container cloning guarantees that `Pred_registry` is strictly thread-local, concurrent threads never write to the same registry instance. The global `Pred.lock` was therefore completely redundant and was removed from `pyEngine.py`.
+5. **Documented Deployment Rules**: We updated the Avanced topic page to document best practices for deploying `pyDatalog` in multi-threaded web applications.
+
+
 # Issue # 30
 
 ## Problem Description
@@ -21,7 +36,7 @@ Redefining a predicate to be empty via `B(X) <= None` completely deregistered it
 In `pyParser.py`, `B(X) <= None` called `pyEngine.remove(self.lua.pred)` which deleted the predicate from both `Logic.tl.logic.Db` (defined database predicates) and `Pred_registry`. Consequently, the predicate was treated as undefined on subsequent queries, raising `AttributeError`.
 
 ## Fix Applied
-We modified `__le__` in `pyDatalog/pyParser.py` so that when `body` is `None`, instead of completely removing the predicate from the database, we loop through and retract each fact/rule using `pyEngine.retract(clause)`. This retains the predicate in the database but clears all facts and rules associated with it, defining it as empty. 
+We modified `__le__` in `pyDatalog/pyParser.py` so that when `body` is `None`, instead of completely removing the predicate from the database, we loop through and retract each fact/rule using `pyEngine.retract(clause)`. This retains the predicate in the database but clears all facts and rules associated with it, defining it as empty.
 
 We preserved the behavior of `del f[X]` (which clears rules/clauses with bodies while leaving facts intact, as per the documented behavior since version 0.14.0).
 

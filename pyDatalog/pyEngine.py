@@ -28,6 +28,7 @@ See also doc.py for additional source code documentation.
 
 from collections import OrderedDict
 import gc
+import itertools
 import logging
 import re
 import struct
@@ -279,10 +280,10 @@ class VarTuple(Term):
 
 class Operation(Term):
     """ an arithmetic operation, a slice or a lambda """
-    counter = util.Counter()
+    counter = itertools.count(1)
     def __init__(self, lhs, operator, rhs):
         self.operator = operator
-        self.operator_id = 'l' + str(Operation.counter.next()) if isinstance(self.operator, type(util.LAMBDA)) else str(self.operator)
+        self.operator_id = 'l' + str(next(Operation.counter)) if isinstance(self.operator, type(util.LAMBDA)) else str(self.operator)
         self.lhs = lhs
         self.rhs = rhs
         self.is_constant = False
@@ -367,31 +368,30 @@ class Interned(object):
 class Pred(Interned):
     """ A predicate symbol has a name, an arity, and a database table.  
         It can also have a function used to implement a primitive."""
-    lock = threading.RLock()
     def __new__(cls, pred_name, arity):
         assert isinstance(pred_name, util.string_types)
         _id = '%s/%i' % (pred_name, arity)
-        with Pred.lock:
-            o = Logic.tl.logic.Pred_registry.get(_id, Interned.notFound)
-            if o is Interned.notFound: 
-                o = object.__new__(cls) # o is the ref that keeps it alive
-                o.id = _id
-                o.name = pred_name
-                o.arity = arity
-                o.prearity = None
-                words = o.name.split('.')
-                o.prefix, o.suffix = (words[0], words[1].split('[')[0]) if 1 < len(words) else ('','')
-                words = pred_name.split(']')
-                o.comparison = words[1] if 1 < len(words) else '' # for f[X]<Y
-    
-                o.db = OrderedDict()
-                o.clauses = OrderedDict()
-                # one index per term. An index is a dictionary of sets
-                o.index = [{} for i in range(int(o.arity))]
-                o.prim = None
-                o.expression = None
-                o.recursive = False
-                Logic.tl.logic.Pred_registry[_id] = o
+        registry = Logic.tl.logic.Pred_registry
+        o = registry.get(_id, Interned.notFound)
+        if o is Interned.notFound: 
+            o = object.__new__(cls) # o is the ref that keeps it alive
+            o.id = _id
+            o.name = pred_name
+            o.arity = arity
+            o.prearity = None
+            words = o.name.split('.')
+            o.prefix, o.suffix = (words[0], words[1].split('[')[0]) if 1 < len(words) else ('','')
+            words = pred_name.split(']')
+            o.comparison = words[1] if 1 < len(words) else '' # for f[X]<Y
+
+            o.db = OrderedDict()
+            o.clauses = OrderedDict()
+            # one index per term. An index is a dictionary of sets
+            o.index = [{} for i in range(int(o.arity))]
+            o.prim = None
+            o.expression = None
+            o.recursive = False
+            registry[_id] = o
         return o
     
     @classmethod

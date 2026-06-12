@@ -31,7 +31,7 @@ USA
 """
 ##################################### Aggregation #####################################
     
-from itertools import groupby
+from itertools import groupby, count
 try:
     import statistics
     mean = statistics.mean
@@ -49,7 +49,7 @@ class Aggregate(object):
     e.g. 'sum(Y,key=Z)' in '(a[X]==sum(Y,key=Z))'
     pyEngine calls sort_result(), key(), reset(), add() and fact() to compute the aggregate
     """
-    counter = util.Counter()
+    counter = count(1)
     
     def __init__(self, Y=None, group_by=tuple(), for_each=tuple(), order_by=tuple(), sep=None):
         # convert for_each=Z to for_each=(Z,)
@@ -108,7 +108,7 @@ class Aggregate(object):
                 variables[variable._pyD_name] = len(new_terms)
                 new_terms.append(variable)
                 
-        new_name = name + '!' + str(Aggregate.counter.next())
+        new_name = name + '!' + str(next(Aggregate.counter))
         body = Literal.make(new_name, new_terms, {}, aggregate=self) #pred
         add_clause(head, body)
                 

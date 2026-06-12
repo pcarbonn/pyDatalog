@@ -19,18 +19,7 @@ class DatalogError(Exception):
         return "%s\nin line %s of %s" % (self.value, self.lineno, self.function)        
 
 
-class Counter(object):
-    lock = threading.RLock()
-    def __init__(self):
-        self.i = 0
 
-    def __iter__(self):
-        return self
-
-    def next(self):
-        with Counter.lock:
-            self.i += 1
-            return self.i
 
 class lazy_property(object):
     '''

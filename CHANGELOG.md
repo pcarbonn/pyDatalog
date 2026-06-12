@@ -2,6 +2,11 @@
 
 In bold : changes that may impact existing pyDatalog programs
 
+  Latest
+
+  * Fix "object is not subscriptable" error
+  * improve thread safety
+
   0.22.3 - Jun 12, 2026
 
   Performance improvements

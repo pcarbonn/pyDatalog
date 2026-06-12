@@ -54,6 +54,7 @@ Classes hierarchy contained in this file: see class diagram on http://bit.ly/YRn
 """
 
 import ast
+import itertools
 from collections import OrderedDict
 import inspect
 import re
@@ -422,14 +423,13 @@ def pre_calculations(args):
 
 class Function(Expression):
     """ represents predicate[a, b]"""
-    counter = util.Counter() # counter of functions evaluated so far
-
+    counter = itertools.count(1) # counter of functions evaluated so far
     def __init__(self, name, keys):
         self._pyD_keys = keys if isinstance(keys, tuple) else (keys,)
         self._pyD_name = "%s[%i]" % (name, len(self._pyD_keys))
         self._argument_precalculations = pre_calculations(self._pyD_keys)
-
-        self._pyD_symbol = Term('_pyD_X%i' % Function.counter.next())
+ 
+        self._pyD_symbol = Term('_pyD_X%i' % next(Function.counter))
         self._pyD_lua = self._pyD_symbol._pyD_lua
         self._pyD_precalculations = self._argument_precalculations & (self == self._pyD_symbol)
 
@@ -651,7 +651,7 @@ class Call(Operation): #call
 
 class Body(LazyListOfList):
     """ created by p(a,b) & q(c,d)  """
-    counter = util.Counter()
+    counter = itertools.count(1)
     def __init__(self, *args):
         LazyListOfList.__init__(self)
         self.literals = []
@@ -692,7 +692,7 @@ class Body(LazyListOfList):
                 for i in range(base_literal.prearity):
                     variables.update(base_literal.terms[i]._pyD_variables())
                 prearity = len(variables)
-        literal = Literal.make('_pyD_query' + util.unicode_type(Body.counter.next()), list(self._variables().values()), {}, prearity=prearity)
+        literal = Literal.make('_pyD_query' + util.unicode_type(next(Body.counter)), list(self._variables().values()), {}, prearity=prearity)
         literal <= self
         return literal
 

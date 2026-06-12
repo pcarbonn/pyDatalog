@@ -22,6 +22,7 @@ USA
 
 import copy
 import threading
+import weakref
 
 from . import pyEngine, pyParser
 
@@ -57,5 +58,16 @@ class Logic(object):
         """ move the logic to the current thread and clears it """
         Logic(self)  # just to be sure
         pyEngine.clear()
+
+    def __copy__(self):
+        new_logic = object.__new__(self.__class__)
+        for k, v in self.__dict__.items():
+            if k == 'Db':
+                new_logic.Db = v.copy()
+            elif k == 'Pred_registry':
+                new_logic.Pred_registry = weakref.WeakValueDictionary(v)
+            else:
+                new_logic.__dict__[k] = copy.copy(v)
+        return new_logic
                 
 pyEngine.Logic = Logic  # share Logic with pyEngine
