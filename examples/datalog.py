@@ -62,6 +62,6 @@ print(budget['John']==N) # N is 12200
 print(lowest[1]==X) # X is Sam
 
 # start the datalog console, for interactive querying 
-from pyDatalog.examples import console
+import console
 console = console.datalogConsole(locals=locals())
 console.interact('Type exit() when done.')

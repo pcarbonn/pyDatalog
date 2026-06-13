@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import pytest
 
-EXAMPLES_DIR = Path(__file__).parent.parent / "pyDatalog" / "examples"
+EXAMPLES_DIR = Path(__file__).parent.parent / "examples"
 EXAMPLE_FILES = [
     p for p in EXAMPLES_DIR.glob("*.py")
     if not p.name.startswith("test_") and not p.name.startswith("__")
