@@ -2,11 +2,11 @@
 
 In bold : changes that may impact existing pyDatalog programs
 
-  Latest
+  0.22.4 - June 13, 2026
 
-  * Fix "object is not subscriptable" error
-  * improve thread safety
-  * improve performance of aggregate computations
+* Fix "object is not subscriptable" error
+* improve thread safety
+* improve performance of aggregate computations
 
   0.22.3 - Jun 12, 2026
 
@@ -25,34 +25,27 @@ In bold : changes that may impact existing pyDatalog programs
 * fix #36: allow "p, X = create_terms("p, X")"
 * add Python typing annotations
 
-
   0.20.8 - Jun 2026
-
 * fix #20
 * upgrade dependencies
 * new documentation site
 * new deployment pipeline
 
   0.17.1 - 24 Jan 2016
-
 * fix 'in' operator in 3.5 by releasing from master branch.
 
   0.17 - 20 Jan 2016
-
 * promote previous release candidate
 
   0.17.0rc1 - 14 Dec 2015
-
 * improve documentation, examples
 * wheels for Python 3.5 on Windows
 * accept `logging.isEnabledFor` to control logging
 
   0.16.0 - 5 July 2015
-
 * upstage the release candidate version
 
   0.16.0rc1 - 26 May 2015
-
 * significant rewrite of the resolution engine:
 * improve speed of recursive literal. Hashtag_optimized solved under 6 seconds
 * improve speed of aggregate functions and clauses with negation, by reusing memoized intermediate results
@@ -61,15 +54,12 @@ In bold : changes that may impact existing pyDatalog programs
 * fix issue [#14(https://bitbucket.org/pcarbonn/pydatalog/issue/14/incorrect-result-in-special-case-of-a) : incorrect result in special case of a literal with 2 identical variables
 
   0.15.2 - 1 Mar 2015
-
 * fix [issue #13(https://bitbucket.org/pcarbonn/pydatalog/issue/13/pypi-package-wrong-case-in-setuppy) : PyPi package wrong case in setup.py
 
   0.15.0 - 14 December 2014
-
 * reset a predicate, for use in interactive consoles : `p(X) <= None`
 
   0.15.0c1 - 5 October 2014
-
 * add .`sort()` for in-line queries
 * improve performance by compiling the resolution engine with [Cython(http://cython.org/)
 * [issue #12(https://bitbucket.org/pcarbonn/pydatalog/issue/12/please-stop-printing-version-on-import) : don't show version number on `import pyDatalog`
@@ -80,7 +70,6 @@ In bold : changes that may impact existing pyDatalog programs
 * add `mean_` and `linear regression_` aggregate function
 
   0.14.6 - 19 August 2014
-
 * Several fixes, including:
 * [issue #4(https://bitbucket.org/pcarbonn/pydatalog/issue/4/variables-leak-information-when-used-in) : max_ aggregate function had side effects on other clauses
 * [issue #6(https://bitbucket.org/pcarbonn/pydatalog/issue/6/evaluation-of-body-not-short-circuit) : exceptions were raised in expressions that should not be evaluated
@@ -89,13 +78,11 @@ In bold : changes that may impact existing pyDatalog programs
 * various code, performance and documentation improvements
 
   0.14.5 - 23 March 2014
-
 * added support for unicode
 * `rank, running_sum`now use `group_by` instead of `for_each`. Improved speed of aggregation
 * literals can now have keyword arguments (e.g. `parent(of=X, is_=Y) `)
 
   0.14.1 - 23 February 2014
-
 * hot fixes :
 * fix the plan of resolution of functional clauses, so that the first, most general rule is always evaluated last
 * fix initialization bug in Logic()
@@ -106,7 +93,6 @@ In bold : changes that may impact existing pyDatalog programs
 * illustrate how to interact with users in the tutorial
 
   0.14.0 - 27 December 2013
-
 * support for calls to standard library in expressions (with bound variables)
 * make queries thread-safe
 * support for expert systems, throughordered evaluation of the clauses defining a function (resolution stops after the first match)
@@ -122,7 +108,6 @@ In bold : changes that may impact existing pyDatalog programs
 * add `format_` atom
 
   0.13.0 - 17 April 2013 ([Documentation](https://sites.google.com/site/pydatalog/reference/reference-0-13))
-
 * support for SQLAlchemy 8.0
 * support for (nested) list data structure:
 * unification of a variable to a nested list
@@ -156,7 +141,6 @@ In bold : changes that may impact existing pyDatalog programs
 * simplify code, improve documentation of source code (see doc.py)
 
   0.12.0 - 3 Januay 2013 ([documentation](https://sites.google.com/site/pydatalog/reference/reference-0-12))
-
 * add pyDatalog.create_atoms() to support unprefixed inline queries and clauses
 * use the `_` prefix for `_len, _sum, _min, _max` to avoid name conflict with Python
 * use `._in` and `._not_in` (instead of `in `and `not in`) to avoid name conflict with Python
@@ -164,7 +148,6 @@ In bold : changes that may impact existing pyDatalog programs
 * various refactoring and bug fixes
 
   0.11.2 - 2 Novembre 2012 ([documentation](https://sites.google.com/site/pydatalog/reference/reference-0-11-2))
-
 * add example for mongoDB support
 * fix issue with unreferenced pyDatalog.Mixin instances, by running garbage collector before accessing them
 * fix "subscript out of range" error with some in-line conjunctive queries
@@ -252,7 +235,6 @@ Other:
 * improved solution to the 8-queens problem
 
   8.1 - 24 July 2012 ([Documentation](https://sites.google.com/site/pydatalog/roadmap-and-change/documentation-of-version-81))
-
 * add hook for other database connectors
 * print Datalog error nicely
 * fix rare "string indices must be integers, not Symbol" error
@@ -262,8 +244,7 @@ Other:
 
   0.8.0 - 16 July 2012
 
-    allow function within expressions; support direct formula :`a[X] == b[X]2`
-
+  allow function within expressions; support direct formula :`a[X] == b[X]2`
 * support 'X in range(n)' literals
 * improve documentation
 * interactive datalog console
@@ -272,7 +253,6 @@ Other:
 * simplify code by eliminating lua engine
 
   0.7.0 - 10 July 2012
-
 * support of function, i.e. predicate with unicity (e.g. `father[x] == v` is equivalent to father(x,v) with unicity per x)
 * support for aggregation predicate (len, sum, concat, min, max)
 * properly handle python queries with repeated variables (`Employee.manager(X,X)`)
@@ -299,7 +279,6 @@ Other:
 * go beyond 4 operators in expressions : use lambda
 
   0.3.2 - 29 Apr 2012:
-
 * index the database of facts for improved performance
 * make pyDatalog.clear() work
 
@@ -316,7 +295,6 @@ Other:
 * propose default datalog engine in the decorator, and add pyDatalog.ask(code),
 
   0.1.1 : 13 Apr 2012
-
 * add links to download in Pypi
 
 [0.1.0(https://bitbucket.org/pcarbonn/pydatalog/wiki/Documentation%20for%200.1) : first release on Pypi ([Documentation(https://bitbucket.org/pcarbonn/pydatalog/wiki/Documentation%20for%200.1))
