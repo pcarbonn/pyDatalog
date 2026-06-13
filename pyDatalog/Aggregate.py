@@ -34,26 +34,34 @@ USA
 from itertools import count
 import collections
 import concurrent.futures
+from typing import Any, Optional, List, Union, Tuple as TypingTuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .pyParser import Function
+
 try:
     import statistics
     mean = statistics.mean
-except:
-    def mean(aList):
+except ImportError:
+    def _fallback_mean(aList):
         return sum(aList) / len(aList)
+    mean = _fallback_mean
 
 from . import util
 from . import pyEngine
 from .pyParser import Expression, Literal, Term, Operation, add_clause
 
-class Aggregate(object):
+class Aggregate:
     """
     represents a generic aggregation_method(X, for_each=Y, order_by=Z, sep=sep)
     e.g. 'sum(Y,key=Z)' in '(a[X]==sum(Y,key=Z))'
     pyEngine calls sort_result(), key(), reset(), add() and fact() to compute the aggregate
     """
     counter = count(1)
+    required_kw = tuple()
 
     def __init__(self, Y=None, group_by=tuple(), for_each=tuple(), order_by=tuple(), sep=None):
+        self._pyD_name: Any
         # convert for_each=Z to for_each=(Z,)
         self.Y = Y
         self.group_by = (group_by,) if isinstance(group_by, Expression) else tuple(group_by)
@@ -82,11 +90,11 @@ class Aggregate(object):
         self.sep_arity = 1 if sep is not None else 0
 
     @property
-    def arity(self):
+    def arity(self) -> int:
         """returns the arity of the aggregate function, not of the full predicate """
         return len(self.args)
 
-    def make_literal_for(self, function, operator):
+    def make_literal_for(self, function: "Function", operator: str):
         if operator != '==':
             raise util.DatalogError("Aggregate operator can only be used with equality.", None, None)
 
@@ -101,7 +109,7 @@ class Aggregate(object):
 
         # 2 create clause to resolve it
 
-        terms[-1:-1] = self.args # insert the aggregate arguments before the result
+        terms[-1:-1] = self.args  # type: ignore # insert the aggregate arguments before the result
 
         # determine list of variables, without duplication
         variables, new_terms = {}, []
@@ -137,27 +145,39 @@ class Aggregate(object):
             row[self.index_first_arg:-1] = [""] * (len(row)-self.index_first_arg-1)
             subgoal.fact_candidate(class0, row)
 
+    def add(self, row: Any) -> Optional[List[Any]]:
+        """ Subclasses should override this to process a row.
+        
+        - Standard Aggregates (e.g. Sum, Min): Accumulate state internally and return None.
+        - Running Aggregates (e.g. Rank, Running_sum): Calculate a value per row and return the modified row immediately.
+        """
+        pass
+
     def _evaluate_group(self, v):
         """ Evaluates a group on this specific instance, modifying its state. """
+        if not v:
+            return []
         # sort group according to the aggregate argument's order_by, allowing for _pyD_negated
         for i in self.reversed_order_by:
             v.sort(key=lambda literal, i=i, self=self: literal[i].id,
                 reverse = self.reverse_order[i])
-        
+
         self.reset()
         generated_rows = []
+        r = None
         for r in v:
             row = self.add(r)
             if row is not None:
                 generated_rows.append(row)
-        row = self.fact(r)
-        if row is not None:
-            generated_rows.append(row)
+        if r is not None:
+            row = self.fact(r)
+            if row is not None:
+                generated_rows.append(row)
         return generated_rows
 
     def _process_group_concurrently(self, v):
         """ Creates a thread-local instance and evaluates the group concurrently. """
-        # Cannot use copy.copy because pyDatalog Terms override __getattr__ 
+        # Cannot use copy.copy because pyDatalog Terms override __getattr__
         # to return logical Operations, which causes infinite recursion.
         local_agg = self.__class__.__new__(self.__class__)
         local_agg.__dict__.update(self.__dict__)
@@ -196,12 +216,17 @@ class Aggregate(object):
         self._value = 0
 
     @property
-    def value(self):
+    def value(self) -> Union[int, float, str, TypingTuple[Any, ...], None]:
         """ by default, value is _value"""
         return self._value
 
-    def fact(self, row):
-        """ returns the terms of an aggregated fact"""
+    def fact(self, row: TypingTuple[Any, ...]) -> Optional[List[Any]]:
+        """ Returns the final aggregated fact terms at the end of group execution.
+        
+        For standard aggregates, this appends the accumulated value to the last row and returns it.
+        For running aggregates (which emit rows during add()), this should be overridden to return None
+        to prevent duplicate final rows.
+        """
         return list(row) + [self.value]
 
 class Sum(Aggregate):
@@ -211,9 +236,9 @@ class Sum(Aggregate):
     def add(self, row):
         self._value += row[self.index_value].id
 
-class Len(Aggregate, Operation):
+class Len(Aggregate, Operation):  # type: ignore
     """ represents len_(X) : a simple or aggregate operation"""
-    required_kw = ('Y')
+    required_kw = ('Y',)
 
     def __init__(self, Y):
         Aggregate.__init__(self, Y)
@@ -233,7 +258,7 @@ class Tuple(Aggregate):
         self._value.append(row[self.index_value].id)
 
     @property
-    def value(self):
+    def value(self) -> Union[TypingTuple[Any, ...], float, str]:
         return tuple(self._value)
 
 class Mean(Tuple):
@@ -241,7 +266,7 @@ class Mean(Tuple):
     required_kw = ('Y', 'for_each')
 
     @property
-    def value(self):
+    def value(self) -> float:
         return mean(self._value)
 
 class Linear_regression(Aggregate):
@@ -249,21 +274,21 @@ class Linear_regression(Aggregate):
     required_kw = ('Y', 'for_each')
 
     def reset(self):
-        self.X = []
-        self.Y = []
+        self.X_values = []
+        self.Y_values = []
 
     def add(self, row):
-        self.X.append(row[self.slice_for_each[0]].id)
-        self.Y.append(row[self.index_value].id)
+        self.X_values.append(row[self.slice_for_each[0]].id)
+        self.Y_values.append(row[self.index_value].id)
 
     @property
-    def value(self):
-        length = len(self.X)
-        sum_x = sum(self.X)
-        sum_y = sum(self.Y)
+    def value(self) -> TypingTuple[float, float]:
+        length = len(self.X_values)
+        sum_x = sum(self.X_values)
+        sum_y = sum(self.Y_values)
 
-        sum_x_squared = sum(map(lambda a: a * a, self.X))
-        covariance = sum(self.X[i] * self.Y[i] for i in range(length))
+        sum_x_squared = sum(map(lambda a: a * a, self.X_values))
+        covariance = sum(self.X_values[i] * self.Y_values[i] for i in range(length))
 
         a = (covariance - (sum_x * sum_y) / length) / (sum_x_squared - ((sum_x ** 2) / length))
         b = (sum_y - a * sum_x) / length
@@ -274,7 +299,9 @@ class Concat(Tuple):
     required_kw = ('Y', 'order_by', 'sep')
 
     @property
-    def value(self):
+    def value(self) -> str:
+        if self.sep is None:
+            return ""
         return self.sep.join(self._value)
 
 class Min(Aggregate):
@@ -303,7 +330,10 @@ class Rank(Aggregate):
         self._value += 1
         return list(row) + [self._value-1]
 
-    def fact(self, k):
+    def fact(self, row: TypingTuple[Any, ...]) -> Optional[List[Any]]:
+        """ Returns None to prevent emitting a duplicate final row, since
+        Rank (a running aggregate) already emitted all rows during add().
+        """
         return None
 
 class Running_sum(Rank):

@@ -21,7 +21,6 @@ USA
 
 """
 
-import cProfile
 from decimal import Decimal
 import math
 import re
@@ -1093,7 +1092,7 @@ def test():
     from sqlalchemy import create_engine
     from sqlalchemy import Column, Integer, String, ForeignKey
     from sqlalchemy.ext.declarative import declarative_base
-    from sqlalchemy.orm import sessionmaker, relationship
+    from sqlalchemy.orm import sessionmaker
 
     engine = create_engine('sqlite:///:memory:', echo=False) # create database in memory
     Session = sessionmaker(bind=engine)

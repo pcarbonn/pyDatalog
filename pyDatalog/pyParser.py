@@ -61,7 +61,7 @@ import re
 import string
 import sys
 import threading
-from typing import Any, Callable, List, Tuple, Union, Optional
+from typing import Any, List, Tuple, Union
 
 BodyOrQuery = Union['Query', 'Body']
 ExpressionOrConstant = Union['Expression', int, float, str, bool, Tuple[Any, ...], List[Any], None]

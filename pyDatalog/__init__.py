@@ -1,5 +1,5 @@
 
-from . import version
+from . import version as version
 from . import Logic
     
 Logic = Logic.Logic # give easy access to the Logic class

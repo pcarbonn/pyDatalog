@@ -10,7 +10,7 @@ Below is a solution based on pyDatalog
 
 @author: pcarbonn
 '''
-from pyDatalog import pyDatalog, pyEngine
+from pyDatalog import pyDatalog
 import time
 
 @pyDatalog.program()

@@ -6,7 +6,6 @@ source :
     OrderedSet: http://code.activestate.com/recipes/576694/
 '''
 import sys
-import threading
 
 LAMBDA = lambda: None
 

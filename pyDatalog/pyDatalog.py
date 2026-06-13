@@ -49,9 +49,8 @@ classes for Python Mixin:
 """
 from collections import defaultdict
 import inspect
-import string
 import weakref
-from typing import Any, Callable, List, Tuple, Union, Optional, overload, TypeVar
+from typing import Any, Callable, List, Tuple, Union, Optional, overload
 
 from . import version
 from . import Logic

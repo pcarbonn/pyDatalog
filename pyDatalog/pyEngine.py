@@ -20,13 +20,12 @@ USA
 """
 
 """
-This file contains the port of the datalog engine of J. D. Ramsdell, 
+This file contains the port of the datalog engine of J. D. Ramsdell,
 from lua to python, with many enhancements.
 
 See also doc.py for additional source code documentation.
 """
 
-from collections import OrderedDict
 import gc
 import itertools
 import logging
@@ -35,6 +34,11 @@ import struct
 import threading
 import weakref
 from fractions import Fraction
+from typing import Any, Optional, Type, TYPE_CHECKING, Tuple
+
+if TYPE_CHECKING:
+    from .Logic import Logic as LogicClass
+    Logic: Type[LogicClass]
 
 from . import util
 try:
@@ -67,7 +71,7 @@ except ImportError:
             return result
         def __len__(self):
             return sum(len(s) for s in self._map.values())
-            
+
     class FactIndex(object):
         def __init__(self, arity):
             self._indices = [{} for _ in range(arity)]
@@ -91,9 +95,9 @@ Auto_print = False # True => automatically prints the result of a query
 Slow_motion = False # True => detail print of the stack of tasks at each step
 
 Python_resolvers = {} # dictionary  of python functions that can resolve a predicate
-Logic = None # place holder for Logic class from Logic module
+Logic = None # type: ignore # place holder for Logic class from Logic module
 
-# Keep a dictionary of classes with datalog capabilities.  
+# Keep a dictionary of classes with datalog capabilities.
 Class_dict = {}
 
 Logger = logging.getLogger(__name__)
@@ -106,17 +110,17 @@ def _canonicalize_float(atom):
     elif isinstance(Float_Precision, int):
         if atom == 0.0:
             return 0.0
-        
+
         # Convert decimal significant digits to binary mantissa bits (~3.32 bits per decimal digit)
         # For Float_Precision = 8, this keeps ~27 bits of the 52-bit mantissa.
         keep_bits = int(Float_Precision * 3.321928094887362)
         clear_bits = 52 - keep_bits
         if clear_bits <= 0:
             return atom
-            
+
         mask = (1 << 64) - 1 - ((1 << clear_bits) - 1)
         half = 1 << (clear_bits - 1)
-        
+
         # Binary round-to-nearest
         i = struct.unpack('>Q', struct.pack('>d', atom))[0]
         i += half
@@ -138,7 +142,7 @@ def Term_of(atom):
 
 class Term(object):
     # needed for Cython
-    pass
+    id: Any
 
 
 class Fresh_var(Term):
@@ -148,7 +152,7 @@ class Fresh_var(Term):
     def __init__(self):
         Fresh_var.tl.counter = Fresh_var.tl.counter +1
         self.id = ('f', Fresh_var.tl.counter) #id
-    
+
     def is_const(self):
         return False
     def get_tag(self, env): #id
@@ -164,7 +168,7 @@ class Fresh_var(Term):
             env[self.id] = res
             return res
         return self
-    
+
     def match(self, constant, env):
         if self.id not in env:
             env[self.id] = constant
@@ -173,7 +177,7 @@ class Fresh_var(Term):
             return env
         else: # dead code ?
             return None
-    
+
     def unify(self, term, env):
         if isinstance(term, Fresh_var):
             env[term.id] = self
@@ -184,7 +188,7 @@ class Fresh_var(Term):
         if isinstance(term, Operation):
             return None
 
-    def __str__(self): 
+    def __str__(self):
         return "variable_%s" % self.id[1]
     def equals_primitive(self, term, subgoal):
         """ by default, self==term fails """
@@ -197,7 +201,7 @@ class Var(Fresh_var):
     def __init__(self, name):
         self.id = ('f', name) #id
 
-    def __str__(self): 
+    def __str__(self):
         return self.id[1]
 
     def unify(self, term, env):
@@ -210,30 +214,30 @@ class Const(Term):
 
     def __init__(self, _id):
         self.id = _id
-    
+
     def is_const(self): # for backward compatibility with custom resolvers
         return True
 
     def get_tag(self, env): #id
         return self.id
-    
+
     def subst(self, env): #unify
         return self
     def shuffle(self, env): #shuffle
         return self
     def chase(self, env): #unify
         return self
-    
+
     def match(self, constant, env):
         return None
-    
+
     def unify(self, term, env):
         if isinstance(term, Fresh_var):
             env[term.id] = self
             return env
         return None
 
-    def __str__(self): 
+    def __str__(self):
         return "'%s'" % self.id
     def equals_primitive(self, term, subgoal):
         if self.id == term.id:          # Both terms are constant and equal.
@@ -255,7 +259,7 @@ class VarTuple(Term):
 
     def __len__(self):
         return len(self._id)
-    
+
     def get_tag(self, env): #id
         if self.is_constant: # can use lazy property only for constants
             return self.id
@@ -264,7 +268,7 @@ class VarTuple(Term):
         for t in self._id:
             result.append(t.get_tag(env))
         return tuple(result)
-    
+
     def subst(self, env): #unify
         if self.is_constant: # can use lazy property only for constants
             return self
@@ -290,7 +294,7 @@ class VarTuple(Term):
         for t in self._id:
             result.append(t.chase(env))
         return VarTuple(result)
-    
+
     # def match is not needed here
 
     def unify(self, term, env):
@@ -310,7 +314,7 @@ class VarTuple(Term):
         if isinstance(term, Operation):
             return None
 
-    def __str__(self): 
+    def __str__(self):
         return "'%s'" % str([str(e) for e in self.id])
     def equals_primitive(self, term, subgoal):
         if self.id == term.id:          # Both terms are constant and equal.
@@ -328,13 +332,13 @@ class Operation(Term):
         self.rhs = rhs
         self.is_constant = False
         self.id = (self.lhs.id, self.operator_id, self.rhs.id) #id
-    
+
     def is_const(self): # for backward compatibility with custom resolvers
         return False
-    
+
     def get_tag(self, env): #id
         return (self.lhs.get_tag(env), self.operator_id, self.rhs.get_tag(env))
-    
+
     def subst(self, env): #unify
         lhs = self.lhs.subst(env)
         rhs = self.rhs.subst(env)
@@ -367,7 +371,7 @@ class Operation(Term):
                         return Term_of(lhs.id.format(*(rhs.id)))
                     else:
                         return Term_of(lhs.id % rhs.id)
-                elif isinstance(self.operator, type(util.LAMBDA)):
+                elif callable(self.operator):
                     return Term_of(self.operator(*(rhs.id)))
                 elif self.operator == '.':
                     v = lhs.id
@@ -380,17 +384,17 @@ class Operation(Term):
             return Operation(lhs, self.operator, rhs)
         except Exception as e:
             return Term_of(e)
-            
+
     def shuffle(self, env): #shuffle
         return Operation(self.lhs.shuffle(env), self.operator, self.rhs.shuffle(env))
 
     def chase(self, env): #unify
         return Operation(self.lhs.chase(env), self.operator, self.rhs.chase(env))
-    
+
     def unify(self, term, env):
         return None
-        
-    def __str__(self): 
+
+    def __str__(self):
         return "(%s%s%s)" % (str(self.lhs), str(self.operator), str(self.rhs))
 
 
@@ -399,21 +403,36 @@ class Interned(object):
     notFound = object()
     def __eq__(self, other):
         return self is other
-    def __hash__(self): 
+    def __hash__(self):
         return id(self)
     def __ne__(self, other):
         return self is not other
 
 
 class Pred(Interned):
-    """ A predicate symbol has a name, an arity, and a database table.  
+    """ A predicate symbol has a name, an arity, and a database table.
         It can also have a function used to implement a primitive."""
+    id: str                 # Unique registry identifier, formatted as 'name/arity'
+    name: str               # The name of the predicate
+    arity: int              # The total number of arguments (including key and value)
+    prearity: Optional[int] # The input arity (number of input keys, excluding output value for functions)
+    prefix: str             # Class prefix name for object-oriented attributes
+    suffix: str             # The attribute name suffix
+    comparison: str         # The comparison operator (e.g. '<', '==')
+    db: FactDb              # Database table storing all clauses and facts of this predicate
+    clauses: FactDb         # Database containing only the clauses (rules) of the predicate
+    index: FactIndex        # Indices mapping terms to facts for faster query lookup
+    prim: Optional[Any]     # Optional python function that implements the primitive logic
+    expression: Optional[Any] # Optional parsed logical expression associated with the predicate
+    recursive: bool         # True if the predicate's clauses contain recursive references to itself
+    base_pred: "Pred"       # Base predicate reference for negated literals (used for ~predicate)
+
     def __new__(cls, pred_name, arity):
         assert isinstance(pred_name, util.string_types)
         _id = '%s/%i' % (pred_name, arity)
         registry = Logic.tl.logic.Pred_registry
         o = registry.get(_id, Interned.notFound)
-        if o is Interned.notFound: 
+        if o is Interned.notFound:
             o = object.__new__(cls) # o is the ref that keeps it alive
             o.id = _id
             o.name = pred_name
@@ -433,7 +452,7 @@ class Pred(Interned):
             o.recursive = False
             registry[_id] = o
         return o
-    
+
     @classmethod
     def is_known(cls, pred_id):
         #TODO look at _pyD_ methods in classes, to detect more
@@ -443,35 +462,36 @@ class Pred(Interned):
                 rebased = pred_id.replace(prefix, cls.__name__, 1) # only the first occurrence
                 if rebased in Logic.tl.logic.Db:
                     return True
-        return False        
-    
+        return False
+
     def _class(self):
         """determine the python class for a prefixed predicate (and caches it)"""
         # cannot be done at initialization, because the global Class_dict is not filled in yet
-        if not hasattr(self, '_cls'): 
+        if not hasattr(self, '_cls'):
             self._cls = Class_dict.get(self.prefix, '') if self.prefix else None
         return self._cls
-    
+
     def parent_classes(self):
         " iterator of the parent classes that have pyDatalog capabilities"
-        if self._class():
-            for cls in self._cls.__mro__:
-                if cls.__name__ in Class_dict and cls.__name__ not in ('Mixin', 'object'):
-                    yield cls
+        cls = self._class()
+        if cls:
+            for c in cls.__mro__:
+                if c.__name__ in Class_dict and c.__name__ not in ('Mixin', 'object'):
+                    yield c
         else:
             yield None
-    
+
     def reset_clauses(self):
         """ clears the database of clauses for the predicate """
         for clause in self.clauses.values():
             retract(clause)
-    
-    def __str__(self): 
+
+    def __str__(self):
         return "%s()" % self.name
 
 
 class Literal(object):
-    """ A literal is a predicate and a sequence of terms, 
+    """ A literal is a predicate and a sequence of terms,
         the number of which must match the predicate's arity.
     """
     __slots__ = ['terms', 'pred', 'id', 'tag', 'aggregate']
@@ -488,32 +508,33 @@ class Literal(object):
         else:
             self.pred = pred
             # TODO assert self.pred.prearity == (prearity or len(terms)), "Error: Incorrect mix of predicates and functions : %s" % str(self)
-    
+
     def _renamed(self, new_name):
         _id = '%s/%i' % (new_name, len(self.terms))
         pred= Logic.tl.logic.Pred_registry.get(_id, new_name)
         return Literal(pred, list(self.terms), prearity=self.pred.prearity, aggregate=self.aggregate)
-        
-    def rebased(self, parent_class): 
+
+    def rebased(self, parent_class):
         """ returns a literal prefixed by parent class """
         pred = self.pred
-        if not parent_class or not pred._class() or parent_class == pred._class(): 
+        cls = pred._class()
+        if not parent_class or not cls or parent_class == cls:
             return self
-        return self._renamed(re.sub('^((~)?)'+pred._class().__name__+'.', r'\1'+parent_class.__name__+'.', pred.name))
-    
-    def equalized(self): 
+        return self._renamed(re.sub('^((~)?)'+cls.__name__+'.', r'\1'+parent_class.__name__+'.', pred.name))
+
+    def equalized(self):
         """ returns a new literal with '==' instead of comparison """
         return self._renamed(self.pred.name.replace(self.pred.comparison, '=='))
-    
+
     def subst_first(self, env): #prefixed
         """ substitute the first term of prefixed literal, using env """
         if self.pred.prefix:
             self.terms[0] = self.terms[0].subst(env)
-                
-    def __str__(self):
-        return "%s(%s)" % (self.pred.name, ','.join([str(term).replace("'_pyD_class'", '*') for term in self.terms])) 
 
-    def get_id(self): #id
+    def __str__(self):
+        return "%s(%s)" % (self.pred.name, ','.join([str(term).replace("'_pyD_class'", '*') for term in self.terms]))
+
+    def get_id(self) -> Tuple[Any, ...]: #id
         """ The id's encoding ensures that two literals are structurally the
             same if they have the same id.  """
         if not self.id: # cached
@@ -522,12 +543,15 @@ class Literal(object):
             for term in self.terms:
                 result.append(term.id)
             self.id = tuple(result)
-        return self.id        
+        return self.id
 
-    def get_fact_id(self): #id
+    def get_key_id(self) -> Tuple[Any, ...]: #id
         """ The id of a known fact is limited by its prearity
             Prearity is used to ensure unicity of results of functions like pred[2]==1 """
-        return self.get_id()[:1+self.pred.prearity]
+        prearity = self.pred.prearity
+        if prearity is None:
+            prearity = len(self.terms)
+        return self.get_id()[:1+prearity]
 
     def get_tag(self): #id
         """ the tag is used as a key by the subgoal table """
@@ -538,14 +562,14 @@ class Literal(object):
             for term in self.terms:
                 result.append(term.get_tag(env))
             self.tag = tuple(result)
-        return self.tag       
+        return self.tag
 
     def subst(self, env): #unify
         if not env: return self
         #Cython equivalent for : return Literal(self.pred, [term.subst(env) for term in self.terms], aggregate=self.aggregate)
         result = []
         for term in self.terms:
-            result.append(term if isinstance(term, Const) else term.subst(env))    
+            result.append(term if isinstance(term, Const) else term.subst(env))
         return Literal(self.pred, result, aggregate=self.aggregate)
 
     def shuffle(self, env): #shuffle
@@ -583,15 +607,22 @@ class Literal(object):
         saved_environment = Ts.Tasks, Ts.Recursive_Tasks, Ts.Recursive, Ts.Subgoals, Ts.Goal
         Ts.Tasks, Ts.Recursive_Tasks, Ts.Subgoals, Ts.Goal = TaskList(), TaskDeque(), {}, Subgoal(self)
         Ts.gc_uncollected, Ts.Recursive = True, False
-        todo, arg = (SEARCH, (Ts.Goal, ))
-        while todo:
-            todo, arg = todo(*arg)
-    
+        todo: Any = SEARCH
+        arg = (Ts.Goal, )
+        while todo is not None:
+            res = todo(*arg)
+            if res is None:
+                break
+            todo, arg = res
+
         if Ts.Goal.facts is True:
             return True
-        result = [ tuple(term.id for term in literal.terms) for literal in list(Ts.Goal.facts.values())]
+        if isinstance(Ts.Goal.facts, dict):
+            result = [ tuple(term.id for term in literal.terms) for literal in list(Ts.Goal.facts.values())]
+        else:
+            result = []
         Ts.Tasks, Ts.Recursive_Tasks, Ts.Recursive, Ts.Subgoals, Ts.Goal = saved_environment
-        return result    
+        return result
 
 
 class Clause(object):
@@ -604,13 +635,13 @@ class Clause(object):
         self.head = head
         self.body = body
         self.id = None
-    def __str__(self):  
+    def __str__(self):
         return "%s <= %s" % (str(self.head), '&'.join(str(literal) for literal in self.body))
-    def __repr__(self):  
+    def __repr__(self):
         return ("%s <= %s" % (str(self.head), '&'.join(str(literal) for literal in self.body)))[:50]
     def __neg__(self):
         """retract clause"""
-        retract(self) 
+        retract(self)
 
     def get_id(self): #id
         """ The id's encoding ensures that two clauses are structurally equal
@@ -618,11 +649,11 @@ class Clause(object):
             clause database. """
         if self.id is None: # cached
             if not self.body: #if it is a fact
-                self.id = (self.head.get_fact_id(),)
+                self.id = (self.head.get_key_id(),)
             else:
                 self.id = (self.head.get_id(),) + tuple(bodi.get_id() for bodi in self.body)
         return self.id
-    
+
     def subst(self, env, parent_class=None):
         """ apply the env mapping and rebase to parent_class, if any """
         if not env and not parent_class: return self
@@ -631,7 +662,7 @@ class Clause(object):
                            [bodi.subst(env) for bodi in self.body])
         return Clause(self.head.subst(env).rebased(parent_class),
                         [bodi.subst(env).rebased(parent_class) for bodi in self.body])
-    
+
     def rename(self):
         """ returns the clause with fresh variables """
         env = {}
@@ -654,7 +685,7 @@ def add_class(cls, name):
 
 # DATABASE  #####################################################
 
-# The database stores predicates that contain clauses.  
+# The database stores predicates that contain clauses.
 
 def insert(pred):
     Logic.tl.logic.Db[pred.id] = pred
@@ -664,10 +695,10 @@ def insert(pred):
 def remove(pred):
     if pred.id in Logic.tl.logic.Pred_registry:
         del Logic.tl.logic.Pred_registry[pred.id]
-    if pred.id in Logic.tl.logic.Db: 
+    if pred.id in Logic.tl.logic.Db:
         del Logic.tl.logic.Db[pred.id]
     return pred
-    
+
 def assert_(clause):
     """ Add a safe clause to the database """
     pred = clause.head.pred
@@ -694,27 +725,27 @@ def retract(clause):
     """ retract a clause from the database"""
     pred = clause.head.pred
     id_ = clause.get_id()
-    
+
     candidates = pred.db.get_candidates(hash(id_))
     exact_clause = None
     for c in candidates:
         if c.get_id() == id_:
             exact_clause = c
             break
-            
-    if exact_clause is not None: 
+
+    if exact_clause is not None:
         if not exact_clause.body: # if it is a fact, update indexes
             for i, term in enumerate(exact_clause.head.terms):
                 pred.index.remove(i, hash(term.id), exact_clause)
         else:
             pred.clauses.remove(hash(id_), exact_clause)
         pred.db.remove(hash(id_), exact_clause)
-        
+
     # delete it completely if it's a temporary query predicate
     if pred.name.startswith('_pyD_query') and len(pred.db) == 0 and pred.prim == None:
         remove(pred)
     return clause
-    
+
 def relevant_clauses(literal):
     """ returns matching clauses for a literal query, using index """
     result = None
@@ -724,14 +755,14 @@ def relevant_clauses(literal):
             facts = {c for c in candidates if c.head.terms[i].id == term.id}
             result = facts if result is None else result.intersection(facts)
     if result is None: # no constants found in literal, thus could not filter literal.pred.deb
-        for v in literal.pred.db.values(): 
+        for v in literal.pred.db.values():
             yield v
     else:
-        for v in literal.pred.clauses.values(): 
+        for v in literal.pred.clauses.values():
             yield v
-        for v in result: 
+        for v in result:
             yield v
-    
+
 ################# Subgoals ###############################
 
 """
@@ -743,9 +774,9 @@ important reference is "Tabled Evaluation with Delaying for General
 Logic Programs", Chen, W., and Warren, D. S., J. ACM, Vol. 43, No. 1,
 Jan. 1996, pp. 20-74.
 
-It should be noted that a simplified version of the algorithm of 
-"Efficient top-down computation" is implemented : negations are  
-supported with another algorithm. 
+It should be noted that a simplified version of the algorithm of
+"Efficient top-down computation" is implemented : negations are
+supported with another algorithm.
 """
 
 class Subgoal(object):
@@ -761,23 +792,26 @@ class Subgoal(object):
         self.recursive = literal.pred.recursive
         self.tasks = TaskDeque() if self.recursive else TaskList()
         self.clauses = []
-        # subgoal is done when a partial literal is true 
+        # subgoal is done when a partial literal is true
         # or when one fact is found for a function of constants
         self.is_done = False
         self.on_completion_ = []
-    
+
     def __repr__(self):
         return str(self.literal)
-    
+
     def search(self):
-        """ 
-        Search for derivations of the literal associated with this subgoal 
+        """
+        Search for derivations of the literal associated with this subgoal
         aka SLG_SUBGOAL in the reference article
         """
+        # literal0 is the original query literal associated with this subgoal
         literal0 = self.literal
+        # literal represents the rebased variant of literal0 for each class in the class hierarchy loop
+        literal = literal0
         class0 = literal0.pred._class()
         terms = literal0.terms
-        
+
         if class0 and terms[1].is_const() and terms[1].id is None: return self.next_step()
         if hasattr(literal0.pred, 'base_pred'): # this is a negated literal
             if Logging and Logger.isEnabledFor(logging.DEBUG):
@@ -785,7 +819,7 @@ class Subgoal(object):
             base_literal = Literal(literal0.pred.base_pred, terms)
             self.complete(base_literal)
             return self.next_step()
-        
+
         # Check if the literal represents a function query where the value is bound (constant)
         is_function = (literal0.pred.prearity is not None) and (literal0.pred.prearity < len(terms))
         if is_function and literal0.pred.comparison == "==" and terms[-1].is_const():
@@ -795,7 +829,7 @@ class Subgoal(object):
             terms1[-1] = Y1
             literal1 = Literal(literal0.pred, terms1, prearity=literal0.pred.prearity)
             literal2 = Literal("==", [Y1, terms[-1]])
-            
+
             clause = Clause(literal0, [literal1, literal2])
             renamed = clause.rename()
             env = literal0.unify(renamed.head)
@@ -805,10 +839,10 @@ class Subgoal(object):
                     Logger.debug("pyDatalog will use clause for bound function value: %s" % renamed)
                 self.schedule((ADD_CLAUSE, (self, renamed)))
             return self.next_step()
-        
+
         for _class in literal0.pred.parent_classes():
             literal = literal0.rebased(_class)
-            
+
             if Python_resolvers:
                 resolver = literal.pred.id if literal.pred.id in Python_resolvers \
                         else literal.pred.id.replace(r'/', str(literal.pred.arity)+r"/")
@@ -818,18 +852,18 @@ class Subgoal(object):
                     for result in Python_resolvers[resolver](*terms):
                         self.fact_candidate(class0, result)
                     return self.next_step()
-            if _class: 
+            if _class:
                 # TODO add special method for custom comparison
                 method_name = '_pyD_%s%i' % (literal.pred.suffix, int(literal.pred.arity - 1)) #prefixed
                 if literal.pred.suffix and method_name in _class.__dict__:
                     if Logging and Logger.isEnabledFor(logging.DEBUG):
                         Logger.debug("pyDatalog uses class resolvers for %s" % literal)
-                    for result in getattr(_class, method_name)(*(terms[1:])): 
+                    for result in getattr(_class, method_name)(*(terms[1:])):
                         self.fact_candidate(class0, (terms[0],) + result)
                     return self.next_step()
-                if '_pyD_query' in _class.__dict__:        
+                if '_pyD_query' in _class.__dict__:
                     try: # call class._pyD_query
-                        if Logic.tl.logic.gc_uncollected and not _class.has_SQLAlchemy: 
+                        if Logic.tl.logic.gc_uncollected and not _class.has_SQLAlchemy:
                             gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
                             Logic.tl.logic.gc_uncollected = False
                         results = list(_class._pyD_query(literal.pred.name, terms[1:]))
@@ -883,10 +917,10 @@ class Subgoal(object):
                             Logger.debug("pyDatalog will use clause for comparison: %s" % renamed)
                         self.schedule((ADD_CLAUSE, (self, renamed)))
                     return self.next_step()
-                
+
         if class0: # a.p[X]==Y, a.p[X]<y, to access instance attributes
-            try: 
-                if Logic.tl.logic.gc_uncollected and not class0.has_SQLAlchemy: 
+            try:
+                if Logic.tl.logic.gc_uncollected and not class0.has_SQLAlchemy:
                     gc.collect() # to make sure pyDatalog.metaMixin.__refs__[cls] is correct
                     Logic.tl.logic.gc_uncollected = False
                 results = tuple(class0.pyDatalog_search(literal))
@@ -911,10 +945,10 @@ class Subgoal(object):
             elif literal.pred.comparison == "==" and not terms[2].is_const():
                 self.fact_candidate(class0, (terms[0], terms[1], v))
             else:
-                raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
+                raise util.DatalogError("Error: right hand side of comparison must be bound: %s"
                                     % literal.pred.id, None, None)
             return self.next_step()
-    
+
         raise AttributeError("Predicate without definition (or error in resolver): %s" % literal.pred.id)
 
 
@@ -930,10 +964,10 @@ class Subgoal(object):
         else:
             self.rule(clause, clause.body[0])
         return self.next_step()
-    
+
     def fact(self, literal):
-        """ 
-        Store a derived fact, and inform all waiters of the fact too. 
+        """
+        Store a derived fact, and inform all waiters of the fact too.
         SLG_ANSWER in the reference article
         """
         all_const = True # Cython equivalent for all(t.is_const() for t in literal.terms)
@@ -951,10 +985,10 @@ class Subgoal(object):
                     resolvent = Clause(clause.head, clause.body[1:])
                     subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
                 self.waiters = []
-        elif self.facts is not True:
-            fact_id = literal.get_fact_id()
-            if not self.facts.get(fact_id):
-                self.facts[fact_id] = literal
+        elif isinstance(self.facts, dict):
+            key_id = literal.get_key_id()
+            if not self.facts.get(key_id):
+                self.facts[key_id] = literal
                 if Logging and Logger.isEnabledFor(logging.INFO):
                     Logger.info("New fact : %s" % str(literal))
                 for subgoal, clause in self.waiters:
@@ -963,7 +997,7 @@ class Subgoal(object):
                     # A new clause is generated that has a body with one less literal.
                     env = clause.body[0].unify(literal)
                     assert env != None
-                    resolvent = Clause(clause.head.subst(env), 
+                    resolvent = Clause(clause.head.subst(env),
                                        [bodi.subst(env) for bodi in clause.body[1:] ])
                     subgoal.schedule((ADD_CLAUSE, (subgoal, resolvent)))
                 if len(self.facts)==1:  # stop if one fact for a function of constant
@@ -1002,7 +1036,7 @@ class Subgoal(object):
                 for fact in sg.facts.values(): # catch-up with facts already established
                     env = clause.body[0].unify(fact)
                     assert env != None
-                    resolvent = Clause(clause.head.subst(env), 
+                    resolvent = Clause(clause.head.subst(env),
                                        [bodi.subst(env) for bodi in clause.body[1:] ])
                     self.schedule((ADD_CLAUSE, (self, resolvent)))
             if sg.tasks and sg != self: # no need to say that I'm searching myself
@@ -1013,12 +1047,12 @@ class Subgoal(object):
             sg = Subgoal(selected)
             sg.waiters.append((self, clause))
             self.schedule_search(sg)
-            
+
 
     # state machine of the engine :
     # A stack of thunks is used to avoid the stack overflow problem
     # by delaying the evaluation of some functions
-    
+
     def schedule(self, task):
         """ Schedule a task for later invocation """
         if Slow_motion: print("  Add : %s" % show(task))
@@ -1028,11 +1062,14 @@ class Subgoal(object):
                 sg = Logic.tl.logic.Subgoals.get(self.literal.get_tag())
                 if sg != None: # selected subgoal exists already
                     assert False
-                
+
             Logic.tl.logic.Subgoals[self.literal.get_tag()] = self
         if self.recursive:
             Logic.tl.logic.Recursive_Tasks.appendleft(task)
-            self.tasks.appendleft(task)
+            if isinstance(self.tasks, list):
+                self.tasks.insert(0, task)
+            else:
+                self.tasks.appendleft(task)
         else:
             Logic.tl.logic.Tasks.append(task)
             self.tasks.append(task)
@@ -1054,13 +1091,13 @@ class Subgoal(object):
             else:
                 self.schedule((SEARCHING, (self, subgoal ))) # last
                 subgoal.schedule((SEARCH, (subgoal, ))) # first
-            
+
     def next_step(self):
         """ returns the next step in the resolution """
         Ts = Logic.tl.logic
         # self.print_()
         if Slow_motion:
-            if self.facts is not True:
+            if isinstance(self.facts, dict):
                 print("Facts of:" + str(self))
                 for fact in self.facts:
                     print("  " + str(fact))
@@ -1078,7 +1115,7 @@ class Subgoal(object):
             for task in reversed(Ts.Recursive_Tasks):
                 print("  " + show(task))
             print(" ")
-            
+
         task = (None, None); tasks = None
         if not Ts.Goal.is_done:
             if Ts.Recursive:
@@ -1116,7 +1153,7 @@ class Subgoal(object):
             self.schedule((NEXT_CLAUSE, (self,)))
             return task
         return self.next_step()
-                
+
     def searching(self, subgoal):
         """ task used to relaunch searching of subgoal"""
         Ts = Logic.tl.logic
@@ -1149,7 +1186,7 @@ class Subgoal(object):
                 assert False #TODO needs a test case
             Ts.Recursive = subgoal.recursive
         return self.next_step()
-    
+
     def complete(self, literal, aggregate=None):
         """makes sure that subgoal is completed before calling post_thunk and resuming processing"""
         #TODO check for infinite loops
@@ -1161,7 +1198,7 @@ class Subgoal(object):
         else:
             self.schedule((SEARCHING, (self, subgoal)))
         subgoal.on_completion_.append( (ON_COMPLETION, (subgoal, self, aggregate)) )
-    
+
     def on_completion(self, parent, aggregate):
         if Logging and Logger.isEnabledFor(logging.DEBUG):
             Logger.debug('Processing aggregate or negation')
@@ -1173,7 +1210,7 @@ class Subgoal(object):
             if not self.facts:
                 parent.fact(True)
         return self.next_step()
-            
+
 # op codes are defined after class Subgoal is defined
 SEARCHING = Subgoal.searching
 SEARCH = Subgoal.search
@@ -1183,10 +1220,10 @@ ON_COMPLETION = Subgoal.on_completion
 
 def show(task):
     if task == (None, None):
-        return
-    result = {SEARCHING: "Searching", 
-              SEARCH: "Search", 
-              ADD_CLAUSE: "Add clause", 
+        return ""
+    result = {SEARCHING: "Searching",
+              SEARCH: "Search",
+              ADD_CLAUSE: "Add clause",
               NEXT_CLAUSE: "Next clause",
               ON_COMPLETION: "On completion"}
     result = "{:40s}.. : ".format(str(task[1][0])[:40]) + result[task[0]] + " " + str(task[1][1:])
@@ -1198,7 +1235,7 @@ def show(task):
 
 A primitive predicate, also called a built-in predicate, is
 implemented by code.  Assertions about a primitive predicate are
-ignored, as the code takes precedence.  
+ignored, as the code takes precedence.
 
 The behavior of a primitive predicate is defined by adding a function
 to the predicate's prim field.  The function takes a literal and a
@@ -1237,16 +1274,16 @@ def compare_primitive(literal, subgoal):
             if not y.is_const:
                 raise util.DatalogError("Error: right hand side must be bound: %s" % literal, None, None)
             for v in y.id:
-                literal = Literal(literal.pred.name, [Term_of(v), y])
-                subgoal.fact(literal)
+                new_literal = Literal(literal.pred.name, [Term_of(v), y])
+                subgoal.fact(new_literal)
         else:
-            raise util.DatalogError("Error: left hand side of comparison must be bound: %s" 
+            raise util.DatalogError("Error: left hand side of comparison must be bound: %s"
                                     % literal.pred.id, None, None)
     elif y.is_const():
         if compare(x.id, literal.pred.name, y.id):
             subgoal.fact(True)
     else:
-        raise util.DatalogError("Error: right hand side of comparison must be bound: %s" 
+        raise util.DatalogError("Error: right hand side of comparison must be bound: %s"
                                 % literal.pred.id, None, None)
 
 # generic comparison function

@@ -5,10 +5,8 @@ Created on 7 October 2013
 '''
 
 from pyDatalog import pyDatalog, Logic
-import copy
 import random
 import threading
-import time
 
 pyDatalog.create_symbols('N,X0,X1,X2,X3,X4,X5,X6,X7')
 pyDatalog.create_symbols('ok,queens, next_queen')
