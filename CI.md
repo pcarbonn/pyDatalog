@@ -16,7 +16,7 @@ Every time you push to any branch or open a pull request, GitHub Actions will:
 2. **Build Wheels**: Build C-extension optimized binary wheels (`.whl`) across three target platforms using `cibuildwheel`:
    - Linux (`ubuntu-latest`)
    - Windows (`windows-latest`)
-   - macOS (`macos-latest`)
+   
 
 *Note: In these default pushes, packages are **not** published to PyPI.*
 
@@ -29,7 +29,7 @@ Publishing to PyPI is automated and occurs only when a GitHub Release is publish
 ### How to Publish a New Version:
 
 1. **Update version number** in `pyproject.toml`.
-2. Run `uv lock`
+2. Run `unlock`
 3. Update CHANGELOG.md.
 4. **Push changes**: Commit and push the updated files to the default branch.
 5. Create a tag locally and remotely.
