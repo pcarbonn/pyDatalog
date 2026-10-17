@@ -31,6 +31,8 @@ uv add pyDatalog
 
 The official documentation, including tutorials and API references, is available at [pydatalog.readthedocs.io](https://pydatalog.readthedocs.io/).
 
+A free video course, [Learn Logic Programming in Python (pyDatalog): Full Course](https://www.youtube.com/playlist?list=PLW7MPKnnuA70), is also available on YouTube.
+
 ## Description
 
 **pyDatalog** adds the logic programming paradigm to Python's toolbox, in a pythonic way.
