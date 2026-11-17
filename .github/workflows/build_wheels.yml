@@ -3,6 +3,7 @@ name: Build
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -51,7 +52,7 @@ jobs:
     permissions:
       id-token: write  # Mandatory for PyPI OIDC Trusted Publishing
       contents: write  # Mandatory for uploading assets to the release
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: (github.event_name == 'release' && github.event.action == 'published') || github.event_name == 'workflow_dispatch'
     steps:
     - uses: actions/download-artifact@v8
       with:
