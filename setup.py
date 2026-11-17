@@ -59,6 +59,7 @@ def run_setup(with_cext):
 
     setup(
         name="pyDatalog",
+        python_requires=">=3.10",
         cmdclass={'build_ext': VeBuildExt},
         **kwargs
     )

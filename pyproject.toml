@@ -49,6 +49,6 @@ include = ["pyDatalog"]
 license-files = []
 
 [tool.cibuildwheel]
-skip = ["pp*"]
+skip = ["pp*", "cp38-*", "cp39-*"]
 build-verbosity = 1
-before-build = "{python} -m pip install --upgrade pip setuptools wheel"
+before-build = "pip install --upgrade pip setuptools wheel Cython"
