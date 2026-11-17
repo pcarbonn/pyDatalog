@@ -12,7 +12,7 @@ jobs:
     name: Make SDist and Pure Wheel
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0  # Optional, use if you use setuptools_scm
         submodules: true  # Optional, use if you have submodules
@@ -20,7 +20,7 @@ jobs:
     - name: Build SDist and Pure Wheel
       run: PYDATALOG_NO_C_EXT=1 pipx run build
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: cibuildwheel-sdist
         path: dist/*
@@ -33,12 +33,12 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.22.0
+        uses: pypa/cibuildwheel@v4.3.5
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cibuildwheel-wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
@@ -52,19 +52,19 @@ jobs:
       contents: write  # Mandatory for uploading assets to the release
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v8
       with:
         pattern: cibuildwheel-*
         path: dist
         merge-multiple: true
 
     - name: Upload to GitHub Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: dist/*
 
     - name: Set up uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
 
     - name: Publish to PyPI
       run: uv publish
