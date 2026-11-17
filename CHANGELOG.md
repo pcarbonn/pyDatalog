@@ -2,6 +2,13 @@
 
 In bold : changes that may impact existing pyDatalog programs
 
+### 0.22.5 - Nov 17, 2026
+
+Minimum python version:  3.10
+
+* resolve vulnerabilities reported by GitHub.
+* compile to C++ using latest Cython 3.3.1
+
 ### 0.22.4 - June 13, 2026
 
 * Fix "object is not subscriptable" error

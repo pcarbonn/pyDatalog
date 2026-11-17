@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
   make_sdist:
     name: Make SDist and Pure Wheel

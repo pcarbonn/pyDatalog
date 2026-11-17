@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyDatalog"
-version = "0.22.4"
+version = "0.22.5"
 description = "A pure-python implementation of Datalog, a truly declarative language derived from Prolog."
 readme = "README.md"
 authors = [
     { name = "Pierre Carbonnelle", email = "pierre.carbonnelle@gmail.com" }
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = []
 
 keywords = ["prolog", "logic programming", "database", "SQL", "data integration", "expert system", "AI"]
@@ -35,7 +35,7 @@ sqlalchemy = [
     "sqlalchemy>=2.0",
 ]
 mongo = [
-    "pymongo>=4.10.1",
+    "pymongo>=4.18.3",
 ]
 
 [project.urls]

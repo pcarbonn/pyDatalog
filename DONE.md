@@ -1,6 +1,41 @@
 (most recent first)
 
 
+# Security Hardening and Vulnerability Remediation
+
+## Problem Description
+GitHub Security (`https://github.com/pcarbonn/pyDatalog/security`) and dependency auditing (`pip-audit`) identified multiple security concerns:
+1. **7 Known CVEs in Pinned Dependencies**:
+   - `pymongo` was locked at `4.17.0`, affected by `CVE-2026-106435`, `PYSEC-2026-4294`, `PYSEC-2026-4295`, `PYSEC-2026-4296`, `PYSEC-2026-4297`.
+   - `dnspython` was locked at `2.8.0`, affected by `CVE-2026-114605` and `CVE-2026-128089`.
+2. **Legacy EOL Python Resolution**:
+   - `pyproject.toml` allowed Python 3.8 (`>=3.8`), which reached end-of-life and forced `uv.lock` to maintain resolutions for unpatched legacy library versions (`pymongo 4.10.1`, `dnspython 2.6.1`).
+3. **Missing Security Policy (`SECURITY.md`)**:
+   - No vulnerability disclosure policy or reporting guidance existed on GitHub.
+4. **Missing Automated Vulnerability Management & Code Scanning**:
+   - Dependabot and CodeQL static analysis were not configured for dependencies or GitHub Actions.
+5. **Workflow Permissions**:
+   - Workflows lacked top-level least-privilege token permissions (`permissions: contents: read`).
+
+## Fixes Applied
+1. **Updated Python and Dependency Constraints**:
+   - Set `requires-python = ">=3.10"` in `pyproject.toml`.
+   - Updated optional MongoDB dependency to `pymongo>=4.18.3` in `pyproject.toml`.
+2. **Upgraded Lockfile**:
+   - Ran `uv lock --upgrade` to resolve `pymongo` (to `4.20.0+`) and `dnspython` (to `2.9.2+`).
+   - Verified with `pip-audit`, confirming 0 vulnerabilities.
+3. **Created Security Policy (`.github/SECURITY.md`)**:
+   - Documented supported versions (`0.22.x` on Python 3.10+).
+   - Documented responsible disclosure procedure supporting GitHub Private Vulnerability Reporting as the primary channel and email as secondary fallback.
+   - Documented runtime threat model regarding `ask()` and `@pyDatalog.program` dynamic Python expression evaluation.
+4. **Added Dependabot Configuration (`.github/dependabot.yml`)**:
+   - Configured weekly automated dependency and GitHub Actions updates.
+5. **Added CodeQL Workflow (`.github/workflows/codeql.yml`)**:
+   - Automated CodeQL static application security testing (SAST) for Python on push, pull request, and weekly schedule.
+6. **Hardened GitHub Actions**:
+   - Enforced top-level `permissions: contents: read` across `tests.yml` and `build_wheels.yml`.
+
+
 # Thread Safety and Concurrency Optimization
 
 ## Problem Description
