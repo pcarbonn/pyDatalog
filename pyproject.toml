@@ -51,4 +51,4 @@ license-files = []
 [tool.cibuildwheel]
 skip = ["pp*", "cp38-*", "cp39-*"]
 build-verbosity = 1
-before-build = "pip install --upgrade pip setuptools wheel Cython"
+before-build = "python -m pip install --upgrade setuptools wheel Cython"
