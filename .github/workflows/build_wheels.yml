@@ -20,7 +20,7 @@ jobs:
     - name: Build SDist and Pure Wheel
       run: PYDATALOG_NO_C_EXT=1 pipx run build
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: cibuildwheel-sdist
         path: dist/*
@@ -38,7 +38,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.22.0
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cibuildwheel-wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
