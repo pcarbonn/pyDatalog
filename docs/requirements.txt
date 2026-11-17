@@ -1,2 +1,2 @@
 mkdocs-material>=9.5.0
-mkdocs-jupyter>=0.24.0
+mkdocs-jupyter>=0.26.3
